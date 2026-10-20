@@ -1,0 +1,22 @@
+[Unit]
+Description=Karma LAN central server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/pjt/karma_server
+ExecStart=/usr/bin/node %h/pjt/karma_server/server.mjs
+Environment=NODE_ENV=production
+Environment=KARMA_HOST=192.168.12.100
+Environment=KARMA_PORT=29020
+Environment=KARMA_HEALTH_PORT=29021
+Environment=KARMA_DATA_DIR=%h/pjt/karma_server/data
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+
+[Install]
+WantedBy=default.target

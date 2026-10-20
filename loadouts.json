@@ -1,0 +1,3410 @@
+{
+  "schemaVersion": 1,
+  "age": 0,
+  "status": "Evidence-backed data plus explicitly marked local design proposal",
+  "emptyId": 255,
+  "defaultInventory": [
+    50,
+    9,
+    1,
+    6,
+    48,
+    24,
+    18
+  ],
+  "defaultSelectedWeapon": 9,
+  "defaultInventoryCost": 1410,
+  "slots": [
+    {
+      "key": "utility",
+      "name": "관측 장비",
+      "allowedIds": [
+        50
+      ],
+      "defaultId": 50,
+      "optional": false,
+      "index": 0,
+      "source": "local-design-proposal"
+    },
+    {
+      "key": "primary",
+      "name": "주무기",
+      "allowedIds": [
+        3,
+        5,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "defaultId": 9,
+      "optional": false,
+      "index": 1,
+      "source": "local-design-proposal"
+    },
+    {
+      "key": "pistol",
+      "name": "보조무기",
+      "allowedIds": [
+        0,
+        1,
+        2
+      ],
+      "defaultId": 1,
+      "optional": true,
+      "index": 2,
+      "source": "local-design-proposal"
+    },
+    {
+      "key": "special",
+      "name": "특수무기",
+      "allowedIds": [
+        0,
+        4,
+        6,
+        20,
+        21,
+        22
+      ],
+      "defaultId": 6,
+      "optional": true,
+      "index": 3,
+      "source": "local-design-proposal"
+    },
+    {
+      "key": "armor",
+      "name": "방어 장비",
+      "allowedIds": [
+        48,
+        49
+      ],
+      "defaultId": 48,
+      "optional": true,
+      "index": 4,
+      "source": "local-design-proposal"
+    },
+    {
+      "key": "med",
+      "name": "회복 장비",
+      "allowedIds": [
+        23,
+        24
+      ],
+      "defaultId": 24,
+      "optional": true,
+      "index": 5,
+      "source": "local-design-proposal"
+    },
+    {
+      "key": "grenade",
+      "name": "수류탄",
+      "allowedIds": [
+        18,
+        19
+      ],
+      "defaultId": 18,
+      "optional": true,
+      "index": 6,
+      "source": "local-design-proposal"
+    }
+  ],
+  "weapons": [
+    {
+      "id": 0,
+      "catalogId": "0:0",
+      "age": 0,
+      "name": "나이프",
+      "enName": "Knife",
+      "inventoryCost": 95,
+      "category": "근접",
+      "thumbnail": "Data/MENU/Shop/wimage/apom_knife.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/knife.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "근거리",
+        "power": 50,
+        "fireRateLabel": null,
+        "sustainedFireAccuracyLabel": null,
+        "ammunitionDisplay": null,
+        "requiredAbility": 95,
+        "effect": null
+      },
+      "nativeDamageLookup": 50,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/knife.bmp",
+        "sha256": "fae33f81a9ee3967b2cd9dd5e9bcd691662b1ed8d45903c66b7abac7fed394d5",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 1,
+      "catalogId": "0:1",
+      "age": 0,
+      "name": "루가 P08",
+      "enName": "Luger P08",
+      "inventoryCost": 105,
+      "category": "권총",
+      "thumbnail": "Data/MENU/Shop/wimage/apop_lug.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/lugar.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "권총",
+        "power": 13,
+        "fireRateLabel": "하",
+        "sustainedFireAccuracyLabel": "상",
+        "ammunitionDisplay": "8/32",
+        "requiredAbility": 105,
+        "effect": null
+      },
+      "nativeDamageLookup": 13,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/lugar.bmp",
+        "sha256": "8d049d299fc927fcfac3fc6ad175741699e8a8131efefacedcddb95c1785d627",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 2,
+      "catalogId": "0:2",
+      "age": 0,
+      "name": "토카레프 TT33",
+      "enName": "Tokarev TT33",
+      "inventoryCost": 105,
+      "category": "권총",
+      "thumbnail": "Data/MENU/Shop/wimage/apeo_tt33.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/tt33.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "권총",
+        "power": 8,
+        "fireRateLabel": "하",
+        "sustainedFireAccuracyLabel": "상",
+        "ammunitionDisplay": "8/32",
+        "requiredAbility": 105,
+        "effect": null
+      },
+      "nativeDamageLookup": 9,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/tt33.bmp",
+        "sha256": "ff0959780ed9d2441242ca58084949ad336c1158134ed84758eca693f9ff95e1",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 3,
+      "catalogId": "0:3",
+      "age": 0,
+      "name": "Kar.98k 소총",
+      "enName": "Kar.98k",
+      "inventoryCost": 100,
+      "category": "소총",
+      "thumbnail": "Data/MENU/Shop/wimage/apop_kar.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/kar98.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "소총",
+        "power": 25,
+        "fireRateLabel": "하",
+        "sustainedFireAccuracyLabel": "상",
+        "ammunitionDisplay": "5/30",
+        "requiredAbility": 100,
+        "effect": null
+      },
+      "nativeDamageLookup": 25,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/kar98.bmp",
+        "sha256": "a825e55cb6e0dae8c7df03b1d40b900ac209d27e882dbe20fe081c1926b4f48d",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 4,
+      "catalogId": "0:4",
+      "age": 0,
+      "name": "Kar.98k 유탄",
+      "enName": "Kar.98k Grenade",
+      "inventoryCost": 400,
+      "category": "유탄",
+      "thumbnail": "Data/MENU/Shop/wimage/apor_uka.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/kar98u.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "유탄",
+        "power": 100,
+        "fireRateLabel": null,
+        "sustainedFireAccuracyLabel": null,
+        "ammunitionDisplay": "4",
+        "requiredAbility": 400,
+        "effect": null
+      },
+      "nativeDamageLookup": 40,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/kar98u.bmp",
+        "sha256": "893184a0e2aecd006adc01f8b1e1f4df355501e51da484f9614391f2415fbe53",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 5,
+      "catalogId": "0:5",
+      "age": 0,
+      "name": "Kar.98k 저격소총",
+      "enName": "Kar.98k Sniper",
+      "inventoryCost": 850,
+      "category": "저격소총",
+      "thumbnail": "Data/MENU/Shop/wimage/apos_sni.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/kar98sni.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "저격총",
+        "power": 100,
+        "fireRateLabel": null,
+        "sustainedFireAccuracyLabel": null,
+        "ammunitionDisplay": "5/30",
+        "requiredAbility": 850,
+        "effect": null
+      },
+      "nativeDamageLookup": 100,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/kar98sni.bmp",
+        "sha256": "1efe9b91d00d3561c8b75dd72dfeab2b54cbb96574d44e0214bba954f9e0b1bf",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 6,
+      "catalogId": "0:6",
+      "age": 0,
+      "name": "석궁",
+      "enName": "Crossbow",
+      "inventoryCost": 400,
+      "category": "석궁",
+      "thumbnail": "Data/MENU/Shop/wimage/apos_bow.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/crossbow.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "석궁",
+        "power": 70,
+        "fireRateLabel": null,
+        "sustainedFireAccuracyLabel": null,
+        "ammunitionDisplay": "6",
+        "requiredAbility": 400,
+        "effect": null
+      },
+      "nativeDamageLookup": 100,
+      "runtimeValidation": "LAN live firing verified",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/crossbow.bmp",
+        "sha256": "c5e228119bcefee2ba536fd734c1f23c6282bc3ec4acc3745db55b48c3232a43",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 7,
+      "catalogId": "0:7",
+      "age": 0,
+      "name": "M1891 소총",
+      "enName": "M1891",
+      "inventoryCost": 100,
+      "category": "소총",
+      "thumbnail": "Data/MENU/Shop/wimage/apeo_m189.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/m189.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "소총",
+        "power": 20,
+        "fireRateLabel": "하",
+        "sustainedFireAccuracyLabel": "상",
+        "ammunitionDisplay": "5/30",
+        "requiredAbility": 100,
+        "effect": null
+      },
+      "nativeDamageLookup": 21,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/m189.bmp",
+        "sha256": "cfc251d556a24a46c587f110f78a1efb55cc5b39f62fdb49d8ca4101ceecfc27",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 8,
+      "catalogId": "0:8",
+      "age": 0,
+      "name": "M1891 저격소총",
+      "enName": "M1891 Sniper",
+      "inventoryCost": 850,
+      "category": "저격소총",
+      "thumbnail": "Data/MENU/Shop/wimage/apeo_sni.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/m189sni.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "저격총",
+        "power": 100,
+        "fireRateLabel": null,
+        "sustainedFireAccuracyLabel": null,
+        "ammunitionDisplay": "5/30",
+        "requiredAbility": 850,
+        "effect": null
+      },
+      "nativeDamageLookup": 100,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/m189sni.bmp",
+        "sha256": "f2c1595fd3efe4055d653f62da76b2f3a6fc40c90a93a3af0532bd945d805bbd",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 9,
+      "catalogId": "0:9",
+      "age": 0,
+      "name": "MP38",
+      "enName": "MP38",
+      "inventoryCost": 555,
+      "category": "기관단총",
+      "thumbnail": "Data/MENU/Shop/wimage/apop_mp3.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/mp38.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "기관단총",
+        "power": 9,
+        "fireRateLabel": "상",
+        "sustainedFireAccuracyLabel": "상",
+        "ammunitionDisplay": "32/128",
+        "requiredAbility": 555,
+        "effect": null
+      },
+      "nativeDamageLookup": 9,
+      "runtimeValidation": "LAN live firing verified",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/mp38.bmp",
+        "sha256": "a10594cdbaa3df3350310fad01fd2dfcb04e29dbbfdb1c11383096d329acd0f9",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 10,
+      "catalogId": "0:10",
+      "age": 0,
+      "name": "FG42",
+      "enName": "FG42",
+      "inventoryCost": 800,
+      "category": "돌격소총",
+      "thumbnail": "Data/MENU/Shop/wimage/apop_fg42.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/fg42.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "기관단총",
+        "power": 30,
+        "fireRateLabel": "상",
+        "sustainedFireAccuracyLabel": "중",
+        "ammunitionDisplay": "20/80",
+        "requiredAbility": 800,
+        "effect": null
+      },
+      "nativeDamageLookup": 30,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/fg42.bmp",
+        "sha256": "4da649f1913b6fad062b2423305784f46c05d217e3520ebefc6181f31b2b30c5",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 11,
+      "catalogId": "0:11",
+      "age": 0,
+      "name": "FG42S",
+      "enName": "FG42S",
+      "inventoryCost": 800,
+      "category": "돌격소총",
+      "thumbnail": "Data/MENU/Shop/wimage/apop_fg42s.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/fg42_scope.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "기관단총",
+        "power": 30,
+        "fireRateLabel": "상",
+        "sustainedFireAccuracyLabel": "중",
+        "ammunitionDisplay": "20/80",
+        "requiredAbility": 800,
+        "effect": null
+      },
+      "nativeDamageLookup": 30,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/fg42_scope.bmp",
+        "sha256": "9091fda5f34eb1f5c6864f4aae647e9d12d3329c95113f10d7ff323f450c868c",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 12,
+      "catalogId": "0:12",
+      "age": 0,
+      "name": "STG44",
+      "enName": "STG44",
+      "inventoryCost": 800,
+      "category": "돌격소총",
+      "thumbnail": "Data/MENU/Shop/wimage/apop_stg44.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/stg44.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "기관단총",
+        "power": 25,
+        "fireRateLabel": "중",
+        "sustainedFireAccuracyLabel": "중",
+        "ammunitionDisplay": "30/90",
+        "requiredAbility": 800,
+        "effect": null
+      },
+      "nativeDamageLookup": 25,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/stg44.bmp",
+        "sha256": "d589829b15579032494836bfc60e6946faa9864b7a232b7763b285c89ff0e6e2",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 13,
+      "catalogId": "0:13",
+      "age": 0,
+      "name": "PPsh41",
+      "enName": "PPsh41",
+      "inventoryCost": 800,
+      "category": "기관단총",
+      "thumbnail": "Data/MENU/Shop/wimage/apeo_pp1.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/ppsh41.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "기관단총",
+        "power": 20,
+        "fireRateLabel": "상",
+        "sustainedFireAccuracyLabel": "중",
+        "ammunitionDisplay": "71/71",
+        "requiredAbility": 800,
+        "effect": null
+      },
+      "nativeDamageLookup": 20,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/ppsh41.bmp",
+        "sha256": "175ec99ef9e610dd8507f026e4a98fa401100f8153287f6ed08ff93147cc7a49",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 14,
+      "catalogId": "0:14",
+      "age": 0,
+      "name": "PPS43",
+      "enName": "PPS43",
+      "inventoryCost": 555,
+      "category": "기관단총",
+      "thumbnail": "Data/MENU/Shop/wimage/apeo_pp3.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/ppsh43.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "기관단총",
+        "power": 10,
+        "fireRateLabel": "상",
+        "sustainedFireAccuracyLabel": "상",
+        "ammunitionDisplay": "35/125",
+        "requiredAbility": 555,
+        "effect": null
+      },
+      "nativeDamageLookup": 11,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/ppsh43.bmp",
+        "sha256": "2c27bb06b5757e5d65eaf438d6a8c457fe8b44f4626c82bba5299ac9441383e4",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 15,
+      "catalogId": "0:15",
+      "age": 0,
+      "name": "Tommy Gun (M1928A1)",
+      "enName": "M1928A1",
+      "inventoryCost": 800,
+      "category": "기관단총",
+      "thumbnail": "Data/MENU/Shop/wimage/apeo_m19a.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/m19a1.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "기관단총",
+        "power": 15,
+        "fireRateLabel": "상",
+        "sustainedFireAccuracyLabel": "상",
+        "ammunitionDisplay": "30/90",
+        "requiredAbility": 800,
+        "effect": null
+      },
+      "nativeDamageLookup": 26,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/m19a1.bmp",
+        "sha256": "90dea0e41471e38e9b5f22acbe3142c109017c2dea74e6944b53980532d3a576",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 16,
+      "catalogId": "0:16",
+      "age": 0,
+      "name": "MG34",
+      "enName": "MG34",
+      "inventoryCost": 900,
+      "category": "기관총",
+      "thumbnail": "Data/MENU/Shop/wimage/apom_mg3.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/mg34.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "기관총",
+        "power": 35,
+        "fireRateLabel": "중",
+        "sustainedFireAccuracyLabel": "하",
+        "ammunitionDisplay": "75/75",
+        "requiredAbility": 900,
+        "effect": null
+      },
+      "nativeDamageLookup": 35,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/mg34.bmp",
+        "sha256": "a8b4c1868cc262ba09f35a2b93e9b959ed381e185f2f5a7950d186091dd1af83",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 17,
+      "catalogId": "0:17",
+      "age": 0,
+      "name": "데그챠레프 DP",
+      "enName": "Degtyarev DP",
+      "inventoryCost": 900,
+      "category": "기관총",
+      "thumbnail": "Data/MENU/Shop/wimage/apep_dpd.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/dp.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "기관총",
+        "power": 30,
+        "fireRateLabel": "중",
+        "sustainedFireAccuracyLabel": "하",
+        "ammunitionDisplay": "47/113",
+        "requiredAbility": 900,
+        "effect": null
+      },
+      "nativeDamageLookup": 31,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/dp.bmp",
+        "sha256": "00088bf1ca010edada0e0d3ac8643df0c701b137012a4ed2e8d614e6742a9b5a",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 18,
+      "catalogId": "0:18",
+      "age": 0,
+      "name": "수류탄",
+      "enName": "Grenade",
+      "inventoryCost": 100,
+      "category": "수류탄",
+      "thumbnail": "Data/MENU/Shop/wimage/apop_han.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/handgrate.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "수류탄",
+        "power": 100,
+        "fireRateLabel": null,
+        "sustainedFireAccuracyLabel": null,
+        "ammunitionDisplay": "3",
+        "requiredAbility": 100,
+        "effect": null
+      },
+      "nativeDamageLookup": 100,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/handgrate.bmp",
+        "sha256": "0c7df9945deb564a5b7420490a4674342064153602e131623ada9cf21d6b105e",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 19,
+      "catalogId": "0:19",
+      "age": 0,
+      "name": "RGD 수류탄",
+      "enName": "RGD Grenade",
+      "inventoryCost": 100,
+      "category": "수류탄",
+      "thumbnail": "Data/MENU/Shop/wimage/apeo_rgd.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/granade.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "수류탄",
+        "power": 100,
+        "fireRateLabel": null,
+        "sustainedFireAccuracyLabel": null,
+        "ammunitionDisplay": "3",
+        "requiredAbility": 100,
+        "effect": null
+      },
+      "nativeDamageLookup": 100,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/granade.bmp",
+        "sha256": "5a51cbff5068d9c5c668a1db1e86d8d3b0359792a13cf42ded6d20f5a731837d",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 20,
+      "catalogId": "0:20",
+      "age": 0,
+      "name": "화염방사기",
+      "enName": "Flamethrower",
+      "inventoryCost": 400,
+      "category": "화염방사기",
+      "thumbnail": "Data/MENU/Shop/wimage/apob_fir.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/flammer.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "화염",
+        "power": 20,
+        "fireRateLabel": "상",
+        "sustainedFireAccuracyLabel": "상",
+        "ammunitionDisplay": "500",
+        "requiredAbility": 400,
+        "effect": null
+      },
+      "nativeDamageLookup": 20,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/flammer.bmp",
+        "sha256": "6513c07e1185ae894aa68405af9240d147eb1622dfd38848da926e761e514a08",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 21,
+      "catalogId": "0:21",
+      "age": 0,
+      "name": "판져파우스트",
+      "enName": "Panzerfaust",
+      "inventoryCost": 400,
+      "category": "로켓",
+      "thumbnail": "Data/MENU/Shop/wimage/apom_paz.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/panzer.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "유탄",
+        "power": 100,
+        "fireRateLabel": null,
+        "sustainedFireAccuracyLabel": null,
+        "ammunitionDisplay": "3",
+        "requiredAbility": 400,
+        "effect": null
+      },
+      "nativeDamageLookup": 100,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/panzer.bmp",
+        "sha256": "e483f31918d8d5539a58611aa0d4b5c4fed8015892db1d31b294d0bfd8e7accd",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 22,
+      "catalogId": "0:22",
+      "age": 0,
+      "name": "바주카포",
+      "enName": "Bazooka",
+      "inventoryCost": 400,
+      "category": "로켓",
+      "thumbnail": "Data/MENU/Shop/wimage/apeo_m9.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/m9.bmp",
+      "isWeapon": true,
+      "selectableAsStartingWeapon": true,
+      "originalShopStats": {
+        "type": "유탄",
+        "power": 100,
+        "fireRateLabel": null,
+        "sustainedFireAccuracyLabel": null,
+        "ammunitionDisplay": "3",
+        "requiredAbility": 400,
+        "effect": null
+      },
+      "nativeDamageLookup": 100,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/m9.bmp",
+        "sha256": "c14f2ad36cbc8ce5e2747afaa73002fb5c24c47460dc1fba3df539da14b55c8c",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 23,
+      "catalogId": "0:23",
+      "age": 0,
+      "name": "구급약 (소)",
+      "enName": "Medical Kit Small",
+      "inventoryCost": 100,
+      "category": "장비",
+      "thumbnail": "Data/MENU/Shop/wimage/apom_d1.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/medickit1.bmp",
+      "isWeapon": false,
+      "selectableAsStartingWeapon": false,
+      "originalShopStats": {
+        "type": "고급약",
+        "power": null,
+        "fireRateLabel": null,
+        "sustainedFireAccuracyLabel": null,
+        "ammunitionDisplay": "1",
+        "requiredAbility": 100,
+        "effect": "회복 30 / 수량 1"
+      },
+      "nativeDamageLookup": 0,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/medickit1.bmp",
+        "sha256": "b68505c54335e660d0817dc6b10c7464377ed9b48fbe368835cf21a902458b35",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 24,
+      "catalogId": "0:24",
+      "age": 0,
+      "name": "구급약 (대)",
+      "enName": "Medical Kit Large",
+      "inventoryCost": 150,
+      "category": "장비",
+      "thumbnail": "Data/MENU/Shop/wimage/apom_d2.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/medickit2.bmp",
+      "isWeapon": false,
+      "selectableAsStartingWeapon": false,
+      "originalShopStats": {
+        "type": "고급약",
+        "power": null,
+        "fireRateLabel": null,
+        "sustainedFireAccuracyLabel": null,
+        "ammunitionDisplay": "1",
+        "requiredAbility": 150,
+        "effect": "회복 70 / 수량 1"
+      },
+      "nativeDamageLookup": 0,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/medickit2.bmp",
+        "sha256": "08457ad7814e15ee2a408a211f8290deb2a2c22e5f8306eb27f0b360263c1f09",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 48,
+      "catalogId": "0:48",
+      "age": 0,
+      "name": "방탄복",
+      "enName": "Armor Vest",
+      "inventoryCost": 50,
+      "category": "장비",
+      "thumbnail": "Data/MENU/Shop/wimage/apop_vest.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/protector.bmp",
+      "isWeapon": false,
+      "selectableAsStartingWeapon": false,
+      "originalShopStats": {
+        "type": "방탄복",
+        "power": null,
+        "fireRateLabel": null,
+        "sustainedFireAccuracyLabel": null,
+        "ammunitionDisplay": null,
+        "requiredAbility": 50,
+        "effect": "방어력 증가"
+      },
+      "nativeDamageLookup": 0,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/protector.bmp",
+        "sha256": "4aab520fa07b1ab0ebd4bb3338bf32213e79390952e0a6c91ea4bf1f8092f531",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 49,
+      "catalogId": "0:49",
+      "age": 0,
+      "name": "헬멧",
+      "enName": "Helmet",
+      "inventoryCost": 100,
+      "category": "장비",
+      "thumbnail": "Data/MENU/Shop/wimage/apop_helmet.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/helmet.bmp",
+      "isWeapon": false,
+      "selectableAsStartingWeapon": false,
+      "originalShopStats": {
+        "type": "방어헬멧",
+        "power": null,
+        "fireRateLabel": null,
+        "sustainedFireAccuracyLabel": null,
+        "ammunitionDisplay": null,
+        "requiredAbility": 100,
+        "effect": "머리 보호"
+      },
+      "nativeDamageLookup": 0,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/helmet.bmp",
+        "sha256": "9f2962c784dcfbc8981da9baaaa92a1c67cb4668263029c2c8426c2efc92c12b",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    },
+    {
+      "id": 50,
+      "catalogId": "0:50",
+      "age": 0,
+      "name": "쌍안경",
+      "enName": "Binoculars",
+      "inventoryCost": 50,
+      "category": "장비",
+      "thumbnail": "Data/MENU/Shop/wimage/apop_cular.jpg",
+      "infoImage": "Data/MENU/Shop/WeaponText/binocular.bmp",
+      "isWeapon": false,
+      "selectableAsStartingWeapon": false,
+      "originalShopStats": {
+        "type": "쌍안경",
+        "power": null,
+        "fireRateLabel": null,
+        "sustainedFireAccuracyLabel": null,
+        "ammunitionDisplay": null,
+        "requiredAbility": 50,
+        "effect": "2배 확대"
+      },
+      "nativeDamageLookup": 0,
+      "runtimeValidation": "Not individually verified in LAN",
+      "source": {
+        "path": "Data/MENU/Shop/WeaponText/binocular.bmp",
+        "sha256": "0c42188b0799c6fafcc3c4a6d31ed856a6c134e17a3f514e64c01f33b46536e3",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      }
+    }
+  ],
+  "characters": {
+    "cpom_050": {
+      "name": "에르빈",
+      "age": 0,
+      "camp": 0,
+      "characterIndex": 0,
+      "inventoryCapacity": 1550,
+      "inventoryBonus": 50,
+      "role": "scout",
+      "roleName": "기동형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          7,
+          9,
+          14
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          6
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": -6,
+        "agilityPercent": 3,
+        "ability": 1550
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpom_050.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpom_050.bmp",
+        "sha256": "491337cb6b4e64df07209689a8eebc7f31935593254b3af6d6bf1610aa6bdc9e",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpoo_030": {
+      "name": "칼",
+      "age": 0,
+      "camp": 0,
+      "characterIndex": 1,
+      "inventoryCapacity": 1550,
+      "inventoryBonus": 50,
+      "role": "balanced",
+      "roleName": "균형형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          5,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": -1,
+        "agilityPercent": 0,
+        "ability": 1550
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpoo_030.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpoo_030.bmp",
+        "sha256": "81f6dce8845686069f4f9cb0bdc34c408f3966e3e35659d798dceebb11a0434c",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpos_030": {
+      "name": "군터",
+      "age": 0,
+      "camp": 0,
+      "characterIndex": 2,
+      "inventoryCapacity": 1550,
+      "inventoryBonus": 50,
+      "role": "balanced",
+      "roleName": "균형형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          5,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": 2,
+        "agilityPercent": -2,
+        "ability": 1550
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpos_030.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpos_030.bmp",
+        "sha256": "344aed86fdd94ffcca3dc5231f7ff0d92b1f91bc886ebbfc0f4eeaac7f39ca94",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpom_010": {
+      "name": "니만트",
+      "age": 0,
+      "camp": 0,
+      "characterIndex": 3,
+      "inventoryCapacity": 1600,
+      "inventoryBonus": 100,
+      "role": "balanced",
+      "roleName": "균형형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          5,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": 1,
+        "agilityPercent": -1,
+        "ability": 1600
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpom_010.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpom_010.bmp",
+        "sha256": "2905b489d6cf6afab5435b6c05b49a3f0c415b0e931f5208dadcce9445963fca",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpom_020": {
+      "name": "구데리안",
+      "age": 0,
+      "camp": 0,
+      "characterIndex": 4,
+      "inventoryCapacity": 1650,
+      "inventoryBonus": 150,
+      "role": "support",
+      "roleName": "지원형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          7,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6,
+          20,
+          21,
+          22
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": 7,
+        "agilityPercent": -4,
+        "ability": 1650
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpom_020.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpom_020.bmp",
+        "sha256": "0332ec360f521685b2322fae906390f96a026ec74da32843a17b3b493a3d087a",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpom_040": {
+      "name": "발더스",
+      "age": 0,
+      "camp": 0,
+      "characterIndex": 5,
+      "inventoryCapacity": 1600,
+      "inventoryBonus": 100,
+      "role": "balanced",
+      "roleName": "균형형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          5,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": 1,
+        "agilityPercent": -1,
+        "ability": 1600
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpom_040.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpom_040.bmp",
+        "sha256": "7f7f8f80082331a3df1e1b0d26c31b6b5c09d3d9cae7db926668b8227adf6f2f",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpos_010": {
+      "name": "파렌할트",
+      "age": 0,
+      "camp": 0,
+      "characterIndex": 6,
+      "inventoryCapacity": 1650,
+      "inventoryBonus": 150,
+      "role": "balanced",
+      "roleName": "균형형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          5,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": 2,
+        "agilityPercent": -1,
+        "ability": 1650
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpos_010.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpos_010.bmp",
+        "sha256": "c785fe57ba3ecc7e3cbe3d95a1a592f375d542b1f991b58e9b89b87401cdf3db",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpos_021": {
+      "name": "슈나이더",
+      "age": 0,
+      "camp": 0,
+      "characterIndex": 7,
+      "inventoryCapacity": 1550,
+      "inventoryBonus": 50,
+      "role": "balanced",
+      "roleName": "균형형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          5,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": 1,
+        "agilityPercent": -1,
+        "ability": 1550
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpos_021.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpos_021.bmp",
+        "sha256": "7b374fb5ff84841b901e33d07c42494bea39ab1c325c2de43845e8915491df93",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpos_033": {
+      "name": "프란츠",
+      "age": 0,
+      "camp": 0,
+      "characterIndex": 8,
+      "inventoryCapacity": 1600,
+      "inventoryBonus": 100,
+      "role": "support",
+      "roleName": "지원형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          7,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6,
+          20,
+          21,
+          22
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": 5,
+        "agilityPercent": -5,
+        "ability": 1600
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpos_033.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpos_033.bmp",
+        "sha256": "0fe8e9447b43e3729d36d43b97fa4eed1a348f41141528f91c55676984c63d8d",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpos_040": {
+      "name": "칸",
+      "age": 0,
+      "camp": 0,
+      "characterIndex": 9,
+      "inventoryCapacity": 1650,
+      "inventoryBonus": 150,
+      "role": "support",
+      "roleName": "지원형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          7,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6,
+          20,
+          21,
+          22
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": 10,
+        "agilityPercent": -8,
+        "ability": 1650
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpos_040.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpos_040.bmp",
+        "sha256": "612b448920391cf6afffe30122855cd95aaa05d806a494e08a05e9f3cd5883cf",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpes_010": {
+      "name": "쥬코프",
+      "age": 0,
+      "camp": 1,
+      "characterIndex": 0,
+      "inventoryCapacity": 1600,
+      "inventoryBonus": 100,
+      "role": "balanced",
+      "roleName": "균형형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          5,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": 4,
+        "agilityPercent": -2,
+        "ability": 1600
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpes_010.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpes_010.bmp",
+        "sha256": "d2d93a51638eb68cf8c0b2b2f0327631a992617ac71907fcbdaad5606466968c",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpeo_010": {
+      "name": "이반",
+      "age": 0,
+      "camp": 1,
+      "characterIndex": 1,
+      "inventoryCapacity": 1550,
+      "inventoryBonus": 50,
+      "role": "balanced",
+      "roleName": "균형형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          5,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": -2,
+        "agilityPercent": 1,
+        "ability": 1550
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpeo_010.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpeo_010.bmp",
+        "sha256": "02d929b10d5e77a0943e62266af6d1778f49107dbaa309d43bb172b38adc78b6",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpes_050": {
+      "name": "류바",
+      "age": 0,
+      "camp": 1,
+      "characterIndex": 2,
+      "inventoryCapacity": 1500,
+      "inventoryBonus": 0,
+      "role": "scout",
+      "roleName": "기동형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          7,
+          9,
+          14
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          6
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": -8,
+        "agilityPercent": 4,
+        "ability": 1500
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpes_050.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpes_050.bmp",
+        "sha256": "effb0dea7b0ba84f3a59321bcc42652fd65a31fe8ef768fb3dab3515558409c9",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpes_020": {
+      "name": "피터",
+      "age": 0,
+      "camp": 1,
+      "characterIndex": 3,
+      "inventoryCapacity": 1550,
+      "inventoryBonus": 50,
+      "role": "balanced",
+      "roleName": "균형형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          5,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": -2,
+        "agilityPercent": 1,
+        "ability": 1550
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpes_020.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpes_020.bmp",
+        "sha256": "a0212f0bc412fc44cabf30c81517ecb5329828e2a569ad7b34c8ceb6073c3750",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpes_040": {
+      "name": "알렉산더",
+      "age": 0,
+      "camp": 1,
+      "characterIndex": 4,
+      "inventoryCapacity": 1650,
+      "inventoryBonus": 150,
+      "role": "balanced",
+      "roleName": "균형형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          5,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": 0,
+        "agilityPercent": 0,
+        "ability": 1650
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpes_040.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpes_040.bmp",
+        "sha256": "8aabd70ea55bcfb342204cc04332121ea28cc722d5e89a9fbce8f88e3cc2040c",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpeg_050": {
+      "name": "아이린",
+      "age": 0,
+      "camp": 1,
+      "characterIndex": 5,
+      "inventoryCapacity": 1600,
+      "inventoryBonus": 100,
+      "role": "balanced",
+      "roleName": "균형형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          5,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": -1,
+        "agilityPercent": 0,
+        "ability": 1600
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpeg_050.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpeg_050.bmp",
+        "sha256": "b857ca04541b74e91ec15c283c8f79a6adea3537d6f594679f299c734b5c5a23",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpep_010": {
+      "name": "로딘",
+      "age": 0,
+      "camp": 1,
+      "characterIndex": 6,
+      "inventoryCapacity": 1550,
+      "inventoryBonus": 50,
+      "role": "balanced",
+      "roleName": "균형형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          5,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": -2,
+        "agilityPercent": 1,
+        "ability": 1550
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpep_010.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpep_010.bmp",
+        "sha256": "f697af0948803b4435550aaf1b82131b2c10aa2de4f2c4e2bc6fb30c06cf7f48",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpep_020": {
+      "name": "쟈토프",
+      "age": 0,
+      "camp": 1,
+      "characterIndex": 7,
+      "inventoryCapacity": 1550,
+      "inventoryBonus": 50,
+      "role": "balanced",
+      "roleName": "균형형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          5,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": -1,
+        "agilityPercent": 0,
+        "ability": 1550
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpep_020.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpep_020.bmp",
+        "sha256": "e5686fef0a82f479dec36ad0b20bd9a2685cf1e1cee2071f69f89420074847a2",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cper_020": {
+      "name": "블라디미르",
+      "age": 0,
+      "camp": 1,
+      "characterIndex": 8,
+      "inventoryCapacity": 1600,
+      "inventoryBonus": 100,
+      "role": "support",
+      "roleName": "지원형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          7,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6,
+          20,
+          21,
+          22
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": 5,
+        "agilityPercent": -5,
+        "ability": 1600
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cper_020.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cper_020.bmp",
+        "sha256": "07da2d91c2309fb4e3570022bf5c99bee0172ed3aed59f9f5a34985d1ab7a6b9",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    },
+    "cpes_060": {
+      "name": "카스파로브",
+      "age": 0,
+      "camp": 1,
+      "characterIndex": 9,
+      "inventoryCapacity": 1650,
+      "inventoryBonus": 150,
+      "role": "support",
+      "roleName": "지원형",
+      "allowedIdsBySlot": {
+        "utility": [
+          50
+        ],
+        "primary": [
+          3,
+          7,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
+        "pistol": [
+          0,
+          1,
+          2
+        ],
+        "special": [
+          0,
+          4,
+          6,
+          20,
+          21,
+          22
+        ],
+        "armor": [
+          48,
+          49
+        ],
+        "med": [
+          23,
+          24
+        ],
+        "grenade": [
+          18,
+          19
+        ]
+      },
+      "originalStats": {
+        "defensePercent": 10,
+        "agilityPercent": -5,
+        "ability": 1650
+      },
+      "infoImage": "Data/MENU/Shop/charInfo/cpes_060.bmp",
+      "source": {
+        "path": "Data/MENU/Shop/charInfo/cpes_060.bmp",
+        "sha256": "18e0e66160b68645d3ffa1b2eb468d01619fc201e43b0ad010d36072d0bfa514",
+        "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+      },
+      "roleSource": "local-design-proposal"
+    }
+  },
+  "ranks": [
+    {
+      "id": "recruit",
+      "name": "훈련병",
+      "minXp": 0,
+      "budgetBonus": 0
+    },
+    {
+      "id": "private",
+      "name": "이병",
+      "minXp": 100,
+      "budgetBonus": 100
+    },
+    {
+      "id": "corporal",
+      "name": "상병",
+      "minXp": 300,
+      "budgetBonus": 200
+    },
+    {
+      "id": "sergeant",
+      "name": "병장",
+      "minXp": 600,
+      "budgetBonus": 300
+    },
+    {
+      "id": "lieutenant",
+      "name": "소위",
+      "minXp": 1000,
+      "budgetBonus": 400
+    }
+  ],
+  "rankSource": "local-design-proposal",
+  "budgetFormula": "character.inventoryCapacity + rank.budgetBonus",
+  "equivalentBudgetFormula": "1500 + character.inventoryBonus + rank.budgetBonus",
+  "roleRules": {
+    "scout": {
+      "name": "기동형",
+      "condition": "agilityPercent >= 3 or defensePercent <= -5",
+      "allowedIdsBySlot": {
+        "primary": [
+          3,
+          7,
+          9,
+          14
+        ],
+        "special": [
+          0,
+          6
+        ]
+      },
+      "rationale": "Fast original characters get light rifles/SMGs and crossbow; no machine guns, sniper rifles or launchers."
+    },
+    "balanced": {
+      "name": "균형형",
+      "condition": "remaining characters",
+      "allowedIdsBySlot": {
+        "primary": [
+          3,
+          5,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "special": [
+          0,
+          4,
+          6
+        ]
+      },
+      "rationale": "Broad rifle/SMG and sniper choice, without machine guns or standalone rocket launchers."
+    },
+    "support": {
+      "name": "지원형",
+      "condition": "defensePercent >= 5 and agilityPercent < 0, unless scout",
+      "allowedIdsBySlot": {
+        "primary": [
+          3,
+          7,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
+        "special": [
+          0,
+          4,
+          6,
+          20,
+          21,
+          22
+        ]
+      },
+      "rationale": "Slower, armored characters can carry machine guns or heavy specials; sniper rifles excluded."
+    }
+  },
+  "constraints": {
+    "duplicateItemIds": "reject non-empty duplicates",
+    "startingWeapon": "must occur in the selected inventory and selectableAsStartingWeapon must be true",
+    "optionalSlots": "255 means empty; costs zero",
+    "capacity": "sum(original requiredAbility of all non-empty items) <= original character ability + local rank bonus",
+    "rankStatBonuses": "none: ranks do not modify health, native damage, armor or movement",
+    "heavyCombination": {
+      "source": "local-design-proposal",
+      "rule": "Do not combine a machine-gun primary (16/17) with a launcher special (4/21/22).",
+      "primaryIds": [
+        16,
+        17
+      ],
+      "specialIds": [
+        4,
+        21,
+        22
+      ],
+      "maxCombined": 1
+    }
+  },
+  "evidence": {
+    "executable": {
+      "path": "Karma.exe",
+      "sha256": "aa824dda4d48c0304de3e9ab1c6012c542dc280eca93a6d507da9a21c4bbedab"
+    },
+    "itemIdMapping": {
+      "address": "0x486390",
+      "detail": "HUD item-ID/name arrays: past stack+0x78/+0x83c; future stack+0x48/+0xbc. Native Korean kill strings 0x537a00..0x537cd0."
+    },
+    "originalDefaultInventory": {
+      "address": "0x4205dc..0x420632",
+      "offset": "roster+0x12e",
+      "length": 7,
+      "past": [
+        50,
+        9,
+        6,
+        10,
+        48,
+        24,
+        18
+      ],
+      "future": [
+        null,
+        25,
+        35,
+        34,
+        49,
+        48,
+        51
+      ]
+    },
+    "damageLookup": {
+      "address": "0x46c320",
+      "jumpTable": "0x46c3d4",
+      "maxId": 40,
+      "outOfRangeResult": 0,
+      "meaning": "Raw lookup called by native hit processing; hit region, armor and explosion paths can alter final damage. This is not damage per trigger pull."
+    },
+    "costs": "Original shop bitmap label 필요능력치. Values unchanged. Original server-side spending enforcement has not been recovered.",
+    "characterStats": "Original charInfo bitmaps: 방어력, 민첩성, 능력치. Role labels and allowed lists are new local rules.",
+    "item50": {
+      "name": "쌍안경",
+      "originalFunction": "2배 확대",
+      "inventoryCost": 50,
+      "isWeapon": false,
+      "source": "Data/MENU/Shop/WeaponText/binocular.bmp",
+      "nativeEvidence": "0x461979..0x46198c gives IDs50/51 special handling (-1 model selector); 0x4619af..0x4619d1 excludes them from ordinary weapon-switch action. Optical utility identity is confirmed by the bitmap; actual 2x optical effect was not re-tested."
+    }
+  },
+  "uncertainties": [
+    "The seven-byte order is confirmed; original slot-specific item restrictions are not. UI slot labels and substitutions here are proposed local rules pending native runtime verification.",
+    "The original offline inventory puts crossbow6 and FG4210 in slots2/3. Changing slot2 to pistol1 is a new initial-loadout choice, not an original default.",
+    "Only MP38(9) and crossbow(6) have been individually verified in live LAN firing at the time of this document.",
+    "Shop power values sometimes differ from executable lookup. Show them as original shop display values, never as measured final damage.",
+    "Weapon points are exact shipped display values; role restrictions, ranks, XP thresholds, and rank budget bonuses are new local designs.",
+    "Future-age weapons and characters below are research appendix only and are excluded from this age0 UI proposal.",
+    "Fast characters' lower original capacity and heavy characters' larger capacity remain native individuality. Newly proposed role restrictions are untested balance choices, not a claim of equal combat strength."
+  ],
+  "futureResearch": {
+    "enabled": false,
+    "weapons": [
+      {
+        "id": 25,
+        "catalogId": "1:25",
+        "age": 1,
+        "name": "일렉트릭건",
+        "enName": "Electric Gun",
+        "inventoryCost": 120,
+        "category": "에너지 무기",
+        "thumbnail": "Data/MENU/Shop/wimage/dfok_eng.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/eg.bmp",
+        "isWeapon": true,
+        "selectableAsStartingWeapon": true,
+        "originalShopStats": {
+          "type": "근거리",
+          "power": 50,
+          "fireRateLabel": null,
+          "sustainedFireAccuracyLabel": null,
+          "ammunitionDisplay": null,
+          "requiredAbility": 120,
+          "effect": null
+        },
+        "nativeDamageLookup": 50,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/eg.bmp",
+          "sha256": "7e53033bc667295d907d6f2a23fa4211b096fda4d082f98067ed711ce503b58e",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 26,
+        "catalogId": "1:26",
+        "age": 1,
+        "name": "R-40 카리브건",
+        "enName": "R-40",
+        "inventoryCost": 720,
+        "category": "소총",
+        "thumbnail": "Data/MENU/Shop/wimage/afop_r400.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/r40.bmp",
+        "isWeapon": true,
+        "selectableAsStartingWeapon": true,
+        "originalShopStats": {
+          "type": "기관단총",
+          "power": 10,
+          "fireRateLabel": "상",
+          "sustainedFireAccuracyLabel": "상",
+          "ammunitionDisplay": "30/90",
+          "requiredAbility": 720,
+          "effect": null
+        },
+        "nativeDamageLookup": 12,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/r40.bmp",
+          "sha256": "d301871be0743308f193f871d7dee1a22790fb165476bccb466671a91f611188",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 27,
+        "catalogId": "1:27",
+        "age": 1,
+        "name": "R-48 네오카리브건",
+        "enName": "R-48",
+        "inventoryCost": 720,
+        "category": "소총",
+        "thumbnail": "Data/MENU/Shop/wimage/afop_r480.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/r48.bmp",
+        "isWeapon": true,
+        "selectableAsStartingWeapon": true,
+        "originalShopStats": {
+          "type": "기관단총",
+          "power": 15,
+          "fireRateLabel": "상",
+          "sustainedFireAccuracyLabel": "상",
+          "ammunitionDisplay": "30/90",
+          "requiredAbility": 720,
+          "effect": null
+        },
+        "nativeDamageLookup": 17,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/r48.bmp",
+          "sha256": "cef694cb3ef9d701a6cc2b02260050d4867d6aa6ab6b7edb2a2dd1b312653465",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 28,
+        "catalogId": "1:28",
+        "age": 1,
+        "name": "SG-22 스톰서지건",
+        "enName": "SG-22",
+        "inventoryCost": 270,
+        "category": "산탄총",
+        "thumbnail": "Data/MENU/Shop/wimage/afop_sg22.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/sg22.bmp",
+        "isWeapon": true,
+        "selectableAsStartingWeapon": true,
+        "originalShopStats": {
+          "type": "산탄총",
+          "power": "7x10",
+          "fireRateLabel": null,
+          "sustainedFireAccuracyLabel": null,
+          "ammunitionDisplay": "10/20",
+          "requiredAbility": 270,
+          "effect": null
+        },
+        "nativeDamageLookup": 8,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/sg22.bmp",
+          "sha256": "9cd35dd68d0e9996194b61db0ebba4467e3a82f4aec79a58c9ae7b3577d2e2b8",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 29,
+        "catalogId": "1:29",
+        "age": 1,
+        "name": "SG-05 크랙커건",
+        "enName": "SG-05",
+        "inventoryCost": 270,
+        "category": "산탄총",
+        "thumbnail": "Data/MENU/Shop/wimage/afeo_sg05.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/sg05.bmp",
+        "isWeapon": true,
+        "selectableAsStartingWeapon": true,
+        "originalShopStats": {
+          "type": "산탄총",
+          "power": "5x5",
+          "fireRateLabel": "중",
+          "sustainedFireAccuracyLabel": "하",
+          "ammunitionDisplay": "5/25",
+          "requiredAbility": 270,
+          "effect": null
+        },
+        "nativeDamageLookup": 6,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/sg05.bmp",
+          "sha256": "57093065042e1eb2cbecb852d01c35a9a900acf5be6aedc43387cf672726bb04",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 30,
+        "catalogId": "1:30",
+        "age": 1,
+        "name": "SG-38 캐터펄트건",
+        "enName": "SG-38",
+        "inventoryCost": 270,
+        "category": "산탄총",
+        "thumbnail": "Data/MENU/Shop/wimage/afeo_sg38.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/sg38.bmp",
+        "isWeapon": true,
+        "selectableAsStartingWeapon": true,
+        "originalShopStats": {
+          "type": "산탄총",
+          "power": "10x10",
+          "fireRateLabel": null,
+          "sustainedFireAccuracyLabel": null,
+          "ammunitionDisplay": "15/15",
+          "requiredAbility": 270,
+          "effect": null
+        },
+        "nativeDamageLookup": 10,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/sg38.bmp",
+          "sha256": "b06f5c4a93d3f16fa3ea26e732d3e184af0c1efa553f2258f9f6693c1d0d6e81",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 31,
+        "catalogId": "1:31",
+        "age": 1,
+        "name": "SN-34 샌드맨",
+        "enName": "SN-34",
+        "inventoryCost": 720,
+        "category": "저격소총",
+        "thumbnail": "Data/MENU/Shop/wimage/afos_sn34.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/sn34.bmp",
+        "isWeapon": true,
+        "selectableAsStartingWeapon": true,
+        "originalShopStats": {
+          "type": "저격총",
+          "power": 40,
+          "fireRateLabel": "중",
+          "sustainedFireAccuracyLabel": "중",
+          "ammunitionDisplay": "5/45",
+          "requiredAbility": 720,
+          "effect": null
+        },
+        "nativeDamageLookup": 50,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/sn34.bmp",
+          "sha256": "ecfa08b314768629d6a6d50de2cf1ab14872c2bf0c7609e6327cb02d411d8756",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 32,
+        "catalogId": "1:32",
+        "age": 1,
+        "name": "SN-39 슬리핑드러그",
+        "enName": "SN-39",
+        "inventoryCost": 720,
+        "category": "저격소총",
+        "thumbnail": "Data/MENU/Shop/wimage/afos_sn39.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/sn39.bmp",
+        "isWeapon": true,
+        "selectableAsStartingWeapon": true,
+        "originalShopStats": {
+          "type": "저격총",
+          "power": 30,
+          "fireRateLabel": "중",
+          "sustainedFireAccuracyLabel": "중",
+          "ammunitionDisplay": "10/40",
+          "requiredAbility": 720,
+          "effect": null
+        },
+        "nativeDamageLookup": 40,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/sn39.bmp",
+          "sha256": "8da0776baa4ad2c8d027e66cbedf31d61267d5e9d5ef47720b7560ab46a206e0",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 33,
+        "catalogId": "1:33",
+        "age": 1,
+        "name": "PMG-032 울프라이더",
+        "enName": "PMG-032",
+        "inventoryCost": 770,
+        "category": "기관총",
+        "thumbnail": "Data/MENU/Shop/wimage/afom_pmg0.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/pmg032.bmp",
+        "isWeapon": true,
+        "selectableAsStartingWeapon": true,
+        "originalShopStats": {
+          "type": "기관총",
+          "power": 30,
+          "fireRateLabel": "중",
+          "sustainedFireAccuracyLabel": "하",
+          "ammunitionDisplay": "100/100",
+          "requiredAbility": 770,
+          "effect": null
+        },
+        "nativeDamageLookup": 31,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/pmg032.bmp",
+          "sha256": "4e62e1f4d28657c4988b91a7c9abaf8cb185f631bac98b1eac6639d8901be098",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 34,
+        "catalogId": "1:34",
+        "age": 1,
+        "name": "SR-42 베어캣",
+        "enName": "SR-42",
+        "inventoryCost": 750,
+        "category": "소총",
+        "thumbnail": "Data/MENU/Shop/wimage/afer_sr42.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/sr42.bmp",
+        "isWeapon": true,
+        "selectableAsStartingWeapon": true,
+        "originalShopStats": {
+          "type": "기관총",
+          "power": 25,
+          "fireRateLabel": "중",
+          "sustainedFireAccuracyLabel": "중",
+          "ammunitionDisplay": "60/60",
+          "requiredAbility": 750,
+          "effect": null
+        },
+        "nativeDamageLookup": 25,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/sr42.bmp",
+          "sha256": "cde77d3882efa3bed6dab656f321927eea663f410947e27c70d3b85d8df91237",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 35,
+        "catalogId": "1:35",
+        "age": 1,
+        "name": "MCG-058 스팀히터",
+        "enName": "MCG-058",
+        "inventoryCost": 670,
+        "category": "기관총",
+        "thumbnail": "Data/MENU/Shop/wimage/afpm_mcg058.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/mcgchain.bmp",
+        "isWeapon": true,
+        "selectableAsStartingWeapon": true,
+        "originalShopStats": {
+          "type": "체인건",
+          "power": 30,
+          "fireRateLabel": "최상",
+          "sustainedFireAccuracyLabel": "하",
+          "ammunitionDisplay": "120/120",
+          "requiredAbility": 670,
+          "effect": null
+        },
+        "nativeDamageLookup": 30,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/mcgchain.bmp",
+          "sha256": "7b2b1705d88afbd3064d2492df9425e4335584e86651356ccaf6c9e88a2e4319",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 36,
+        "catalogId": "1:36",
+        "age": 1,
+        "name": "PMG-028 글럼인스펙터",
+        "enName": "PMG-028",
+        "inventoryCost": 770,
+        "category": "기관총",
+        "thumbnail": "Data/MENU/Shop/wimage/afom_pmg028.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/pmg028.bmp",
+        "isWeapon": true,
+        "selectableAsStartingWeapon": true,
+        "originalShopStats": {
+          "type": "기관총",
+          "power": 32,
+          "fireRateLabel": "중",
+          "sustainedFireAccuracyLabel": "하",
+          "ammunitionDisplay": "70/230",
+          "requiredAbility": 770,
+          "effect": null
+        },
+        "nativeDamageLookup": 33,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/pmg028.bmp",
+          "sha256": "ebe2e076b8cd6d0a954d398ee02615c7d046c779e542b564bf40d67902573b4b",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 37,
+        "catalogId": "1:37",
+        "age": 1,
+        "name": "MRM-066 자기부상지뢰",
+        "enName": "MRM-066",
+        "inventoryCost": 140,
+        "category": "지뢰",
+        "thumbnail": "Data/MENU/Shop/wimage/afob_min.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/mrm.bmp",
+        "isWeapon": true,
+        "selectableAsStartingWeapon": true,
+        "originalShopStats": {
+          "type": "자기지뢰",
+          "power": 50,
+          "fireRateLabel": null,
+          "sustainedFireAccuracyLabel": null,
+          "ammunitionDisplay": "3",
+          "requiredAbility": 140,
+          "effect": null
+        },
+        "nativeDamageLookup": 50,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/mrm.bmp",
+          "sha256": "22ceb8744e29b4facb80abcb126b9b00f99309991ba568580892d9869d1b8f35",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 38,
+        "catalogId": "1:38",
+        "age": 1,
+        "name": "IHG-020 수류탄",
+        "enName": "IHG-020",
+        "inventoryCost": 120,
+        "category": "수류탄",
+        "thumbnail": "Data/MENU/Shop/wimage/afpb_gren.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/ihg.bmp",
+        "isWeapon": true,
+        "selectableAsStartingWeapon": true,
+        "originalShopStats": {
+          "type": "수류탄",
+          "power": 100,
+          "fireRateLabel": null,
+          "sustainedFireAccuracyLabel": null,
+          "ammunitionDisplay": "3",
+          "requiredAbility": 120,
+          "effect": null
+        },
+        "nativeDamageLookup": 100,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/ihg.bmp",
+          "sha256": "9433661a74d48453df159f87b9ea2e18d1921b0c163ffd9d4d0fce013f3fb1f4",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 39,
+        "catalogId": "1:39",
+        "age": 1,
+        "name": "EIRG-110 로켓",
+        "enName": "EIRG-110",
+        "inventoryCost": 700,
+        "category": "로켓",
+        "thumbnail": "Data/MENU/Shop/wimage/afpm_eirg.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/eirg110.bmp",
+        "isWeapon": true,
+        "selectableAsStartingWeapon": true,
+        "originalShopStats": {
+          "type": null,
+          "power": 100,
+          "fireRateLabel": null,
+          "sustainedFireAccuracyLabel": null,
+          "ammunitionDisplay": "13",
+          "requiredAbility": 700,
+          "effect": null
+        },
+        "nativeDamageLookup": 100,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/eirg110.bmp",
+          "sha256": "c8f6f6bab56ed8afb3b95ac503098484860813a1029a1d647f1df8364cebf1b2",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "uncertainties": [
+          "Original type label not transcribed confidently; preserved as null."
+        ]
+      },
+      {
+        "id": 40,
+        "catalogId": "1:40",
+        "age": 1,
+        "name": "LFG-045 에피센터",
+        "enName": "LFG-045",
+        "inventoryCost": 770,
+        "category": "중화기",
+        "thumbnail": "Data/MENU/Shop/wimage/afom_lfg045.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/lfg.bmp",
+        "isWeapon": true,
+        "selectableAsStartingWeapon": true,
+        "originalShopStats": {
+          "type": "로켓포",
+          "power": 100,
+          "fireRateLabel": null,
+          "sustainedFireAccuracyLabel": null,
+          "ammunitionDisplay": "3",
+          "requiredAbility": 770,
+          "effect": null
+        },
+        "nativeDamageLookup": 100,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/lfg.bmp",
+          "sha256": "497f010fc2aa275d6dc3551b24ca6ab85ca38042c9587140bc62d610d0591071",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 41,
+        "catalogId": "1:41",
+        "age": 1,
+        "name": "구급약 MK1",
+        "enName": "MK1",
+        "inventoryCost": 220,
+        "category": "장비",
+        "thumbnail": "Data/MENU/Shop/wimage/dfop_mk1.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/mk1.bmp",
+        "isWeapon": false,
+        "selectableAsStartingWeapon": false,
+        "originalShopStats": {
+          "type": "에너지",
+          "power": null,
+          "fireRateLabel": null,
+          "sustainedFireAccuracyLabel": null,
+          "ammunitionDisplay": "2",
+          "requiredAbility": 220,
+          "effect": "회복 70 / 수량 2"
+        },
+        "nativeDamageLookup": 0,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/mk1.bmp",
+          "sha256": "551b1f6e86cd5ce383befa29a9f76cb2a0bef8c099030422b70901f13e952f36",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 48,
+        "catalogId": "1:48",
+        "age": 1,
+        "name": "방탄복",
+        "enName": "Armor Vest",
+        "inventoryCost": 50,
+        "category": "장비",
+        "thumbnail": "Data/MENU/Shop/wimage/dfop_vest.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/protector.bmp",
+        "isWeapon": false,
+        "selectableAsStartingWeapon": false,
+        "originalShopStats": {
+          "type": "방탄복",
+          "power": null,
+          "fireRateLabel": null,
+          "sustainedFireAccuracyLabel": null,
+          "ammunitionDisplay": null,
+          "requiredAbility": 50,
+          "effect": "방어력 증가"
+        },
+        "nativeDamageLookup": 0,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/protector.bmp",
+          "sha256": "4aab520fa07b1ab0ebd4bb3338bf32213e79390952e0a6c91ea4bf1f8092f531",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 49,
+        "catalogId": "1:49",
+        "age": 1,
+        "name": "헬멧",
+        "enName": "Helmet",
+        "inventoryCost": 100,
+        "category": "장비",
+        "thumbnail": "Data/MENU/Shop/wimage/afop_helmet.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/helmet.bmp",
+        "isWeapon": false,
+        "selectableAsStartingWeapon": false,
+        "originalShopStats": {
+          "type": "방어헬멧",
+          "power": null,
+          "fireRateLabel": null,
+          "sustainedFireAccuracyLabel": null,
+          "ammunitionDisplay": null,
+          "requiredAbility": 100,
+          "effect": "머리 보호"
+        },
+        "nativeDamageLookup": 0,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/helmet.bmp",
+          "sha256": "9f2962c784dcfbc8981da9baaaa92a1c67cb4668263029c2c8426c2efc92c12b",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      },
+      {
+        "id": 51,
+        "catalogId": "1:51",
+        "age": 1,
+        "name": "야간 투시경",
+        "enName": "Night Vision",
+        "inventoryCost": 50,
+        "category": "장비",
+        "thumbnail": "Data/MENU/Shop/wimage/dfop_cular.jpg",
+        "infoImage": "Data/MENU/Shop/WeaponText/nightvision.bmp",
+        "isWeapon": false,
+        "selectableAsStartingWeapon": false,
+        "originalShopStats": {
+          "type": "자외선탐색",
+          "power": null,
+          "fireRateLabel": null,
+          "sustainedFireAccuracyLabel": null,
+          "ammunitionDisplay": null,
+          "requiredAbility": 50,
+          "effect": "야간 탐색용"
+        },
+        "nativeDamageLookup": 0,
+        "runtimeValidation": "Not individually verified in LAN",
+        "source": {
+          "path": "Data/MENU/Shop/WeaponText/nightvision.bmp",
+          "sha256": "a55d13a27a0e6fa0d739c4d3721e7b7ebc0eab663af8a586bee6d0c5533446f1",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        }
+      }
+    ],
+    "characters": {
+      "cfom_040": {
+        "name": "NO.13",
+        "age": 1,
+        "camp": 0,
+        "characterIndex": 0,
+        "inventoryCapacity": 1550,
+        "inventoryBonus": 50,
+        "role": "support",
+        "roleName": "지원형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": 7,
+          "agilityPercent": -7,
+          "ability": 1550
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfom_040.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfom_040.bmp",
+          "sha256": "8372cff3d6a3a6c6bdb43bfb7425d2c809acae0a4d11eb8d8ac0b749d985e65d",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfos_030": {
+        "name": "NO.7",
+        "age": 1,
+        "camp": 0,
+        "characterIndex": 1,
+        "inventoryCapacity": 1550,
+        "inventoryBonus": 50,
+        "role": "scout",
+        "roleName": "기동형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": -7,
+          "agilityPercent": 7,
+          "ability": 1550
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfos_030.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfos_030.bmp",
+          "sha256": "7331ab22d12c72132aebc0739598963591e1a68a73b356751ab17b2cfa58edf7",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfos_120": {
+        "name": "NO.44",
+        "age": 1,
+        "camp": 0,
+        "characterIndex": 2,
+        "inventoryCapacity": 1650,
+        "inventoryBonus": 150,
+        "role": "support",
+        "roleName": "지원형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": 15,
+          "agilityPercent": -7,
+          "ability": 1650
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfos_120.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfos_120.bmp",
+          "sha256": "3f0ce46eb3ee0335f9b3605efb6753c86950ec7fe0dd92dc401b276bdd7cbe14",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfoa_030": {
+        "name": "NO.9",
+        "age": 1,
+        "camp": 0,
+        "characterIndex": 3,
+        "inventoryCapacity": 1550,
+        "inventoryBonus": 50,
+        "role": "scout",
+        "roleName": "기동형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": -7,
+          "agilityPercent": 4,
+          "ability": 1550
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfoa_030.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfoa_030.bmp",
+          "sha256": "66d133cbdf2af4dc8e68ea36e1a335b3dd7085a18de08f0bc93bfc3be0ec81ba",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfom_020": {
+        "name": "불맨",
+        "age": 1,
+        "camp": 0,
+        "characterIndex": 4,
+        "inventoryCapacity": 1650,
+        "inventoryBonus": 150,
+        "role": "support",
+        "roleName": "지원형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": 13,
+          "agilityPercent": -7,
+          "ability": 1650
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfom_020.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfom_020.bmp",
+          "sha256": "d1e312ab6ce2964f59f5b19d883c46298b08a77fb4d23005636234dc2bb52348",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfoo_010": {
+        "name": "가드 파이퍼",
+        "age": 1,
+        "camp": 0,
+        "characterIndex": 5,
+        "inventoryCapacity": 1600,
+        "inventoryBonus": 100,
+        "role": "balanced",
+        "roleName": "균형형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": 1,
+          "agilityPercent": -1,
+          "ability": 1600
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfoo_010.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfoo_010.bmp",
+          "sha256": "3984ac8c04ffc4936b07aa502ae67d5e3f529d2ae873eaf05ab1c874102dbde9",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfoo_020": {
+        "name": "한스",
+        "age": 1,
+        "camp": 0,
+        "characterIndex": 6,
+        "inventoryCapacity": 1600,
+        "inventoryBonus": 100,
+        "role": "balanced",
+        "roleName": "균형형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": -1,
+          "agilityPercent": 1,
+          "ability": 1600
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfoo_020.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfoo_020.bmp",
+          "sha256": "ac201bce8262cc8411b9c293a8fab0b1de9403d5fcd9ba4c1e04993119ce2d69",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfos_040": {
+        "name": "조나단",
+        "age": 1,
+        "camp": 0,
+        "characterIndex": 7,
+        "inventoryCapacity": 1600,
+        "inventoryBonus": 100,
+        "role": "scout",
+        "roleName": "기동형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": -5,
+          "agilityPercent": 3,
+          "ability": 1600
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfos_040.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfos_040.bmp",
+          "sha256": "accd3b598b953bfedb03e833cb0da0963f72779bb3f304b2b3f9ddb3feb7d2fb",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfos_100": {
+        "name": "리키",
+        "age": 1,
+        "camp": 0,
+        "characterIndex": 8,
+        "inventoryCapacity": 1650,
+        "inventoryBonus": 150,
+        "role": "support",
+        "roleName": "지원형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": 5,
+          "agilityPercent": -5,
+          "ability": 1650
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfos_100.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfos_100.bmp",
+          "sha256": "52ef18bc9a64a048eb7a3b6678626ad6d0a8d08f68917e49f3d5697b524c1032",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfos_130": {
+        "name": "맥나이트",
+        "age": 1,
+        "camp": 0,
+        "characterIndex": 9,
+        "inventoryCapacity": 1650,
+        "inventoryBonus": 150,
+        "role": "support",
+        "roleName": "지원형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": 5,
+          "agilityPercent": -5,
+          "ability": 1650
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfos_130.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfos_130.bmp",
+          "sha256": "3050b07053b13013690df5c0d835eb9f8b509668a57ab81b5d4e7c3804e1dad3",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfee_011": {
+        "name": "슐츠",
+        "age": 1,
+        "camp": 1,
+        "characterIndex": 0,
+        "inventoryCapacity": 1600,
+        "inventoryBonus": 100,
+        "role": "support",
+        "roleName": "지원형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": 8,
+          "agilityPercent": -4,
+          "ability": 1600
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfee_011.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfee_011.bmp",
+          "sha256": "fe192f52ae35b944fa7066a1f26a0e9da976a78c0ad259b3074f4d1d32b144f5",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfeg_010": {
+        "name": "마이클",
+        "age": 1,
+        "camp": 1,
+        "characterIndex": 1,
+        "inventoryCapacity": 1600,
+        "inventoryBonus": 100,
+        "role": "support",
+        "roleName": "지원형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": 9,
+          "agilityPercent": -4,
+          "ability": 1600
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfeg_010.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfeg_010.bmp",
+          "sha256": "b1eb1787c9459dcd22b456deabd04dc62f7e3b500d24d47157ce7bf21512b8d0",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfes_011": {
+        "name": "썬더",
+        "age": 1,
+        "camp": 1,
+        "characterIndex": 2,
+        "inventoryCapacity": 1600,
+        "inventoryBonus": 100,
+        "role": "support",
+        "roleName": "지원형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": 7,
+          "agilityPercent": -3.5,
+          "ability": 1600
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfes_011.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfes_011.bmp",
+          "sha256": "f48c0e0458a967de7a8b0191313f9b529c3c6de7f1be62e1c287c2ca92bf3e6a",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfeg_020": {
+        "name": "미하일",
+        "age": 1,
+        "camp": 1,
+        "characterIndex": 3,
+        "inventoryCapacity": 1650,
+        "inventoryBonus": 150,
+        "role": "support",
+        "roleName": "지원형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": 10,
+          "agilityPercent": -5,
+          "ability": 1650
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfeg_020.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfeg_020.bmp",
+          "sha256": "95031fb2ebeebb94e7148917672a1ade964ff78b61764282ac183f165879258a",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfee_010": {
+        "name": "윌리엄",
+        "age": 1,
+        "camp": 1,
+        "characterIndex": 4,
+        "inventoryCapacity": 1600,
+        "inventoryBonus": 100,
+        "role": "scout",
+        "roleName": "기동형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": -6,
+          "agilityPercent": 3,
+          "ability": 1600
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfee_010.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfee_010.bmp",
+          "sha256": "6536ee4386aa598e1e48bce2bdc019152c6dea37152c2c1d913c72cde9a5f821",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfen_020": {
+        "name": "류바",
+        "age": 1,
+        "camp": 1,
+        "characterIndex": 5,
+        "inventoryCapacity": 1550,
+        "inventoryBonus": 50,
+        "role": "scout",
+        "roleName": "기동형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": -8,
+          "agilityPercent": 4,
+          "ability": 1550
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfen_020.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfen_020.bmp",
+          "sha256": "c9740ff6c2c22e7cce0edf1484049602d1153b8cb702521f14abbafe2dab4ce1",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfoe_041": {
+        "name": "웨인",
+        "age": 1,
+        "camp": 1,
+        "characterIndex": 6,
+        "inventoryCapacity": 1600,
+        "inventoryBonus": 100,
+        "role": "balanced",
+        "roleName": "균형형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": -1,
+          "agilityPercent": 0,
+          "ability": 1600
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfoe_041.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfoe_041.bmp",
+          "sha256": "e552881965f65b5baecdf1c096518ba0f7df0c569f11bc1d1fd944dd93aa9c28",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfoe_043": {
+        "name": "빅터",
+        "age": 1,
+        "camp": 1,
+        "characterIndex": 7,
+        "inventoryCapacity": 1650,
+        "inventoryBonus": 150,
+        "role": "balanced",
+        "roleName": "균형형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": 1,
+          "agilityPercent": -1,
+          "ability": 1650
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfoe_043.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfoe_043.bmp",
+          "sha256": "8d4cafa5d1dbc15b298de56a24dd99d781b1635f824b8cb60499ea8df9851133",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfee_020": {
+        "name": "첼시",
+        "age": 1,
+        "camp": 1,
+        "characterIndex": 8,
+        "inventoryCapacity": 1650,
+        "inventoryBonus": 150,
+        "role": "scout",
+        "roleName": "기동형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": -5,
+          "agilityPercent": 10,
+          "ability": 1650
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfee_020.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfee_020.bmp",
+          "sha256": "0e042b5b033c195a5fe9cf47c5511058fe62271922273a87a11dd026475ca440",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      },
+      "cfer_000": {
+        "name": "DR.아힘사",
+        "age": 1,
+        "camp": 1,
+        "characterIndex": 9,
+        "inventoryCapacity": 1650,
+        "inventoryBonus": 150,
+        "role": "support",
+        "roleName": "지원형",
+        "allowedIdsBySlot": null,
+        "originalStats": {
+          "defensePercent": 12,
+          "agilityPercent": -9,
+          "ability": 1650
+        },
+        "infoImage": "Data/MENU/Shop/charInfo/cfer_000.bmp",
+        "source": {
+          "path": "Data/MENU/Shop/charInfo/cfer_000.bmp",
+          "sha256": "0b621566a22809971512643f75adcb2bc3f4aa274242b446c17595d56f73c4eb",
+          "evidence": "Shipped Korean shop info bitmap, visually transcribed"
+        },
+        "roleSource": "local-design-proposal"
+      }
+    }
+  }
+}

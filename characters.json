@@ -1,0 +1,142 @@
+[
+  {
+    "id": "cpom_050",
+    "age": 0,
+    "camp": 0,
+    "characterIndex": 0,
+    "model": "Data/Being/Past/cpom_050/Cpom_050.chr"
+  },
+  {
+    "id": "cpoo_030",
+    "age": 0,
+    "camp": 0,
+    "characterIndex": 1,
+    "model": "Data/Being/Past/cpoo_030/CPOO_030.chr"
+  },
+  {
+    "id": "cpos_030",
+    "age": 0,
+    "camp": 0,
+    "characterIndex": 2,
+    "model": "Data/Being/Past/cpos_030/Cpos_030.chr"
+  },
+  {
+    "id": "cpom_010",
+    "age": 0,
+    "camp": 0,
+    "characterIndex": 3,
+    "model": "Data/Being/Past/cpom_010/cpom_010.chr"
+  },
+  {
+    "id": "cpom_020",
+    "age": 0,
+    "camp": 0,
+    "characterIndex": 4,
+    "model": "Data/Being/Past/cpom_020/cpom_020.chr"
+  },
+  {
+    "id": "cpom_040",
+    "age": 0,
+    "camp": 0,
+    "characterIndex": 5,
+    "model": "Data/Being/Past/cpom_040/cpom_040.chr"
+  },
+  {
+    "id": "cpos_010",
+    "age": 0,
+    "camp": 0,
+    "characterIndex": 6,
+    "model": "Data/Being/Past/cpos_010/cpos_010.chr"
+  },
+  {
+    "id": "cpos_021",
+    "age": 0,
+    "camp": 0,
+    "characterIndex": 7,
+    "model": "Data/Being/Past/cpos_021/cpos_021.chr"
+  },
+  {
+    "id": "cpos_033",
+    "age": 0,
+    "camp": 0,
+    "characterIndex": 8,
+    "model": "Data/Being/Past/cpos_033/cpos_033.chr"
+  },
+  {
+    "id": "cpos_040",
+    "age": 0,
+    "camp": 0,
+    "characterIndex": 9,
+    "model": "Data/Being/Past/cpos_040/cpos_040.chr"
+  },
+  {
+    "id": "cpes_010",
+    "age": 0,
+    "camp": 1,
+    "characterIndex": 0,
+    "model": "Data/Being/Past/cpes_010/Cpes_010.chr"
+  },
+  {
+    "id": "cpeo_010",
+    "age": 0,
+    "camp": 1,
+    "characterIndex": 1,
+    "model": "Data/Being/Past/cpeo_010/CPEO_010.chr"
+  },
+  {
+    "id": "cpes_050",
+    "age": 0,
+    "camp": 1,
+    "characterIndex": 2,
+    "model": "Data/Being/Past/cpes_050/CPES_050.chr"
+  },
+  {
+    "id": "cpes_020",
+    "age": 0,
+    "camp": 1,
+    "characterIndex": 3,
+    "model": "Data/Being/Past/cpes_020/cpes_020.chr"
+  },
+  {
+    "id": "cpes_040",
+    "age": 0,
+    "camp": 1,
+    "characterIndex": 4,
+    "model": "Data/Being/Past/cpes_040/cpes_040.chr"
+  },
+  {
+    "id": "cpeg_050",
+    "age": 0,
+    "camp": 1,
+    "characterIndex": 5,
+    "model": "Data/Being/Past/cpeg_050/cpeg_050.chr"
+  },
+  {
+    "id": "cpep_010",
+    "age": 0,
+    "camp": 1,
+    "characterIndex": 6,
+    "model": "Data/Being/Past/cpep_010/cpep_010.chr"
+  },
+  {
+    "id": "cpep_020",
+    "age": 0,
+    "camp": 1,
+    "characterIndex": 7,
+    "model": "Data/Being/Past/cpep_020/cpep_020.chr"
+  },
+  {
+    "id": "cper_020",
+    "age": 0,
+    "camp": 1,
+    "characterIndex": 8,
+    "model": "Data/Being/Past/cper_020/cper_020.chr"
+  },
+  {
+    "id": "cpes_060",
+    "age": 0,
+    "camp": 1,
+    "characterIndex": 9,
+    "model": "Data/Being/Past/cpes_060/cpes_060.chr"
+  }
+]
