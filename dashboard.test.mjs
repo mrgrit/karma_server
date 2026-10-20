@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
-const root='work/karma-server/';
+import {fileURLToPath} from 'node:url';
+const root=fileURLToPath(new URL('./',import.meta.url));
 const html=fs.readFileSync(root+'public/index.html','utf8');
 const js=fs.readFileSync(root+'public/app.js','utf8');
 const css=fs.readFileSync(root+'public/style.css','utf8');
