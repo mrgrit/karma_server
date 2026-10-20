@@ -11,6 +11,10 @@ Environment=KARMA_HOST=192.168.12.100
 Environment=KARMA_PORT=29020
 Environment=KARMA_HEALTH_PORT=29021
 Environment=KARMA_DATA_DIR=%h/pjt/karma_server/data
+Environment=EMAIL_VERIFICATION=off
+Environment=TLS_CERT=%h/pjt/karma_server/data/certs/server-cert.pem
+Environment=TLS_KEY=%h/pjt/karma_server/data/certs/server-key.pem
+EnvironmentFile=-%h/pjt/karma_server/data/server.env
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=10

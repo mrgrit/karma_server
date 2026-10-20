@@ -1,6 +1,6 @@
 # Karma LAN 중앙 서버
 
-같은 LAN에서 실행하는 Karma290 클라이언트의 방 관리, 메시지 전달, 계급·경험치·출전 장비 저장, 무기 습득 소유권을 담당합니다. Node.js 20 이상과 기본 모듈만 사용합니다. `npm install`은 필요하지 않습니다.
+같은 LAN에서 실행하는 Karma290 클라이언트의 계정, 방 관리, 메시지 전달, 계급·경험치·전적·출전 장비 저장, 무기 습득 소유권을 담당합니다. Node.js 20 이상이 필요합니다. 이메일 전송 라이브러리 Nodemailer 버전을 lockfile에 고정하며 그 밖의 서버 기능은 Node 기본 모듈을 사용합니다.
 
 현재 원본 게임 클라이언트는 **2인 대전**을 지원합니다. 서버의 방 배분과 메시지 전달은 최대 20개 방, 방당 8명까지 모의 클라이언트로 검사합니다. 이 검사는 원본 클라이언트의 4대4 게임 동작을 의미하지 않습니다.
 
@@ -8,10 +8,12 @@
 
 ```sh
 cd /home/ccc/pjt/karma_server
-node server.test.mjs
-KARMA_HOST=192.168.12.100 node server.mjs
-curl http://192.168.12.100:29021/health
+npm ci --omit=dev
+npm test
+EMAIL_VERIFICATION=off KARMA_HOST=192.168.12.100 node server.mjs
 ```
+
+실제 배포는 `TLS_CERT`와 `TLS_KEY`를 설정해 TCP29020과 웹29021 모두 TLS로 실행합니다. 클라이언트에는 공개 인증서만 배포하고 CA 검증을 유지합니다. `rejectUnauthorized:false`를 사용하지 않습니다. 인증서에 `192.168.12.100` IP SAN이 있으면 `curl --cacert data/certs/server-cert.pem https://192.168.12.100:29021/health`로 확인할 수 있습니다.
 
 설정은 환경변수입니다.
 
@@ -22,10 +24,16 @@ curl http://192.168.12.100:29021/health
 | `KARMA_HEALTH_HOST` | `KARMA_HOST` | 상태 HTTP 수신 주소 |
 | `KARMA_HEALTH_PORT` | `29021` | 상태 HTTP 포트 |
 | `KARMA_DATA_DIR` | 서버 폴더의 `data` | 저장 데이터 디렉터리 |
+| `EMAIL_VERIFICATION` | `required` | 현재 배포는 사용자 요청에 따라 `off`. 나중에 `required`로 변경 |
+| `TLS_CERT`, `TLS_KEY` | 없음 | PEM 인증서/개인키 파일의 절대 경로. 반드시 함께 설정 |
+| `SMTP_HOST`, `SMTP_FROM` | 없음 | 메일 서버 및 발신 주소. 인증 필수 모드에서 필요 |
+| `SMTP_PORT`, `SMTP_SECURE` | `587`, false | 587 STARTTLS 또는 465 TLS |
+| `SMTP_USER`, `SMTP_PASS` | 없음 | 메일 서버 인증 정보 |
+| `SMTP_SERVERNAME` | 없음 | SMTP_HOST가 IP인 경우 검증할 인증서 호스트명 |
 
-`data/profiles.json`은 플레이어 ID, 이름, 토큰 해시, XP, 킬·데스, 중복 보상 방지 기록과 캐릭터별 출전 장비를 보관합니다. 변경은 임시 파일을 동기화한 후 원래 파일로 교체합니다. 잘못된 기존 DB를 발견하면 초기화하지 않고 실행을 중단합니다. 토큰 원문은 DB나 로그에 저장하지 않습니다.
+`data/profiles.json`은 플레이어 ID, 이름, XP, 킬·데스·승패, 경기 결과, 중복 보상 방지 기록과 캐릭터별 출전 장비를 보관합니다. `data/auth.json`은 계정, 개별 salt를 사용한 scrypt 비밀번호 해시, 로그인 세션 토큰의 해시·만료시각을 보관합니다. 변경은 임시 파일을 동기화한 후 원래 파일로 교체합니다. 잘못된 기존 DB를 초기화하지 않습니다. 비밀번호·인증번호·토큰 원문은 DB나 로그에 저장하지 않습니다.
 
-단일 Node 프로세스가 이 파일을 소유합니다. 복수 서버 프로세스에서 같은 DB 파일을 공유하지 않습니다. 서버를 정지한 뒤 `data` 디렉터리를 복사해 백업할 수 있습니다. 방과 진행 중인 드롭은 메모리에 있으며 서버 재시작이나 한 플레이어의 연결 종료 시 대전이 끝납니다. 저장된 XP와 장비 선택은 유지됩니다.
+단일 Node 서버 프로세스가 이 파일을 소유합니다. 복수 서버 프로세스에서 같은 DB 파일을 공유하지 않습니다. 관리 CLI로 계정을 추가하거나 중지할 수 있으며 실행 중 서버는 변경을 다시 읽습니다. 서버를 정지한 뒤 `data` 디렉터리를 복사해 백업할 수 있습니다. 방과 진행 중인 드롭은 메모리에 있으며 서버 재시작이나 한 플레이어의 연결 종료 시 대전이 끝납니다. 저장된 XP와 장비 선택은 유지됩니다.
 
 `karma-server.service`는 사용자 systemd 예제입니다. 실제 Node 경로를 확인하고 `~/.config/systemd/user/karma-server.service`에 배치한 뒤 사용합니다.
 
@@ -36,6 +44,52 @@ systemctl --user status karma-server.service
 journalctl --user -u karma-server.service -n 50
 ```
 
+## 회원가입·로그인
+
+현재 LAN 배포는 `EMAIL_VERIFICATION=off`이며 이메일·비밀번호·이름으로 바로 가입합니다. 이메일은 `emailVerified:false`로 기록합니다. 인증을 하지 않았는데 인증된 것으로 표시하지 않습니다.
+
+나중에 `EMAIL_VERIFICATION=required`와 SMTP 설정을 적용하면 인증번호를 실제 메일로 보냅니다. 코드 유효기간 10분, 재전송 간격 60초, 코드 입력 최대 5회이며 이메일/IP별 요청 제한이 있습니다. SMTP가 없거나 전송이 실패하면 가입은 503 오류로 중단합니다. 메일 전송은 TLS 인증서를 확인하며 STARTTLS 또는 TLS를 사용합니다.
+
+비밀번호는 8~128자, 이름은 공백 제거 후 1~32자입니다. 이메일은 공백 제거 후 소문자로 정규화합니다. 로그인 세션은 12시간입니다.
+
+| 요청 | 본문 / 응답 |
+| --- | --- |
+| `GET /api/auth-config` | `{emailVerificationRequired,registrationAvailable}` |
+| `POST /auth/register/request` | `{email,password,name}`. 인증 off: `{ok:true,requiresVerification:false,authToken,expiresAt,profile}`. 인증 required: `{ok:true,requiresVerification:true,expiresIn:600,resendAfter:60}` |
+| `POST /auth/register/verify` | `{email,code}` → `{ok:true,authToken,expiresAt,profile}` |
+| `POST /auth/login` | `{email,password}` → `{ok:true,authToken,expiresAt,profile}` |
+| `POST /auth/logout` | `Authorization: Bearer <authToken>` → `{ok:true}` |
+
+인증 오류는 `{ok:false,error:{code,message}}`와 적절한 HTTP400/401/403/409/429/503 상태로 반환합니다. 클라이언트는 가입·로그인 응답의 토큰을 보관하고 이후 HTTPS API 및 게임 접속에 사용합니다.
+
+관리자 최초 생성은 서버 PC의 관리 CLI에서 수행합니다. 비밀번호를 명령 인자에 넣지 않습니다. TTY에서는 `Password (hidden):` 입력의 화면 표시를 끄며 Enter 한 번으로 완료됩니다. 파이프 입력도 첫 줄을 읽습니다. 자동화가 필요한 경우 `KARMA_ADMIN_PASSWORD` 환경변수를 지원하지만 파일이나 저장소에 기록하지 않습니다.
+
+```sh
+node admin.mjs create-admin administrator@example.com
+node admin.mjs list
+node admin.mjs disable user@example.com
+node admin.mjs enable user@example.com
+node admin.mjs reset-pass user@example.com
+```
+
+`create-admin`은 관리자 요청으로 직접 승인한 계정을 생성합니다. `reset-pass`는 해당 사용자의 기존 로그인 세션을 폐기합니다. 사용 중지된 사용자의 진행 중 연결은 최대 5초 안에 닫힙니다.
+
+## 웹 대시보드와 사용자 관리
+
+서버의 `/`는 `public` 디렉터리의 한국어 웹 화면을 제공합니다. 상태 `/health`와 가입 설정 `/api/auth-config`를 제외한 아래 API는 `Authorization: Bearer <authToken>`이 필요합니다.
+
+| API | 응답 / 권한 |
+| --- | --- |
+| `GET /api/me` | `profile`, 본인 `activity`, `catalog:{characters,weapons,ranks,slots}` |
+| `GET /api/leaderboard` | XP·킬 기준 상위 200명 `players`. 이메일·인증 정보 제외 |
+| `GET /api/dashboard` | `summary`, 현재 `rooms`, 최근 `activity` |
+| `GET /api/admin/users` | 관리자만. 계정별 전적·장비와 이메일·사용 중지 상태 |
+| `PATCH /api/admin/users/:id` | 관리자만. `disabled,xp,kills,deaths,wins,losses,draws,matches,loadouts` 중 변경 필드 |
+
+현재 대전 중인 사용자의 전적·장비 수정은 종료 후 가능합니다. 사용 중지는 즉시 연결에 반영합니다. 경기 수는 승·패·무 합계와 일치해야 하며, 장비 수정은 원본 비용과 슬롯·계급 한도를 다시 검증합니다. 관리자 변경에는 관리자 ID, 대상 ID, 변경 필드의 감사 기록을 남깁니다. 토큰이나 비밀번호 값은 기록하지 않습니다.
+
+1대1 기본 경기 종료 조건은 **10킬 또는 10분**입니다. 시간 종료 시 킬이 같은 경우 무승부입니다. 시작 이후 연결 종료는 기권패이며 시작 전 대기는 전적에 포함하지 않습니다. 결과는 경기 ID당 한 번만 저장하고 `match-ended`로 클라이언트에 알립니다. 정상 서버 종료는 기권 전적으로 처리하지 않습니다.
+
 ## 프로토콜 2
 
 TCP 한 줄마다 JSON 객체 하나를 전달합니다. 한 메시지 최대 64 KiB, 연결 입력 버퍼 최대 128 KiB, 연결당 초당 최대 500개 메시지입니다. 게임의 기존 protocol 1 메시지는 `game.message` 내부에 보관합니다.
@@ -43,16 +97,16 @@ TCP 한 줄마다 JSON 객체 하나를 전달합니다. 한 메시지 최대 64
 입장:
 
 ```json
-{"type":"hello","version":2,"op":"create","playerId":"saved-player-id","token":"saved-token","name":"Player","clientMaxPlayers":2,"maxPlayers":2,"config":{"age":0,"map":0,"character":{"index":0,"camp":0},"inventory":[50,9,1,6,48,24,18],"selectedWeapon":9,"settings":{"build":"karma290-lan1"}}}
+{"type":"hello","version":2,"op":"create","authToken":"login-response-token","clientMaxPlayers":2,"maxPlayers":2,"config":{"age":0,"map":0,"character":{"index":0,"camp":0},"inventory":[50,9,1,6,48,24,18],"selectedWeapon":9,"settings":{"build":"karma290-lan1"}}}
 ```
 
-참가는 `op:"join", code:"123456"`을 사용합니다. 새 플레이어는 `playerId`와 `token`을 생략할 수 있습니다. 기존 ID에는 이전에 받은 토큰이 필요합니다. `op:"profile"`은 방을 만들지 않고 `welcome`으로 토큰과 프로필을 받은 뒤 연결을 끝냅니다. 프로필 조회에는 `config`가 필요 없습니다.
+참가는 `op:"join", code:"123456"`을 사용합니다. 모든 접속에 로그인 `authToken`이 필수이며 플레이어 ID와 이름은 인증 계정에서 결정합니다. 클라이언트가 보낸 `playerId/name`으로 다른 사용자를 가장할 수 없습니다. `op:"profile"`은 방을 만들지 않고 `welcome`으로 프로필을 받은 뒤 연결을 끝냅니다. 프로필 조회에는 `config`가 필요 없습니다.
 
 서버 이벤트:
 
 | `type` | 내용 |
 | --- | --- |
-| `welcome` | `token`, `profile`, `room:{roomId,code,maxPlayers}`, `role`, `slot`. 프로필 조회의 `room`은 `null` |
+| `welcome` | `profile`, `room:{roomId,code,maxPlayers}`, `role`, `slot`. 프로필 조회의 `room`은 `null` |
 | `waiting` | `roomId`, `code`, `maxPlayers`, 현재 `players` |
 | `peer-ready` | 입장 완료. `role`, `slot`, 방 정보, 검증된 자신의 `config`, `remoteHello`, 전체 상대 목록 `peers`, `profile` |
 | `game` | 기존 게임 `message`와 연결에서 결정한 `senderId`, `slot` |
@@ -64,6 +118,7 @@ TCP 한 줄마다 JSON 객체 하나를 전달합니다. 한 메시지 최대 64
 | `drop-removed` | `dropId`, 사유. 원본 지면 아이템 한도 40개 초과 시 오래된 드롭 제거 |
 | `proof-rejected` | 관측된 발사·명중 ID와 맞지 않는 피해 증명. XP에 사용하지 않음 |
 | `room-ended` | 연결 종료 또는 서버 종료로 대전 종료 |
+| `match-ended` | 확정된 `result:{id,reason,players,winnerIds,scores,draw,startedAt,endedAt}`. 대전 종료 후 원본 게임도 종료 |
 | `error` | `code`, `message` 후 해당 연결 종료 |
 
 정원이 모두 들어오면 `peer-ready`를 보냅니다. 별도 ready ACK는 필요 없습니다. 일반 게임 송신은 `{"type":"game","message":{...}}`입니다. 선택적인 `targetId`가 있으면 같은 방의 해당 상대에게만 전달합니다. 기존 2인 게임은 생략해도 됩니다. `ping`에는 `pong`으로 응답합니다.
@@ -81,15 +136,15 @@ XP는 피해를 받은 클라이언트의 원본 HP 감소 증명과 서버가 �
 피해자가 먼저 보냅니다:
 
 ```json
-{"type":"damage-proof","proof":{"id":12,"victimLife":1,"attackerId":"other-player-id","attackerLife":1,"weapon":9,"before":30,"after":-5}}
+{"type":"damage-proof","proof":{"id":"victim:1:17","shotId":12,"victimLife":1,"attackerId":"other-player-id","attackerLife":1,"weapon":9,"before":30,"after":-5}}
 ```
 
-서버는 `victimId`를 송신 연결에서 결정합니다. 숫자/문자열 발사 ID는 동일 문자열로 정규화합니다. 총알은 기존 `hit.id`, 폭발물은 그 투사체를 생성한 원래 `shot.id`를 사용합니다. 정확한 원본 발사 ID를 모르면 피해·사망 화면은 처리하되 검증 XP는 지급하지 않습니다.
+서버는 `victimId`를 송신 연결에서 결정합니다. `proof.id`는 피해자·생명·피해 이벤트 번호로 구성한 고유 피해 ID입니다. `proof.shotId`는 총알의 기존 `hit.id` 또는 폭발물의 원래 `shot.id`이며 공격자 ID·발사 생명과 함께 원본 발사 증명을 찾습니다. 두 공격자가 각각 발사1을 사용하거나 한 투사체가 여러 번 피해를 줘도 충돌하지 않습니다. 숫자/문자열 발사 ID는 동일 문자열로 정규화합니다. `shotId`가 없는 이전 테스트 메시지는 `id`를 발사 ID로 사용하는 호환 경로가 있습니다. 정확한 원본 발사 ID를 모르면 피해·사망 화면은 처리하되 검증 XP는 지급하지 않습니다.
 
 이어 기존 `death` 게임 메시지에 아래 필드를 추가합니다. `weapon`은 피해를 준 무기이고 `drop.selectedWeapon`은 죽은 사람이 들고 있던 무기이므로 서로 다를 수 있습니다.
 
 ```json
-{"type":"game","message":{"type":"death","version":1,"life":1,"seq":20,"killer":"remote","weapon":9,"damageId":12,"hpAfter":-5,"drop":{"selectedWeapon":6,"magazine":0,"reserve":7,"pos":[100,0,100],"sector":4}}}
+{"type":"game","message":{"type":"death","version":1,"life":1,"seq":20,"killer":"remote","weapon":9,"damageId":"victim:1:17","hpAfter":-5,"drop":{"selectedWeapon":6,"magazine":0,"reserve":7,"pos":[100,0,100],"sector":4}}}
 ```
 
 사망 생명 키를 한 번만 확정하고 프로필에 반영합니다. 재전송으로 XP가 중복되지 않습니다. 서버는 게임의 충돌·사격 물리를 재현하지 않습니다. 원본 엔진의 명중 보고와 피해자 원본 HP 결과를 대조하는 현재 LAN 검증 방식입니다.
@@ -108,12 +163,14 @@ XP는 피해를 받은 클라이언트의 원본 HP 감소 증명과 서버가 �
 
 ## 테스트
 
-`server.test.mjs`는 게임이나 UI를 띄우지 않습니다. 임시 DB와 localhost의 임시 포트만 사용합니다.
+`npm test`는 게임이나 UI를 띄우지 않습니다. 임시 DB와 localhost의 임시 포트만 사용합니다. 메일 코드 검사는 테스트 전송 어댑터를 사용하며 실제 메일을 보내지 않습니다.
 
 - 2인 입장, 설정 교환, 메시지 전달, 토큰 인증
 - 원본 점수와 출전 제한, 피해·사망 검증, XP 25/5와 중복 방지
 - 한 명만 드롭 습득, 잔탄 0/7 보존, 재전송 처리
 - 프로필 조회, 서버 재시작 후 XP 유지, 상태 HTTP에 개인정보 제외
+- 인증 off 가입·로그인, 인증 required 코드·만료·입력 제한, 비밀번호 해시와 세션 폐기
+- 관리자 권한·계정 중지·감사 기록, 순위 개인정보 제외, 경기 종료 및 승패 중복 방지
 - 20개 방 × 8개 모의 클라이언트 = 160개 연결
 - 상태 메시지 1600개를 같은 방의 상대들에게 총 11200회 전달하고 방 간 혼입 검사
 

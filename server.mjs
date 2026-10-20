@@ -114,7 +114,7 @@ export async function startKarmaServer({
     return {version:1,playerId:profile.playerId,name:profile.name,xp:profile.xp,
       kills:profile.kills,deaths:profile.deaths,rank:rankForXp(profile.xp,catalog.ranks),
       wins:profile.wins||0,losses:profile.losses||0,draws:profile.draws||0,matches:profile.matches||0,
-      ...(account?{role:account.role,isAdmin:account.role==='admin',emailVerified:!!account.emailVerified}:{}),
+      ...(account?{email:account.email,role:account.role,isAdmin:account.role==='admin',emailVerified:!!account.emailVerified}:{}),
       ...(character?{inventoryCapacity:loadoutBudget({xp:profile.xp,character,ranks:catalog.ranks})}:{}),
       loadouts:clone(profile.loadouts||{})};
   }
@@ -225,7 +225,11 @@ export async function startKarmaServer({
     if(!plainObject(value))reject('BAD_PROOF','Damage proof is required');
     const proof={...value,id:eventId(value.id),victimId:session.playerId};
     if(session.hasState&&proof.victimLife!==session.state.life)return;
-    const evidence=session.room.evidence.get(JSON.stringify([proof.attackerId,proof.attackerLife,proof.id]));
+    // shotId belongs to the attacker; id belongs to this victim's damage event.
+    // Distinct attackers may both fire shot 1, and one projectile may affect
+    // the same victim more than once. Neither is a duplicate damage receipt.
+    const shotId=eventId(value.shotId??value.id);
+    const evidence=session.room.evidence.get(JSON.stringify([proof.attackerId,proof.attackerLife,shotId]));
     if(!evidence||evidence.weapon!==proof.weapon||
        (evidence.victimId!==null&&(evidence.victimId!==session.playerId||evidence.victimLife!==proof.victimLife))){
       write(session,{type:'proof-rejected',version:2,id:proof.id,reason:'no-matching-shot-or-hit'});return;

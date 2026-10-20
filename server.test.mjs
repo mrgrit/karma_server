@@ -84,11 +84,21 @@ try{
   // A death with no observed hit/shot + native HP proof has zero XP.
   guest.send({type:'damage-proof',proof:{id:'invented',victimLife:1,attackerId:'host-profile',attackerLife:1,weapon:9,before:10,after:0}});
   assert.equal((await guest.type('proof-rejected')).reason,'no-matching-shot-or-hit');
-  const hit={type:'hit',version:1,life:1,seq:2,id:'bullet-1',victimLife:1,weapon:9,kind:'bullet',region:1,direction:[1,0,0]};
+  // Each attacker may fire shot 1 in the same victim life. Damage event IDs
+  // remain unique to the victim, independently of the originating shot ID.
+  guest.send({type:'game',message:state(1,2,{shot:{id:1,life:1,weapon:9,origin:[0,0,0],
+    direction:[1,0,0],sector:4,renderSector:4,yaw:0,pitch:0}})});
+  await host.wait(x=>x.type==='game'&&x.message.shot?.id===1);
+  guest.send({type:'damage-proof',proof:{id:'guest:1:1',shotId:1,victimLife:1,
+    attackerId:'guest-profile',attackerLife:1,weapon:9,before:100,after:70}});
+  const hit={type:'hit',version:1,life:1,seq:2,id:1,victimLife:1,weapon:9,kind:'bullet',region:1,direction:[1,0,0]};
   host.send({type:'game',message:hit});
   await guest.wait(x=>x.type==='game'&&x.message.type==='hit');
-  guest.send({type:'damage-proof',proof:{id:'bullet-1',victimLife:1,attackerId:'host-profile',attackerLife:1,weapon:9,before:30,after:-5}});
-  const death={type:'death',version:1,life:1,seq:2,killer:'remote',weapon:9,damageId:'bullet-1',hpAfter:-5,
+  guest.send({type:'damage-proof',proof:{id:'guest:1:2',shotId:1,victimLife:1,
+    attackerId:'host-profile',attackerLife:1,weapon:9,before:70,after:30}});
+  guest.send({type:'damage-proof',proof:{id:'guest:1:3',shotId:1,victimLife:1,
+    attackerId:'host-profile',attackerLife:1,weapon:9,before:30,after:-5}});
+  const death={type:'death',version:1,life:1,seq:3,killer:'remote',weapon:9,damageId:'guest:1:3',hpAfter:-5,
     drop:{selectedWeapon:9,magazine:0,reserve:7,pos:[100,0,100],sector:4}};
   guest.send({type:'game',message:death});
   const confirmed=await host.type('death-confirmed');
@@ -107,7 +117,7 @@ try{
   const health=await (await fetch('http://127.0.0.1:'+server.healthPort+'/health')).json();
   assert.equal(health.players,2);assert.equal(health.rooms,1);
   assert.ok(!JSON.stringify(health).includes('profile'));
-  assert.equal((await fetch('http://127.0.0.1:'+server.healthPort+'/')).status,404);
+  assert.equal((await fetch('http://127.0.0.1:'+server.healthPort+'/not-a-route')).status,404);
   const disk=JSON.parse(fs.readFileSync(path.join(temp,'profiles.json'),'utf8'));
   assert.equal(disk.profiles['host-profile'].xp,25);assert.equal(disk.profiles['guest-profile'].xp,5);
   assert.ok(!JSON.stringify(disk).includes(host.authToken),'Tokens are absent from profile storage');
