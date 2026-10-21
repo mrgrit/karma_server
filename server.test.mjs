@@ -178,7 +178,7 @@ try{
     assert.ok(client.messages.filter(item=>item.type==='game').every(item=>allowed.has(item.senderId)));
   }
   const result={test:'synthetic-room-routing',rooms:20,clients:160,inboundStates:1600,
-    deliveredStates:11200,elapsedMs:Math.round(performance.now()-start),nativeClientMaxPlayers:2};
+    deliveredStates:11200,elapsedMs:Math.round(performance.now()-start),nativeClientMaxPlayers:8};
   console.log('PASS: '+JSON.stringify(result));
   await disconnectAll();
 }finally{

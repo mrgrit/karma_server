@@ -37,6 +37,11 @@ function displayName(value){
 function ammoValue(value){
   return {magazine:integer(value.magazine,'magazine',0,65535),reserve:integer(value.reserve,'reserve',0,65535)};
 }
+function teamScores(room){
+  const scores=[0,0];
+  for(const client of room.clients)scores[client.team]+=(room.kills?.get(client.playerId)||0);
+  return scores;
+}
 class ProfileDatabase{
   constructor(filename){
     this.filename=filename;
@@ -80,7 +85,8 @@ class ProfileDatabase{
     if(this.data.matches[room.id])return this.data.matches[room.id];
     const players=room.clients.map(client=>client.playerId),draw=winnerIds.length===0;
     const result={id:room.id,reason,startedAt:room.startedAt,endedAt:Date.now(),players,
-      winnerIds,scores:Object.fromEntries(room.kills),draw};
+      winnerIds,scores:Object.fromEntries(room.kills),draw,mode:room.mode,
+      teams:Object.fromEntries(room.clients.map(c=>[c.playerId,c.team])),teamScores:teamScores(room),roundWins:room.roundWins||null};
     for(const playerId of players){
       const profile=this.data.profiles[playerId];
       const counter=draw?'draws':winnerIds.includes(playerId)?'wins':'losses';
@@ -96,6 +102,7 @@ export async function startKarmaServer({
   host='0.0.0.0',port=29020,healthHost=host,healthPort=29021,
   dataDir=path.join(directory,'data'),catalogFile=path.join(directory,'loadouts.json'),
   characterFile=path.join(directory,'characters.json'),maxRooms=20,maxPlayers=8,
+  roundWinLimit=5,roundSeconds=180,roundIntermissionMs=5000,dmRespawnMs=10000,
   authService,tlsCert=process.env.TLS_CERT,tlsKey=process.env.TLS_KEY,matchKills=10,matchSeconds=600,
   logger=(event,details)=>console.log(JSON.stringify({time:new Date().toISOString(),event,...details})),
 }={}){
@@ -106,6 +113,8 @@ export async function startKarmaServer({
   const auth=authService||new AuthService({filename:path.join(path.resolve(dataDir),'auth.json')});
   if(!!tlsCert!==!!tlsKey)throw Error('TLS_CERT and TLS_KEY must be configured together');
   const tlsOptions=tlsCert?{cert:fs.readFileSync(tlsCert),key:fs.readFileSync(tlsKey),minVersion:'TLSv1.2'}:null;
+  integer(roundWinLimit,'round win limit',1,100);integer(roundSeconds,'round time',1,3600);
+  integer(roundIntermissionMs,'round break',1,30000);integer(dmRespawnMs,'deathmatch respawn',0,60000);
   integer(matchKills,'match kill limit',1,1000);integer(matchSeconds,'match time limit',1,86400);
   const rooms=new Map(),online=new Map(),sockets=new Set();
   let closing=false,acceptedMessages=0,relayedMessages=0;
@@ -126,7 +135,11 @@ export async function startKarmaServer({
   function broadcast(room,message,except=null){
     for(const client of room.clients)if(client!==except&&write(client,message))relayedMessages++;
   }
-  function roomInfo(room){return {roomId:room.id,code:room.code,maxPlayers:room.maxPlayers};}
+  function roomInfo(room){return {roomId:room.id,code:room.code,maxPlayers:room.maxPlayers,mode:room.mode,
+    killLimit:room.mode==='tdm'?null:room.killLimit,timeLimitSeconds:matchSeconds,
+    roundWinLimit:room.mode==='tdm'?roundWinLimit:null,roundSeconds:room.mode==='tdm'?roundSeconds:null,
+    respawnMs:room.mode==='dm'?dmRespawnMs:room.mode==='tdm'?null:4500};}
+  function friendly(a,b){return a!==b&&a.room.mode==='tdm'&&a.team===b.team;}
   function error(session,code,message){
     write(session,{type:'error',version:2,code,message});
     session.socket.end();const timer=setTimeout(()=>session.socket.destroy(),250);timer.unref();
@@ -153,21 +166,53 @@ export async function startKarmaServer({
       settings:{build,mode:1}};
     return {config,character,characterId:original.id};
   }
+  function armRoundTimer(room){
+    clearTimeout(room.roundTimer);
+    room.roundTimer=setTimeout(()=>endRound(room,'round-time-limit'),roundSeconds*1000);room.roundTimer.unref();
+  }
+  function endRound(room,reason){
+    if(room.mode!=='tdm'||room.phase!=='active'||room.ending)return;
+    const alive=[0,0];for(const c of room.clients)if(!c.closed&&c.alive)alive[c.team]++;
+    const winner=alive[0]===alive[1]?null:alive[0]>alive[1]?0:1;
+    room.phase='intermission';clearTimeout(room.roundTimer);
+    if(winner!==null)room.roundWins[winner]++;
+    broadcast(room,{type:'round-ended',version:2,round:room.round,winnerTeam:winner,roundWins:[...room.roundWins],reason,nextRoundInMs:roundIntermissionMs});
+    if(winner!==null&&room.roundWins[winner]>=roundWinLimit){
+      finishRoom(room,'round-limit',room.clients.filter(c=>!c.closed&&c.team===winner).map(c=>c.playerId));return;
+    }
+    room.roundTimer=setTimeout(()=>{
+      if(room.ending)return;
+      room.round++;room.phase='active';room.evidence.clear();
+      const lives={};
+      for(const c of room.clients)if(!c.closed){
+        c.alive=true;c.deadAt=0;c.roundLife++;lives[c.playerId]=c.roundLife;
+        c.inventory=[...c.config.inventory];c.state.ammo={};
+      }
+      // Ground weapons belong to the finished round.
+      for(const id of room.dropOrder)broadcast(room,{type:'drop-removed',version:2,dropId:id,reason:'new-round'});
+      room.drops.drops.clear();room.dropOrder=[];
+      broadcast(room,{type:'round-start',version:2,round:room.round,roundWins:[...room.roundWins],lives});
+      armRoundTimer(room);
+    },roundIntermissionMs);room.roundTimer.unref();
+  }
   function startRoom(room){
     if(room.started||room.clients.length!==room.maxPlayers)return;
-    room.started=true;room.startedAt=Date.now();room.kills=new Map(room.clients.map(client=>[client.playerId,0]));
+    room.started=true;room.startedAt=Date.now();room.phase='active';room.round=1;room.roundWins=[0,0];
+    for(const c of room.clients){c.alive=true;c.roundLife=1;c.deadAt=0;}
+    room.kills=new Map(room.clients.map(client=>[client.playerId,0]));
     const playerIds=room.clients.map(client=>client.playerId);
     room.combat=new CombatLedger({matchId:room.id,playerIds});
     room.drops=new DropLedger({matchId:room.id,playerIds,maxDistance:350});
     room.dropOrder=[];room.evidence=new Map();
     for(const client of room.clients){
       const peers=room.clients.filter(other=>other!==client).map(other=>({
-        role:other.slot===0?'host':'join',slot:other.slot,playerId:other.playerId,config:clone(other.config),
+        role:other.slot===0?'host':'join',slot:other.slot,team:other.team,playerId:other.playerId,config:clone(other.config),
       }));
       write(client,{type:'peer-ready',version:2,role:client.slot===0?'host':'join',slot:client.slot,
-        ...roomInfo(room),config:clone(client.config),remoteHello:peers[0],peers,
+        ...roomInfo(room),team:client.team,config:clone(client.config),remoteHello:peers[0],peers,
         profile:publicProfile(db.data.profiles[client.playerId],client.character,client.account)});
     }
+    if(room.mode==='tdm')armRoundTimer(room);
     room.matchTimer=setTimeout(()=>finishRoom(room,'time-limit'),matchSeconds*1000);room.matchTimer.unref();
     log('room-started',{roomCount:rooms.size,players:room.clients.length,capacity:room.maxPlayers});
   }
@@ -194,18 +239,21 @@ export async function startKarmaServer({
       let code=message.code;
       if(code!==undefined&&(!/^\d{6}$/.test(code)||rooms.has(code)))reject('BAD_CODE','Room code is invalid or in use');
       if(code===undefined){do{code=String(crypto.randomInt(100000,1000000));}while(rooms.has(code));}
-      room={id:crypto.randomUUID(),code,maxPlayers:capacity,clients:[],started:false,ending:false};
+      const mode=message.mode??(capacity===2?'duel':'dm');
+      if(!['duel','dm','tdm'].includes(mode)||(mode==='duel'&&capacity!==2)||(mode==='tdm'&&capacity%2!==0))
+        reject('BAD_MODE','Choose duel (2), deathmatch (2–8), or even-sized team deathmatch');
+      room={id:crypto.randomUUID(),code,maxPlayers:capacity,mode,killLimit:mode==='tdm'?matchKills*4:matchKills,clients:[],started:false,ending:false};
       rooms.set(code,room);
     }else{
       if(typeof message.code!=='string'||!/^\d{6}$/.test(message.code))reject('BAD_CODE','A six-digit room code is required');
       room=rooms.get(message.code);
       if(!room)reject('ROOM_NOT_FOUND','Room not found');
       if(room.started||room.clients.length>=room.maxPlayers)reject('ROOM_FULL','Room is full');
-      if(room.maxPlayers>capability)reject('CLIENT_LIMIT','This native client supports only two players');
+      if(room.maxPlayers>capability)reject('CLIENT_LIMIT','Update the client to enter this room size');
       if(room.clients[0].config.settings.build!==offered.config.settings.build)reject('BUILD_MISMATCH','Both clients must use the same build');
     }
     session.playerId=identity.profile.playerId;session.character=offered.character;
-    session.config=offered.config;session.room=room;session.slot=room.clients.length;
+    session.config=offered.config;session.room=room;session.slot=room.clients.length;session.team=session.slot%2;
     session.inventory=[...offered.config.inventory];
     session.state={life:1,hp:100,pos:[0,0,0],inventory:[...session.inventory],
       selectedWeapon:offered.config.selectedWeapon,ammo:{},seq:-1};
@@ -217,19 +265,22 @@ export async function startKarmaServer({
     clearTimeout(session.handshakeTimer);room.clients.push(session);online.set(session.playerId,session);
     write(session,{type:'welcome',version:2,
       profile:publicProfile(identity.profile,session.character,account),room:roomInfo(room),
-      role:session.slot===0?'host':'join',slot:session.slot});
+      role:session.slot===0?'host':'join',slot:session.slot,team:session.team});
     if(room.clients.length<room.maxPlayers)broadcast(room,{type:'waiting',version:2,...roomInfo(room),players:room.clients.length});
     startRoom(room);
   }
   function damageProof(session,value){
     if(!plainObject(value))reject('BAD_PROOF','Damage proof is required');
+    const attacker=session.room.clients.find(c=>c.playerId===value.attackerId);
+    if(attacker&&friendly(session,attacker)){write(session,{type:'proof-rejected',version:2,id:value.id,reason:'friendly-fire-disabled'});return;}
     const proof={...value,id:eventId(value.id),victimId:session.playerId};
     if(session.hasState&&proof.victimLife!==session.state.life)return;
     // shotId belongs to the attacker; id belongs to this victim's damage event.
     // Distinct attackers may both fire shot 1, and one projectile may affect
     // the same victim more than once. Neither is a duplicate damage receipt.
     const shotId=eventId(value.shotId??value.id);
-    const evidence=session.room.evidence.get(JSON.stringify([proof.attackerId,proof.attackerLife,shotId]));
+    const evidence=session.room.evidence.get(JSON.stringify([proof.attackerId,proof.attackerLife,shotId,session.playerId]))||
+      session.room.evidence.get(JSON.stringify([proof.attackerId,proof.attackerLife,shotId]));
     if(!evidence||evidence.weapon!==proof.weapon||
        (evidence.victimId!==null&&(evidence.victimId!==session.playerId||evidence.victimLife!==proof.victimLife))){
       write(session,{type:'proof-rejected',version:2,id:proof.id,reason:'no-matching-shot-or-hit'});return;
@@ -238,6 +289,9 @@ export async function startKarmaServer({
   }
   function updateState(session,message){
     const old=session.state;
+    if(session.room.mode==='tdm'&&(message.life!==session.roundLife||!session.alive))return false;
+    if(session.room.mode==='dm'&&message.life>old.life&&(!session.deadAt||Date.now()-session.deadAt<dmRespawnMs))return false;
+    if(session.room.mode==='dm'&&session.deadAt&&message.life===old.life&&message.hp>0)return false;
     if(message.life<old.life||(message.life===old.life&&message.seq<=old.seq))return false;
     if(message.inventory!==undefined&&JSON.stringify(message.inventory)!==JSON.stringify(session.inventory))
       reject('BAD_INVENTORY','Inventory changes require a server pickup grant');
@@ -253,7 +307,7 @@ export async function startKarmaServer({
     }
     session.state={life:message.life,hp:message.hp,pos:[...message.pos],seq:message.seq,
       inventory:[...session.inventory],selectedWeapon,ammo:ammunition};
-    session.hasState=true;
+    session.hasState=true;if(message.life>old.life){session.deadAt=0;session.alive=true;}
     return true;
   }
   function death(session,message){
@@ -267,7 +321,11 @@ export async function startKarmaServer({
       damageId:message.damageId==null?null:eventId(message.damageId),hpAfter:message.hpAfter,
     });
     if(!result.accepted)return;
-    session.state.hp=0;
+    session.state.hp=0;session.deadAt=Date.now();session.alive=false;
+    if(room.mode==='tdm')queueMicrotask(()=>{
+      const living=new Set(room.clients.filter(c=>!c.closed&&c.alive).map(c=>c.team));
+      if(living.size<2)endRound(room,'team-eliminated');
+    });
     broadcast(room,{type:'death-confirmed',version:2,receipt:result.receipt});
     const changed=db.award(result.receipt);
     for(const profile of changed){
@@ -277,7 +335,10 @@ export async function startKarmaServer({
     if(result.receipt.verified){
       const killer=result.receipt.killerId;
       room.kills.set(killer,(room.kills.get(killer)||0)+1);
-      if(room.kills.get(killer)>=matchKills)queueMicrotask(()=>finishRoom(room,'kill-limit',[killer]));
+      const killerClient=room.clients.find(c=>c.playerId===killer);
+      const reached=room.mode==='tdm'?teamScores(room)[killerClient.team]>=room.killLimit:room.kills.get(killer)>=room.killLimit;
+      if(reached&&room.mode!=='tdm')queueMicrotask(()=>finishRoom(room,'kill-limit',room.mode==='tdm'?
+        room.clients.filter(c=>!c.closed&&c.team===killerClient.team).map(c=>c.playerId):[killer]));
     }
     const dropped=message.drop;
     if(!plainObject(dropped)||!session.inventory.includes(dropped.selectedWeapon)||
@@ -317,10 +378,13 @@ export async function startKarmaServer({
     if(message.type==='ping'){write(session,{type:'pong',version:2});return;}
     if(message.type==='leave'){session.socket.end();return;}
     if(!session.room.started)reject('NOT_READY','Waiting for the other players');
+    if(session.room.phase==='intermission'&&message.type!=='leave'&&message.message?.type!=='leave')return;
     if(message.type==='damage-proof'){damageProof(session,message.proof);return;}
     if(message.type==='pickup-claim'){claim(session,message);return;}
     if(message.type!=='game')reject('BAD_MESSAGE','Unsupported message type');
     const game=validateLanMessage(message.message);
+    if(session.room.mode==='tdm'&&['hit','state','respawn','death'].includes(game.type)&&
+      (game.life!==session.roundLife||!session.alive&&game.type!=='death'))return;
     if(game.type==='state'||game.type==='respawn'){
       if(game.type==='respawn'&&game.life>session.state.life){
         session.inventory=[...session.config.inventory];
@@ -334,13 +398,20 @@ export async function startKarmaServer({
       if(!target||target===session||target.room!==session.room)reject('BAD_TARGET','Target is not in this room');
     }
     const room=session.room;
+    if(game.type==='hit'){
+      if(!target&&room.maxPlayers>2)reject('BAD_TARGET','Hits in multiplayer require a named victim');
+      target??=room.clients.find(c=>c!==session&&!c.closed);
+      if(!target||friendly(session,target))return;
+    }
     const evidence=game.type==='hit'?{
       id:game.id,life:game.life,weapon:game.weapon,victimLife:game.victimLife,
       victimId:target?.playerId??(room.clients.length===2?room.clients.find(client=>client!==session).playerId:null),
     }:game.shot?{...game.shot,victimId:null}:null;
     if(evidence){
       if(!session.inventory.includes(evidence.weapon))reject('BAD_INVENTORY','Fired weapon is not owned');
-      room.evidence.set(JSON.stringify([session.playerId,evidence.life,eventId(evidence.id)]),evidence);
+      const key=[session.playerId,evidence.life,eventId(evidence.id)];
+      if(evidence.victimId!==null)key.push(evidence.victimId);
+      room.evidence.set(JSON.stringify(key),evidence);
       while(room.evidence.size>2048)room.evidence.delete(room.evidence.keys().next().value);
     }
     if(game.type==='death')death(session,game);
@@ -351,10 +422,16 @@ export async function startKarmaServer({
   }
   function finishRoom(room,reason,winnerIds){
     if(!room.started||room.ending)return;
-    room.ending=true;clearTimeout(room.matchTimer);rooms.delete(room.code);
+    room.ending=true;clearTimeout(room.matchTimer);clearTimeout(room.roundTimer);rooms.delete(room.code);
     if(winnerIds===undefined){
-      const best=Math.max(...room.kills.values()),leaders=[...room.kills].filter(([,score])=>score===best).map(([player])=>player);
-      winnerIds=leaders.length===1?leaders:[];
+      if(room.mode==='tdm'){
+        const scores=room.roundWins,team=scores[0]===scores[1]?-1:scores[0]>scores[1]?0:1;
+        winnerIds=room.clients.filter(c=>!c.closed&&c.team===team).map(c=>c.playerId);
+      }else{
+        const active=room.clients.filter(c=>!c.closed),best=Math.max(...active.map(c=>room.kills.get(c.playerId)||0));
+        const leaders=active.filter(c=>(room.kills.get(c.playerId)||0)===best).map(c=>c.playerId);
+        winnerIds=leaders.length===1?leaders:[];
+      }
     }
     const result=db.finishMatch(room,reason,winnerIds);
     for(const client of room.clients){
@@ -375,13 +452,17 @@ export async function startKarmaServer({
       room.clients=room.clients.filter(client=>client!==session);
       if(room.clients.length===0)rooms.delete(room.code);
       else{
-        room.clients.forEach((client,slot)=>{client.slot=slot;});
+        room.clients.forEach((client,slot)=>{client.slot=slot;client.team=slot%2;});
         broadcast(room,{type:'waiting',version:2,...roomInfo(room),players:room.clients.length});
       }
       return;
     }
-    if(closing){room.ending=true;clearTimeout(room.matchTimer);rooms.delete(room.code);return;}
-    finishRoom(room,'forfeit',room.clients.filter(client=>client!==session).map(client=>client.playerId));
+    if(closing){room.ending=true;clearTimeout(room.matchTimer);clearTimeout(room.roundTimer);rooms.delete(room.code);return;}
+    const remaining=room.clients.filter(client=>!client.closed);
+    broadcast(room,{type:'peer-left',version:2,playerId:session.playerId,slot:session.slot});
+    if(room.mode==='duel'||remaining.length<2||room.mode==='tdm'&&new Set(remaining.map(c=>c.team)).size<2)
+      finishRoom(room,'forfeit',remaining.map(client=>client.playerId));
+    else if(room.mode==='tdm'&&new Set(remaining.filter(c=>c.alive).map(c=>c.team)).size<2)endRound(room,'team-eliminated');
     log('room-ended',{roomCount:rooms.size,players:online.size});
   }
   function authResult(result){
@@ -418,7 +499,7 @@ export async function startKarmaServer({
       const url=new URL(request.url,'http://localhost'),route=url.pathname;
       if(request.method==='GET'&&route==='/health'){
         reply(response,200,{ok:true,protocol:2,rooms:rooms.size,players:online.size,maxRooms,maxPlayersPerRoom:maxPlayers,
-          nativeClientMaxPlayers:2,acceptedMessages,relayedMessages,uptimeSeconds:Math.floor(process.uptime())});return;
+          nativeClientMaxPlayers:8,acceptedMessages,relayedMessages,uptimeSeconds:Math.floor(process.uptime())});return;
       }
       if(request.method==='GET'&&route==='/api/auth-config'){
         reply(response,200,{emailVerificationRequired:auth.verificationRequired,
@@ -454,7 +535,7 @@ export async function startKarmaServer({
         if(request.method==='GET'&&route==='/api/dashboard'){
           const roomList=[...rooms.values()].map(room=>({...roomInfo(room),started:room.started,
             elapsedSeconds:room.started?Math.floor((Date.now()-room.startedAt)/1000):0,
-            players:room.clients.map(client=>({playerId:client.playerId,name:client.account.name}))}));
+            players:room.clients.filter(c=>!c.closed).map(client=>({playerId:client.playerId,name:client.account.name,team:client.team,kills:room.kills?.get(client.playerId)||0}))}));
           reply(response,200,{summary:{registeredUsers:auth.list().length,onlinePlayers:online.size,rooms:rooms.size,totalMatches:Object.keys(db.data.matches).length},
             rooms:roomList,activity:db.data.activity.slice(-50).reverse()});return;
         }
@@ -550,7 +631,7 @@ export async function startKarmaServer({
   });
   try{await listen(server,port,host);await listen(health,healthPort,healthHost);}
   catch(problem){server.close();health.close();throw problem;}
-  log('server-started',{port:server.address().port,healthPort:health.address().port,maxRooms,maxPlayers,nativeClientMaxPlayers:2});
+  log('server-started',{port:server.address().port,healthPort:health.address().port,maxRooms,maxPlayers,nativeClientMaxPlayers:8});
   const authTimer=setInterval(()=>{
     try{
       const data=auth.read();
@@ -562,6 +643,7 @@ export async function startKarmaServer({
     stats:()=>({rooms:rooms.size,players:online.size,acceptedMessages,relayedMessages}),
     async close(){
       if(closing)return;closing=true;clearInterval(authTimer);
+      for(const room of rooms.values()){clearTimeout(room.matchTimer);clearTimeout(room.roundTimer);}
       for(const socket of sockets)socket.destroy();
       await Promise.all([new Promise(resolve=>server.close(resolve)),new Promise(resolve=>health.close(resolve))]);
     },
