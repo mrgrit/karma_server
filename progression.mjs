@@ -136,7 +136,7 @@ export class CombatLedger{
   constructor({matchId,playerIds,snapshot}){
     this.matchId=id(matchId,'match ID');
     this.players=[...new Set(playerIds.map(x=>id(x,'player ID')))];
-    if(this.players.length<2||this.players.length>8)fail('A LAN match requires two to eight distinct players');
+    if(this.players.length<2||this.players.length>(snapshot?512:8))fail('A LAN match requires two to eight active players');
     this.damage=new Map();this.deaths=new Map();this.lifeWatermarks=new Map();
     if(snapshot){
       if(snapshot.matchId!==this.matchId||JSON.stringify(snapshot.playerIds)!==JSON.stringify(this.players))fail('Combat snapshot identity mismatch');
@@ -150,6 +150,14 @@ export class CombatLedger{
     }
   }
   participant(playerId){if(!this.players.includes(playerId))fail('Unknown player');}
+  addParticipant(playerId){
+    id(playerId,'player ID');
+    if(this.players.includes(playerId))return;
+    // Eight is the simultaneous native roster limit; a running deathmatch
+    // may have more distinct participants as vacant slots are reused.
+    if(this.players.length>=512)fail('Match participant history is full');
+    this.players.push(playerId);
+  }
   recordDamage(sourcePlayerId,value){
     this.participant(sourcePlayerId);
     const damage=damageValue(value);
@@ -261,14 +269,21 @@ export class FileProgressStore{
 export class DropLedger{
   constructor({matchId,playerIds,maxDistance=250,snapshot}){
     this.matchId=id(matchId,'match ID');this.players=[...new Set(playerIds.map(x=>id(x,'player ID')))];
-    if(this.players.length<2||this.players.length>8||!Number.isFinite(maxDistance)||maxDistance<=0||maxDistance>10000)fail('Invalid drop authority');
-    this.maxDistance=maxDistance;this.drops=new Map();this.requests=new Map();
+    if(this.players.length<2||this.players.length>(snapshot?512:8)||!Number.isFinite(maxDistance)||maxDistance<=0||maxDistance>10000)fail('Invalid drop authority');
+    this.maxDistance=maxDistance;this.drops=new Map();this.requests=new Map();this.manualRequests=new Map();
     if(snapshot){
       if(snapshot.matchId!==this.matchId||JSON.stringify(snapshot.playerIds)!==JSON.stringify(this.players))fail('Drop snapshot identity mismatch');
       // Snapshot is host-owned local state, never accepted directly from a peer.
       for(const entry of snapshot.drops)this.drops.set(entry.id,clone(entry));
       for(const [request,value] of snapshot.requests)this.requests.set(request,clone(value));
+      for(const [request,value] of snapshot.manualRequests??[])this.manualRequests.set(request,clone(value));
     }
+  }
+  addParticipant(playerId){
+    id(playerId,'player ID');
+    if(this.players.includes(playerId))return;
+    if(this.players.length>=512)fail('Match participant history is full');
+    this.players.push(playerId);
   }
   createDeathDrop(receipt,{selectedWeapon,magazine,reserve,pos,sector}){
     validateDeathReceipt(receipt);
@@ -280,6 +295,32 @@ export class DropLedger{
       weapon:selectedWeapon,...ammo({magazine,reserve}),pos:vector(pos),sector,claimedBy:null,grant:null};
     this.drops.set(dropId,drop);
     return {created:true,drop:clone(drop)};
+  }
+  dropWeapon(playerId,{requestId,life,weapon,magazine,reserve},{state,weapons}){
+    if(!this.players.includes(playerId))fail('Unknown player');
+    id(requestId,'request ID');int(life,'player life',1);int(weapon,'dropped weapon',0,51);
+    const remaining=ammo({magazine,reserve}),requestKey=key(this.matchId,playerId,requestId);
+    const deny=reason=>({granted:false,reason});
+    if(state.life!==life||!(state.hp>0))return deny('dead-or-stale-life');
+    const prior=this.manualRequests.get(requestKey);
+    if(prior){
+      if(prior.life!==life||prior.weapon!==weapon||prior.drop.magazine!==magazine||prior.drop.reserve!==reserve)return deny('conflicting-request');
+      return {granted:true,duplicate:true,grant:clone(prior)};
+    }
+    const slots=inventory(state.inventory),removeSlot=slots.indexOf(weapon),catalog=new Map(weapons.map(item=>[item.weaponId??item.id,item]));
+    if(removeSlot<0||state.selectedWeapon!==weapon)return deny('weapon-not-selected');
+    if(weapon===0||catalog.get(weapon)?.isWeapon!==true)return deny('cannot-drop-item');
+    const latest=state.ammo?.[weapon];
+    if(!latest||latest.magazine!==magazine||latest.reserve!==reserve)return deny('ammo-changed');
+    int(state.sector,'drop sector',0,65535);
+    slots[removeSlot]=EMPTY_SLOT;
+    let selectedWeapon=slots.find(item=>item!==0&&catalog.get(item)?.isWeapon===true);
+    if(selectedWeapon===undefined){selectedWeapon=0;if(!slots.includes(0))slots[removeSlot]=0;}
+    const drop={id:'manual-'+requestKey.slice(0,40),matchId:this.matchId,ownerId:playerId,ownerLife:life,
+      weapon,...remaining,pos:vector(state.pos),sector:state.sector,claimedBy:null,grant:null};
+    const grant={id:requestId,requestId,matchId:this.matchId,playerId,life,weapon,removeSlot,selectedWeapon,inventory:slots,drop};
+    this.drops.set(drop.id,drop);this.manualRequests.set(requestKey,clone(grant));
+    return {granted:true,duplicate:false,grant:clone(grant)};
   }
   claimDrop(playerId,{dropId,requestId,life},{state,character,xp,weapons,ranks=DEFAULT_RANKS,constraints}){
     if(!this.players.includes(playerId))fail('Unknown claimant');
@@ -297,8 +338,8 @@ export class DropLedger{
     const pos=vector(state.pos);
     if(Math.hypot(...pos.map((n,i)=>n-drop.pos[i]))>this.maxDistance)return deny('out-of-range');
     const slots=inventory(state.inventory);
-    let replaceSlot=slots.indexOf(drop.weapon);
-    if(replaceSlot<0)replaceSlot=slots.indexOf(EMPTY_SLOT);
+    if(slots.includes(drop.weapon))return deny('weapon-already-owned');
+    let replaceSlot=slots.indexOf(EMPTY_SLOT);
     if(replaceSlot<0)replaceSlot=slots.length;
     if(replaceSlot>=52)return deny('inventory-full');
     const replacedWeapon=slots[replaceSlot]??EMPTY_SLOT;slots[replaceSlot]=drop.weapon;
@@ -313,7 +354,7 @@ export class DropLedger{
     drop.claimedBy=playerId;drop.grant=grant;this.requests.set(requestKey,grant);
     return {granted:true,duplicate:false,grant:clone(grant)};
   }
-  snapshot(){return {matchId:this.matchId,playerIds:[...this.players],drops:[...this.drops.values()].map(clone),requests:[...this.requests].map(clone)};}
+  snapshot(){return {matchId:this.matchId,playerIds:[...this.players],drops:[...this.drops.values()].map(clone),requests:[...this.requests].map(clone),manualRequests:[...this.manualRequests].map(clone)};}
 }
 
 /** Native adapter writes only this weapon record after a successful result.

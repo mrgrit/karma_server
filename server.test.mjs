@@ -107,6 +107,10 @@ try{
   assert.equal((await guest.type('profile')).profile.xp,5);
   const drop=(await host.type('drop')).drop;assert.equal(drop.magazine,0);assert.equal(drop.reserve,7);
   guest.send({type:'game',message:death});
+  host.send({type:'pickup-claim',dropId:drop.id,requestId:'already-owned',life:1});
+  assert.equal((await host.type('pickup-denied')).reason,'weapon-already-owned');
+  host.send({type:'drop-claim',requestId:'clear-slot',life:1,weapon:9,magazine:30,reserve:90});
+  await host.type('drop-grant');
   host.send({type:'pickup-claim',dropId:drop.id,requestId:'claim-1',life:1});
   const grant=(await host.type('pickup-grant')).grant;
   assert.equal(grant.playerId,'host-profile');assert.equal(grant.magazine,0);assert.equal(grant.reserve,7);

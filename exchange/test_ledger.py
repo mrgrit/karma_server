@@ -25,12 +25,12 @@ class LedgerTests(unittest.TestCase):
         return str(uuid.uuid4())
 
     def test_initial_once_and_restart(self):
-        self.assertEqual(self.balance(self.a), 10000000)
+        self.assertEqual(self.balance(self.a), 100000000)
         self.assertEqual(self.balance(self.b), 300)
         for _ in range(3):
             Ledger(self.path).ensure(self.a)
             Ledger(self.path).ensure(self.b)
-        self.assertEqual(self.balance(self.a), 10000000)
+        self.assertEqual(self.balance(self.a), 100000000)
         self.assertEqual(self.balance(self.b), 300)
         self.db.audit()
 

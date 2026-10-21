@@ -84,10 +84,11 @@ class ProfileDatabase{
   }
   finishMatch(room,reason,winnerIds){
     if(this.data.matches[room.id])return this.data.matches[room.id];
-    const players=room.clients.map(client=>client.playerId),draw=winnerIds.length===0;
+    const participants=room.participants?[...room.participants.values()]:room.clients;
+    const players=[...new Set(participants.map(client=>client.playerId))],draw=winnerIds.length===0;
     const result={id:room.id,reason,startedAt:room.startedAt,endedAt:Date.now(),players,
       winnerIds,scores:Object.fromEntries(room.kills),draw,mode:room.mode,
-      teams:Object.fromEntries(room.clients.map(c=>[c.playerId,c.team])),teamScores:teamScores(room),roundWins:room.roundWins||null};
+      teams:Object.fromEntries(participants.map(c=>[c.playerId,c.team])),teamScores:teamScores(room),roundWins:room.roundWins||null};
     for(const playerId of players){
       const profile=this.data.profiles[playerId];
       const counter=draw?'draws':winnerIds.includes(playerId)?'wins':'losses';
@@ -124,7 +125,7 @@ export async function startKarmaServer({
   integer(roundWinLimit,'round win limit',1,100);integer(roundSeconds,'round time',1,3600);
   integer(roundIntermissionMs,'round break',1,30000);integer(dmRespawnMs,'deathmatch respawn',0,60000);
   integer(matchKills,'match kill limit',1,1000);integer(matchSeconds,'match time limit',1,86400);
-  const rooms=new Map(),online=new Map(),sockets=new Set();
+  const rooms=new Map(),online=new Map(),sockets=new Set(),pendingPlayers=new Map(),admissions=new Set();
   let closing=false,acceptedMessages=0,relayedMessages=0;
   const log=(event,details={})=>{try{logger(event,details);}catch{}};
   function publicProfile(profile,character,account){
@@ -147,11 +148,38 @@ export async function startKarmaServer({
   function broadcast(room,message,except=null){
     for(const client of room.clients)if(client!==except&&write(client,message))relayedMessages++;
   }
-  function roomInfo(room){return {roomId:room.id,code:room.code,maxPlayers:room.maxPlayers,mode:room.mode,map:room.clients[0]?.config.map,mapName:multiplayerMaps.find(m=>m.mapIndex===room.clients[0]?.config.map)?.name,
+  function activeClients(room){return room.clients.filter(c=>!c.closed);}
+  function lateJoinEnabled(room){return room.mode==='dm'&&room.build==='karma290-central5';}
+  function remainingSeconds(room){return room.started?Math.max(0,Math.ceil((room.startedAt+matchSeconds*1000-Date.now())/1000)):matchSeconds;}
+  function roomInfo(room){return {roomId:room.id,code:room.code,maxPlayers:room.maxPlayers,mode:room.mode,map:room.map,mapName:multiplayerMaps.find(m=>m.mapIndex===room.map)?.name,
     manualStart:room.manualStart===true,hostId:room.clients[0]?.playerId,gameFee:exchange?100:0,exchangeUrl:exchange?.publicUrl,
     killLimit:room.mode==='tdm'?null:room.killLimit,timeLimitSeconds:matchSeconds,
     roundWinLimit:room.mode==='tdm'?roundWinLimit:null,roundSeconds:room.mode==='tdm'?roundSeconds:null,
-    respawnMs:room.mode==='dm'?dmRespawnMs:room.mode==='tdm'?null:4500};}
+    respawnMs:room.mode==='dm'?dmRespawnMs:room.mode==='tdm'?null:4500,
+    lateJoinEnabled:lateJoinEnabled(room),remainingSeconds:remainingSeconds(room)};}
+  function roomDirectory(account){
+    return [...rooms.values()].filter(room=>!room.ending&&activeClients(room).length&&
+      (account.role==='admin'||multiplayerMaps.find(m=>m.mapIndex===room.map)?.publicReady)).map(room=>{
+      const players=activeClients(room),full=players.length+room.pending.size>=room.maxPlayers;
+      const joinable=!room.starting&&!full&&(!room.started||lateJoinEnabled(room));
+      return {roomId:room.id,code:room.code,hostName:players[0].account.name,map:room.map,
+        mapName:multiplayerMaps.find(m=>m.mapIndex===room.map)?.name,mode:room.mode,
+        players:players.length,maxPlayers:room.maxPlayers,
+        state:room.starting?'starting':full?'full':room.started?'playing':'waiting',joinable,
+        build:room.build,gameFee:exchange?100:0,remainingSeconds:remainingSeconds(room)};
+    }).sort((a,b)=>Number(b.joinable)-Number(a.joinable)||a.code.localeCompare(b.code));
+  }
+  function peerInfo(client){return {role:client.room.clients[0]===client?'host':'join',slot:client.slot,
+    team:client.team,playerId:client.playerId,config:clone(client.config)};}
+  function ready(client,lateJoin=false){
+    const room=client.room,peers=activeClients(room).filter(other=>other!==client).map(peerInfo);
+    write(client,{type:'peer-ready',version:2,role:room.clients[0]===client?'host':'join',slot:client.slot,
+      ...roomInfo(room),team:client.team,config:clone(client.config),remoteHello:peers[0],peers,
+      lateJoin,initialLife:client.state.life,
+      profile:publicProfile(db.data.profiles[client.playerId],client.character,client.account)});
+  }
+  function scoreSnapshot(room){return {type:'match-snapshot',version:2,remainingSeconds:remainingSeconds(room),
+    players:activeClients(room).map(c=>({playerId:c.playerId,kills:room.kills.get(c.playerId)||0,deaths:room.deaths.get(c.playerId)||0}))};}
   function friendly(a,b){return a!==b&&a.room.mode==='tdm'&&a.team===b.team;}
   function error(session,code,message){
     write(session,{type:'error',version:2,code,message});
@@ -161,7 +189,7 @@ export async function startKarmaServer({
     if(!plainObject(value)||Buffer.byteLength(JSON.stringify(value))>16384)reject('BAD_CONFIG','Invalid config');
     const battlefield=multiplayerMaps.find(m=>m.mapIndex===(value.map??0));
     if((value.age??0)!==0||!battlefield||(!battlefield.publicReady&&account?.role!=='admin'))reject('BAD_CONFIG','멀티플레이 검증이 완료된 전장을 선택하세요.');
-    if(battlefield.mapIndex!==0&&value.settings?.build!=='karma290-central4')reject('CLIENT_UPDATE_REQUIRED','새 전장을 사용하려면 클라이언트를 업데이트하세요.');
+    if(battlefield.mapIndex!==0&&!['karma290-central4','karma290-central5'].includes(value.settings?.build))reject('CLIENT_UPDATE_REQUIRED','새 전장을 사용하려면 클라이언트를 업데이트하세요.');
     const offered=value.character;
     if(!plainObject(offered))reject('BAD_CONFIG','Character is required');
     const original=characters.find(item=>item.age===0&&item.characterIndex===offered.index&&item.camp===offered.camp);
@@ -227,9 +255,11 @@ export async function startKarmaServer({
       broadcast(room,lobbyInfo(room));
       try{
         payment=await exchange.charge(paymentId,participants.map(c=>c.account));
-        if(closing||!rooms.has(room.code)||participants.length!==room.clients.length||participants.some((c,i)=>c.closed||room.clients[i]!==c))throw Error('참가자가 변경됐습니다. 다시 시작해 주세요.');
+        if(closing||rooms.get(room.code)!==room||participants.length!==room.clients.length||participants.some((c,i)=>c.closed||room.clients[i]!==c))throw Error('참가자가 변경됐습니다. 다시 시작해 주세요.');
+        for(const client of participants)auth.authenticate(client.authToken);
         await Promise.all(participants.map(c=>refreshCoins(c.account)));
-        if(closing||!rooms.has(room.code)||participants.length!==room.clients.length||participants.some((c,i)=>c.closed||room.clients[i]!==c))throw Error('참가자가 변경됐습니다. 다시 시작해 주세요.');
+        if(closing||rooms.get(room.code)!==room||participants.length!==room.clients.length||participants.some((c,i)=>c.closed||room.clients[i]!==c))throw Error('참가자가 변경됐습니다. 다시 시작해 주세요.');
+        for(const client of participants)auth.authenticate(client.authToken);
       }catch(problem){
         if(payment)await exchange.refund(paymentId);
         room.starting=false;
@@ -239,26 +269,20 @@ export async function startKarmaServer({
       room.starting=false;
     }
     room.started=true;room.startedAt=Date.now();room.phase='active';room.round=1;room.roundWins=[0,0];
-    for(const c of room.clients){c.alive=true;c.roundLife=1;c.deadAt=0;}
+    for(const c of room.clients){c.alive=true;c.roundLife=1;c.deadAt=0;room.participants.set(c.playerId,{playerId:c.playerId,team:c.team,lastLife:1});room.paid.add(c.playerId);}
     room.kills=new Map(room.clients.map(client=>[client.playerId,0]));
+    room.deaths=new Map(room.clients.map(client=>[client.playerId,0]));
     const playerIds=room.clients.map(client=>client.playerId);
     room.combat=new CombatLedger({matchId:room.id,playerIds});
     room.drops=new DropLedger({matchId:room.id,playerIds,maxDistance:350});
     room.dropOrder=[];room.evidence=new Map();
-    for(const client of room.clients){
-      const peers=room.clients.filter(other=>other!==client).map(other=>({
-        role:other.slot===0?'host':'join',slot:other.slot,team:other.team,playerId:other.playerId,config:clone(other.config),
-      }));
-      write(client,{type:'peer-ready',version:2,role:client.slot===0?'host':'join',slot:client.slot,
-        ...roomInfo(room),team:client.team,config:clone(client.config),remoteHello:peers[0],peers,
-        profile:publicProfile(db.data.profiles[client.playerId],client.character,client.account)});
-    }
+    for(const client of room.clients)ready(client);
     if(room.mode==='tdm')armRoundTimer(room);
     room.matchTimer=setTimeout(()=>finishRoom(room,'time-limit'),matchSeconds*1000);room.matchTimer.unref();
     log('room-started',{roomCount:rooms.size,players:room.clients.length,capacity:room.maxPlayers});
     if(payment)exchange.confirm(payment.matchId);
   }
-  function hello(session,message){
+  async function hello(session,message){
     if(message.type!=='hello'||message.version!==2||!['create','join','profile'].includes(message.op))reject('BAD_HELLO','Protocol 2 hello is required');
     const account=auth.authenticate(message.authToken),profile=db.ensure(account);
     const identity={profile};
@@ -271,7 +295,8 @@ export async function startKarmaServer({
       session.socket.end();return;
     }
     const capability=integer(message.clientMaxPlayers??2,'client capability',2,maxPlayers);
-    if(online.has(identity.profile.playerId))reject('ALREADY_CONNECTED','This player is already connected');
+    const playerId=identity.profile.playerId;
+    if(online.has(playerId)||pendingPlayers.has(playerId))reject('ALREADY_CONNECTED','This player is already connected');
     const offered=normalizedConfig(message.config,identity.profile,account);
     let room;
     if(message.op==='create'){
@@ -284,36 +309,80 @@ export async function startKarmaServer({
       const mode=message.mode??(capacity===2?'duel':'dm');
       if(!['duel','dm','tdm'].includes(mode)||(mode==='duel'&&capacity!==2)||(mode==='tdm'&&capacity%2!==0))
         reject('BAD_MODE','Choose duel (2), deathmatch (2–8), or even-sized team deathmatch');
-      room={id:crypto.randomUUID(),code,maxPlayers:capacity,mode,manualStart:message.manualStart===true,killLimit:mode==='tdm'?matchKills*4:matchKills,clients:[],started:false,ending:false};
+      room={id:crypto.randomUUID(),code,maxPlayers:capacity,mode,map:offered.config.map,build:offered.config.settings.build,
+        manualStart:message.manualStart===true,killLimit:mode==='tdm'?matchKills*4:matchKills,clients:[],
+        pending:new Map(),participants:new Map(),paid:new Set(),started:false,ending:false};
       rooms.set(code,room);
     }else{
       if(typeof message.code!=='string'||!/^\d{6}$/.test(message.code))reject('BAD_CODE','A six-digit room code is required');
       room=rooms.get(message.code);
       if(!room)reject('ROOM_NOT_FOUND','Room not found');
+      if(message.roomId!==undefined&&message.roomId!==room.id)reject('ROOM_CHANGED','선택한 방이 종료되거나 변경되었습니다. 방 목록을 새로 고친 뒤 다시 참가하세요.');
       if(room.starting)reject('ROOM_STARTING','대전 시작 처리 중입니다. 잠시 후 다시 참가하세요.');
-      if(room.started||room.clients.length>=room.maxPlayers)reject('ROOM_FULL','Room is full');
+      if(room.ending||room.started&&!lateJoinEnabled(room))reject('ROOM_STARTED','이미 시작한 방입니다. 개인전 최신 버전에서만 중간 참가할 수 있습니다.');
+      if(activeClients(room).length+room.pending.size>=room.maxPlayers)reject('ROOM_FULL','방에 빈자리가 없습니다.');
       if(room.maxPlayers>capability)reject('CLIENT_LIMIT','Update the client to enter this room size');
-      if(room.clients[0].config.settings.build!==offered.config.settings.build)reject('BUILD_MISMATCH','Both clients must use the same build');
-      const hostMap=multiplayerMaps.find(m=>m.mapIndex===room.clients[0].config.map);
+      if(room.build!==offered.config.settings.build)reject('BUILD_MISMATCH','Both clients must use the same build');
+      const hostMap=multiplayerMaps.find(m=>m.mapIndex===room.map);
       if(!hostMap?.publicReady&&account.role!=='admin')reject('MAP_NOT_RELEASED','이 전장은 아직 관리자 검증 중입니다.');
-      offered.config.map=room.clients[0].config.map;
+      offered.config.map=room.map;
     }
-    session.playerId=identity.profile.playerId;session.character=offered.character;
-    session.config=offered.config;session.room=room;session.slot=room.clients.length;session.team=session.slot%2;
-    session.inventory=[...offered.config.inventory];
-    session.state={life:1,hp:100,pos:[0,0,0],inventory:[...session.inventory],
-      selectedWeapon:offered.config.selectedWeapon,ammo:{},seq:-1};
-    session.hasState=false;
-    identity.profile.loadouts={...identity.profile.loadouts,[offered.characterId]:{
-      inventory:[...offered.config.inventory],selectedWeapon:offered.config.selectedWeapon}};
-    try{db.save(identity.profile);}
-    catch(error){if(room.clients.length===0)rooms.delete(room.code);throw error;}
-    clearTimeout(session.handshakeTimer);room.clients.push(session);online.set(session.playerId,session);
-    write(session,{type:'welcome',version:2,
-      profile:publicProfile(identity.profile,session.character,account),room:roomInfo(room),
-      role:session.slot===0?'host':'join',slot:session.slot,team:session.team});
-    broadcast(room,lobbyInfo(room));
-    if(!room.manualStart&&room.clients.length===room.maxPlayers)startRoom(room);
+    if(room.started&&!room.participants.has(playerId)&&room.participants.size>=512)reject('MATCH_HISTORY_FULL','이 대전의 누적 참가자 한도에 도달했습니다. 다음 대전을 이용하세요.');
+    const occupied=new Set([...activeClients(room).map(c=>c.slot),...room.pending.values()].map(value=>typeof value==='number'?value:value.slot));
+    let slot=0;while(occupied.has(slot))slot++;
+    room.pending.set(playerId,{session,slot});pendingPlayers.set(playerId,session);
+    clearTimeout(session.handshakeTimer);
+    session.handshakeTimer=setTimeout(()=>error(session,'HELLO_TIMEOUT','Connection setup timed out'),25000);session.handshakeTimer.unref();
+    let paymentId=null,payment=null,admitted=false;
+    const checkAdmission=()=>{
+      if(closing||session.closed||session.socket.destroyed||session.socket.writableEnded)reject('JOIN_CANCELLED','참가가 취소되었습니다.');
+      if(rooms.get(room.code)!==room||room.ending||room.started&&!lateJoinEnabled(room))reject('ROOM_ENDED','대전이 종료되었습니다. 방 목록을 새로 고쳐 주세요.');
+      return auth.authenticate(message.authToken);
+    };
+    try{
+      if(room.started&&exchange&&!room.paid.has(playerId)){
+        paymentId=crypto.randomUUID();payment=await exchange.charge(paymentId,[account]);checkAdmission();
+        await refreshCoins(account);checkAdmission();
+      }
+      session.account=checkAdmission();
+      const currentProfile=db.ensure(session.account),previous=room.participants.get(playerId);
+      const initialLife=previous?previous.lastLife+1:1;
+      currentProfile.loadouts={...currentProfile.loadouts,[offered.characterId]:{
+        inventory:[...offered.config.inventory],selectedWeapon:offered.config.selectedWeapon}};
+      db.save(currentProfile);
+      if(room.started){room.combat.addParticipant(playerId);room.drops.addParticipant(playerId);}
+      session.playerId=playerId;session.character=offered.character;
+      session.config=offered.config;session.room=room;session.slot=slot;session.team=slot%2;
+      session.inventory=[...offered.config.inventory];
+      session.state={life:initialLife,hp:100,pos:[0,0,0],inventory:[...session.inventory],
+        selectedWeapon:offered.config.selectedWeapon,ammo:{},seq:-1};
+      session.hasState=false;session.alive=true;session.roundLife=initialLife;session.deadAt=0;
+      clearTimeout(session.handshakeTimer);room.pending.delete(playerId);room.clients.push(session);online.set(playerId,session);admitted=true;
+      write(session,{type:'welcome',version:2,
+        profile:publicProfile(currentProfile,session.character,session.account),room:roomInfo(room),
+        role:room.clients[0]===session?'host':'join',slot:session.slot,team:session.team});
+      if(room.started){
+        room.participants.set(playerId,{playerId,team:session.team,lastLife:initialLife});room.paid.add(playerId);
+        if(!room.kills.has(playerId))room.kills.set(playerId,0);
+        if(!room.deaths.has(playerId))room.deaths.set(playerId,0);
+        broadcast(room,{type:'peer-joined',version:2,peer:peerInfo(session)},session);
+        ready(session,true);broadcast(room,scoreSnapshot(room));
+        for(const other of activeClients(room))if(other!==session&&other.latestPose)
+          write(session,{type:'game',version:2,senderId:other.playerId,slot:other.slot,message:clone(other.latestPose)});
+        for(const drop of room.drops.drops.values())if(!drop.claimedBy)write(session,{type:'drop',version:2,drop:clone(drop)});
+        if(payment)exchange.confirm(paymentId);
+      }else{
+        broadcast(room,lobbyInfo(room));
+        if(!room.manualStart&&room.clients.length===room.maxPlayers)startRoom(room);
+      }
+    }catch(problem){
+      if(payment&&!admitted)await exchange.refund(paymentId);
+      throw problem;
+    }finally{
+      room.pending.delete(playerId);
+      if(pendingPlayers.get(playerId)===session)pendingPlayers.delete(playerId);
+      if(!room.clients.length&&!room.pending.size&&rooms.get(room.code)===room)rooms.delete(room.code);
+    }
   }
   function damageProof(session,value){
     if(!plainObject(value))reject('BAD_PROOF','Damage proof is required');
@@ -351,8 +420,12 @@ export async function startKarmaServer({
         ammunition[weapon]=ammoValue(value);
       }
     }
-    session.state={life:message.life,hp:message.hp,pos:[...message.pos],seq:message.seq,
+    session.state={life:message.life,hp:message.hp,pos:[...message.pos],sector:message.sector,seq:message.seq,
       inventory:[...session.inventory],selectedWeapon,ammo:ammunition};
+    session.latestPose={...clone(message),type:'state',inventory:[...session.inventory],selectedWeapon,ammo:clone(ammunition)};
+    delete session.latestPose.shot;
+    const participant=session.room.participants.get(session.playerId);
+    if(participant)participant.lastLife=Math.max(participant.lastLife,message.life);
     session.hasState=true;if(message.life>old.life){session.deadAt=0;session.alive=true;}
     return true;
   }
@@ -368,6 +441,8 @@ export async function startKarmaServer({
     });
     if(!result.accepted)return;
     session.state.hp=0;session.deadAt=Date.now();session.alive=false;
+    if(session.latestPose)session.latestPose.hp=0;
+    room.deaths.set(session.playerId,(room.deaths.get(session.playerId)||0)+1);
     if(room.mode==='tdm')queueMicrotask(()=>{
       const living=new Set(room.clients.filter(c=>!c.closed&&c.alive).map(c=>c.team));
       if(living.size<2)endRound(room,'team-eliminated');
@@ -410,17 +485,46 @@ export async function startKarmaServer({
     });
     if(!result.granted){write(session,{type:'pickup-denied',version:2,requestId:message.requestId,dropId:message.dropId,reason:result.reason});return;}
     const grant=result.grant;
-    session.inventory[grant.replaceSlot]=grant.weapon;
-    session.state.inventory=[...session.inventory];
-    session.state.ammo[grant.weapon]={magazine:grant.magazine,reserve:grant.reserve};
-    session.state.selectedWeapon=grant.weapon;
+    if(!result.duplicate){
+      session.inventory[grant.replaceSlot]=grant.weapon;
+      session.state.inventory=[...session.inventory];
+      session.state.ammo[grant.weapon]={magazine:grant.magazine,reserve:grant.reserve};
+      session.state.selectedWeapon=grant.weapon;
+      if(session.latestPose)Object.assign(session.latestPose,{inventory:[...session.inventory],ammo:clone(session.state.ammo),selectedWeapon:grant.weapon,weapon:grant.weapon});
+    }
     if(result.duplicate)write(session,{type:'pickup-grant',version:2,grant,replay:true});
     else broadcast(session.room,{type:'pickup-grant',version:2,grant});
+  }
+  function manualDrop(session,message){
+    const deny=reason=>write(session,{type:'drop-denied',version:2,requestId:message.requestId,reason});
+    if(!session.hasState)return deny('no-player-state');
+    if(session.state.sector<0)return deny('invalid-sector');
+    const result=session.room.drops.dropWeapon(session.playerId,message,{state:session.state,weapons:catalog.weapons});
+    if(!result.granted)return deny(result.reason);
+    const grant=result.grant;
+    if(!result.duplicate){
+      session.inventory=[...grant.inventory];session.state.inventory=[...grant.inventory];
+      session.state.selectedWeapon=grant.selectedWeapon;delete session.state.ammo[grant.weapon];
+      if(session.latestPose)Object.assign(session.latestPose,{inventory:[...session.inventory],ammo:clone(session.state.ammo),selectedWeapon:grant.selectedWeapon,weapon:grant.selectedWeapon});
+      session.room.dropOrder.push(grant.drop.id);
+      while(session.room.dropOrder.length>40){
+        const expired=session.room.dropOrder.shift();session.room.drops.drops.delete(expired);
+        broadcast(session.room,{type:'drop-removed',version:2,dropId:expired,reason:'ground-limit'});
+      }
+    }
+    write(session,{type:'drop-grant',version:2,grant,replay:result.duplicate});
+    if(!result.duplicate)broadcast(session.room,{type:'drop',version:2,drop:grant.drop});
   }
   function receive(session,message){
     acceptedMessages++;
     if(!plainObject(message))reject('BAD_MESSAGE','Expected an object');
-    if(!session.playerId){hello(session,message);return;}
+    if(!session.playerId){
+      if(session.admitting)reject('HELLO_PENDING','Connection setup is already in progress');
+      session.admitting=true;
+      const admission=hello(session,message).catch(problem=>error(session,problem.code||'BAD_HELLO',problem.message))
+        .finally(()=>{session.admitting=false;admissions.delete(admission);});
+      admissions.add(admission);return;
+    }
     if(message.type==='ping'){write(session,{type:'pong',version:2});return;}
     if(message.type==='leave'){session.socket.end();return;}
     if(message.type==='start-match'){
@@ -435,6 +539,7 @@ export async function startKarmaServer({
     if(session.room.phase==='intermission'&&message.type!=='leave'&&message.message?.type!=='leave')return;
     if(message.type==='damage-proof'){damageProof(session,message.proof);return;}
     if(message.type==='pickup-claim'){claim(session,message);return;}
+    if(message.type==='drop-claim'){manualDrop(session,message);return;}
     if(message.type!=='game')reject('BAD_MESSAGE','Unsupported message type');
     const game=validateLanMessage(message.message);
     if(session.room.mode==='tdm'&&['hit','state','respawn','death'].includes(game.type)&&
@@ -513,8 +618,9 @@ export async function startKarmaServer({
     }
     if(closing){room.ending=true;clearTimeout(room.matchTimer);clearTimeout(room.roundTimer);rooms.delete(room.code);return;}
     const remaining=room.clients.filter(client=>!client.closed);
+    room.clients=remaining;
     broadcast(room,{type:'peer-left',version:2,playerId:session.playerId,slot:session.slot});
-    if(room.mode==='duel'||remaining.length<2||room.mode==='tdm'&&new Set(remaining.map(c=>c.team)).size<2)
+    if(room.mode==='duel'||remaining.length===0||room.mode==='tdm'&&new Set(remaining.map(c=>c.team)).size<2)
       finishRoom(room,'forfeit',remaining.map(client=>client.playerId));
     else if(room.mode==='tdm'&&new Set(remaining.filter(c=>c.alive).map(c=>c.team)).size<2)endRound(room,'team-eliminated');
     log('room-ended',{roomCount:rooms.size,players:online.size});
@@ -573,6 +679,9 @@ export async function startKarmaServer({
       }
       if(route.startsWith('/api/')){
         const account=auth.authenticate(bearer(request));
+        if(request.method==='GET'&&route==='/api/rooms'){
+          reply(response,200,{rooms:roomDirectory(account),serverTime:Date.now()});return;
+        }
         if(request.method==='GET'&&route==='/api/me'){
           if(url.searchParams.get('wallet')!=='0')await refreshCoins(account);
           reply(response,200,{profile:accountProfile(account),activity:db.data.activity.filter(item=>
@@ -720,6 +829,7 @@ export async function startKarmaServer({
       if(closing)return;closing=true;clearInterval(authTimer);
       for(const room of rooms.values()){clearTimeout(room.matchTimer);clearTimeout(room.roundTimer);}
       for(const socket of sockets)socket.destroy();
+      await Promise.allSettled([...admissions]);
       await Promise.all([new Promise(resolve=>server.close(resolve)),new Promise(resolve=>health.close(resolve))]);
     },
   };

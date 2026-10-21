@@ -134,7 +134,7 @@ class Ledger:
         exists = db.execute('SELECT 1 FROM users WHERE id=?', (uid,)).fetchone()
         db.execute('INSERT INTO users VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,role=excluded.role', (uid, name, role, self.now()))
         if not exists:
-            grant = 10000000 if role == 'admin' else 300
+            grant = 100000000 if role == 'admin' else 300
             self.move(db, str(uuid.uuid4()), COIN, '@mint', uid, grant, '관리자 최초 지급' if role == 'admin' else '체험 코인 최초 지급', '@department')
         return uid
 

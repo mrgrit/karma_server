@@ -54,7 +54,22 @@ assert.equal(pickup({character:assault}).granted,false,'Loot cannot bypass heavy
 assert.equal(pickup({inventory:[50,9,21,255,48,255,255]}).granted,false,'Loot cannot retain armor with two cannons');
 assert.equal(pickup({inventory:[50,9,21,22,255,255,255],weapon:14}).granted,false,'Only one light automatic even after loot');
 assert.equal(pickup({inventory:[50,9,21,22,255,255,255],weapon:1}).granted,false,'Pistol cannot be added to dual loadout');
+assert.equal(pickup({inventory:[50,9,21,255,255,255,255],weapon:9}).reason,'weapon-already-owned','Picking up the same gun cannot replace existing ammunition');
 assert.equal(pickup({inventory:[50,16,255,255,255,255,255]}).granted,false,'Machine gun + launcher restriction also covers loot');
 assert.equal(pickup({character:assault,xp:0,inventory:[50,9,255,255,255,255,255],weapon:21}).granted,true,
  'A single enemy cannon remains lootable across classes');
+const manual=new DropLedger({matchId:'manual-drop',playerIds:['picker','victim']});
+const manualState={life:1,hp:100,pos:[1,2,3],sector:4,inventory:[50,9,255,255,48,24,255],selectedWeapon:9,ammo:{9:{magazine:0,reserve:7}}};
+const manualRequest={requestId:'drop-1',life:1,weapon:9,magazine:0,reserve:7};
+const manualResult=manual.dropWeapon('picker',manualRequest,{state:manualState,weapons:catalog.weapons});
+assert.equal(manualResult.granted,true);assert.equal(manualResult.grant.selectedWeapon,0);
+assert.equal(manualResult.grant.inventory[1],0,'Last gun is replaced with knife fallback');
+assert.deepEqual([manualResult.grant.drop.magazine,manualResult.grant.drop.reserve],[0,7]);
+assert.equal(manual.dropWeapon('picker',manualRequest,{state:manualState,weapons:catalog.weapons}).duplicate,true);
+assert.equal(manual.drops.size,1,'Duplicate request never creates another drop');
+assert.equal(manual.dropWeapon('picker',{...manualRequest,reserve:8},{state:manualState,weapons:catalog.weapons}).reason,'conflicting-request');
+assert.equal(manual.dropWeapon('picker',manualRequest,{state:{...manualState,life:2},weapons:catalog.weapons}).reason,'dead-or-stale-life');
+assert.equal(manual.dropWeapon('picker',{...manualRequest,requestId:'drop-2',weapon:0},{state:{...manualState,inventory:[0],selectedWeapon:0},weapons:catalog.weapons}).reason,'cannot-drop-item');
+const restoredManual=new DropLedger({matchId:'manual-drop',playerIds:['picker','victim'],snapshot:manual.snapshot()});
+assert.equal(restoredManual.dropWeapon('picker',manualRequest,{state:manualState,weapons:catalog.weapons}).duplicate,true,'Snapshot preserves manual-drop request idempotency');
 console.log('PASS progression: all character defaults/unlock boundaries, all three starter classes per camp, rank/class dual cannon, 1405-point preset, optional light weapon, equipment sacrifice and exact-ammo pickup enforcement.');
