@@ -56,6 +56,9 @@ try{
   assert.equal(signup.status,200);assert.equal(signup.value.requiresVerification,false);
   assert.equal(signup.value.profile.emailVerified,false);assert.equal(signup.value.profile.isAdmin,false);
   assert.equal(signup.value.profile.email,'user@example.test');
+  assert.equal(signup.value.profile.progressionVersion,2);
+  assert.equal(signup.value.profile.unlockedCharacterIds.length,6);
+  assert.equal(signup.value.profile.dualCannonUnlocked,false);
   const user=signup.value;
   assert.equal((await request('/api/me')).status,401);
   assert.equal((await request('/api/admin/users',{token:user.authToken})).status,403);
@@ -68,6 +71,18 @@ try{
   assert.equal(patch.status,200);assert.equal(patch.value.profile.matches,2);
   assert.equal((await request('/api/me',{token:user.authToken})).value.profile.rank.id,'private');
   assert.equal((await request('/api/me',{token:user.authToken})).value.profile.email,'user@example.test');
+  // Invalid combined admin writes must not leak XP or unlocks into live state.
+  patch=await request('/api/admin/users/'+user.profile.playerId,{...headers,method:'PATCH',body:{xp:600,
+    loadouts:{cpom_020:{inventory:[50,9,21,22,48,255,255],selectedWeapon:21}}}});
+  assert.equal(patch.status,400);
+  assert.equal((await request('/api/me',{token:user.authToken})).value.profile.xp,100);
+  patch=await request('/api/admin/users/'+user.profile.playerId,{...headers,method:'PATCH',body:{xp:600,
+    loadouts:{cpom_020:{inventory:[50,9,21,22,255,255,255],selectedWeapon:21}}}});
+  assert.equal(patch.status,200);assert.equal(patch.value.profile.dualCannonUnlocked,true);
+  assert.deepEqual(patch.value.profile.loadouts.cpom_020.inventory,[50,9,21,22,255,255,255]);
+  patch=await request('/api/admin/users/'+user.profile.playerId,{...headers,method:'PATCH',body:{xp:100}});
+  assert.equal(patch.status,200);assert.deepEqual(patch.value.profile.loadouts,{});
+  assert.equal(patch.value.profile.dualCannonUnlocked,false,'XP downgrade invalidates the saved dual build');
   const ranking=(await request('/api/leaderboard',{token:user.authToken})).value;
   assert.ok(!JSON.stringify(ranking).includes('@'));
   const users=(await request('/api/admin/users',headers)).value.users;

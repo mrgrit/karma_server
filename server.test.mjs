@@ -127,8 +127,14 @@ try{
   const badAuth=await connect({op:'create',playerId:'host-profile',code:'123456',noAuth:true});
   assert.equal((await badAuth.type('error')).code,'AUTH_REQUIRED');
   const badBudget=await connect({op:'create',playerId:'too-heavy',code:'123456',
-    config:{...config,inventory:[50,5,1,6,48,24,18],selectedWeapon:5}});
-  assert.match((await badBudget.type('error')).message,/budget|role/i);
+    config:{...config,inventory:[50,10,1,6,49,24,18],selectedWeapon:10}});
+  assert.match((await badBudget.type('error')).message,/budget/i);
+  const lockedCharacter=await connect({op:'create',playerId:'locked-character',code:'123456',
+    config:{...config,character:{camp:0,index:2}}});
+  assert.match((await lockedCharacter.type('error')).message,/locked/i);
+  const prematureDual=await connect({op:'create',playerId:'premature-dual',code:'123456',
+    config:{...config,character:{camp:0,index:4},inventory:[50,9,21,22,255,255,255],selectedWeapon:21}});
+  assert.match((await prematureDual.type('error')).message,/600 XP/i);
   const oldId=await connect({op:'create',playerId:'constructor',code:'123456'});
   assert.equal((await oldId.type('error')).code,'BAD_MESSAGE');
   host=await connect({op:'create',playerId:'host-profile',code:'123456'});

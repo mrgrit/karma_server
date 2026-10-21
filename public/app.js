@@ -178,7 +178,9 @@ function renderLoadout(){
  const [id,l]=entry,{cost,budget,character}=loadoutNumbers(entry);
  state.selectedCharacter=id;
  setText('loadout-character',character?.name||character?.displayName||id);
- setText('loadout-summary-text',`시작 장비 ${l.inventory.filter(x=>x!==255).length}개 · ${rankName(state.me.rank)} 기준`);
+ const role=character?.roleName||'병과 정보 없음',unlock=character?.unlockRankName||'훈련병';
+ const dual=(state.catalog.constraints?.dualCannon?.cannonIds||[21,22]).filter(id=>l.inventory.includes(id)).length===2;
+ setText('loadout-summary-text',`${role} · ${unlock} 해금 · ${dual?'쌍포 구성 · ':''}시작 장비 ${l.inventory.filter(x=>x!==255).length}개 · ${rankName(state.me.rank)} 기준`);
  setText('loadout-cost',cost===null?'—':format(cost));setText('loadout-capacity',`/ ${budget===null?'—':format(budget)} 점`);
  let select=$('loadout-character-select');
  if(entries.length>1){

@@ -1,0 +1,6 @@
+data
+secrets
+__pycache__
+*.sqlite*
+test_*
+test-fixtures

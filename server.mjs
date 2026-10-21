@@ -8,8 +8,9 @@ import crypto from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {validateLanMessage} from './lan-validation.mjs';
 import {AuthService,authError} from './auth.mjs';
+import {createExchangeClient} from './exchange-client.mjs';
 import {
-  CombatLedger,DropLedger,validateLoadout,rankForXp,loadoutBudget,
+  CombatLedger,DropLedger,validateLoadout,rankForXp,loadoutBudget,characterUnlocked,
   newProgressProfile,applyDeathToProfile,atomicWriteJson,
 } from './progression.mjs';
 
@@ -101,16 +102,23 @@ class ProfileDatabase{
 export async function startKarmaServer({
   host='0.0.0.0',port=29020,healthHost=host,healthPort=29021,
   dataDir=path.join(directory,'data'),catalogFile=path.join(directory,'loadouts.json'),
-  characterFile=path.join(directory,'characters.json'),maxRooms=20,maxPlayers=8,
+  characterFile=path.join(directory,'characters.json'),mapFile=path.join(directory,'multiplayer-maps.json'),maxRooms=20,maxPlayers=8,
   roundWinLimit=5,roundSeconds=180,roundIntermissionMs=5000,dmRespawnMs=10000,
-  authService,tlsCert=process.env.TLS_CERT,tlsKey=process.env.TLS_KEY,matchKills=10,matchSeconds=600,
+  authService,exchange=null,tlsCert=process.env.TLS_CERT,tlsKey=process.env.TLS_KEY,matchKills=10,matchSeconds=600,
   logger=(event,details)=>console.log(JSON.stringify({time:new Date().toISOString(),event,...details})),
 }={}){
   integer(maxRooms,'room limit',1,20);integer(maxPlayers,'player limit',2,8);
   const catalog=readJson(catalogFile),characters=readJson(characterFile);
+  const multiplayerMaps=readJson(mapFile).maps;
   const weaponById=new Map(catalog.weapons.map(item=>[item.weaponId??item.id,item]));
   const db=new ProfileDatabase(path.join(path.resolve(dataDir),'profiles.json'));
   const auth=authService||new AuthService({filename:path.join(path.resolve(dataDir),'auth.json')});
+  const coinProfiles=new Map();
+  async function refreshCoins(account){
+    if(!exchange)return;
+    try{const wallet=await exchange.wallet(account);coinProfiles.set(account.playerId,{available:wallet.balances.find(b=>b.symbol==='KARMA')?.available??0,locked:wallet.locked.KARMA||0,gameFee:100,url:exchange.publicUrl,status:'online'});}
+    catch{coinProfiles.set(account.playerId,{available:null,gameFee:100,url:exchange.publicUrl,status:'unavailable'});}
+  }
   if(!!tlsCert!==!!tlsKey)throw Error('TLS_CERT and TLS_KEY must be configured together');
   const tlsOptions=tlsCert?{cert:fs.readFileSync(tlsCert),key:fs.readFileSync(tlsKey),minVersion:'TLSv1.2'}:null;
   integer(roundWinLimit,'round win limit',1,100);integer(roundSeconds,'round time',1,3600);
@@ -125,6 +133,10 @@ export async function startKarmaServer({
       wins:profile.wins||0,losses:profile.losses||0,draws:profile.draws||0,matches:profile.matches||0,
       ...(account?{email:account.email,role:account.role,isAdmin:account.role==='admin',emailVerified:!!account.emailVerified}:{}),
       ...(character?{inventoryCapacity:loadoutBudget({xp:profile.xp,character,ranks:catalog.ranks})}:{}),
+      progressionVersion:catalog.progressionVersion??1,
+      unlockedCharacterIds:Object.keys(catalog.characters).filter(id=>characterUnlocked(catalog.characters[id],profile.xp)),
+      dualCannonUnlocked:profile.xp>=(catalog.constraints?.dualCannon?.minXp??Number.MAX_SAFE_INTEGER),
+      ...(exchange?{coins:coinProfiles.get(profile.playerId)??{available:null,gameFee:100,url:exchange.publicUrl,status:'unavailable'}}:{}),
       loadouts:clone(profile.loadouts||{})};
   }
   function write(session,message){
@@ -135,8 +147,8 @@ export async function startKarmaServer({
   function broadcast(room,message,except=null){
     for(const client of room.clients)if(client!==except&&write(client,message))relayedMessages++;
   }
-  function roomInfo(room){return {roomId:room.id,code:room.code,maxPlayers:room.maxPlayers,mode:room.mode,
-    manualStart:room.manualStart===true,hostId:room.clients[0]?.playerId,
+  function roomInfo(room){return {roomId:room.id,code:room.code,maxPlayers:room.maxPlayers,mode:room.mode,map:room.clients[0]?.config.map,mapName:multiplayerMaps.find(m=>m.mapIndex===room.clients[0]?.config.map)?.name,
+    manualStart:room.manualStart===true,hostId:room.clients[0]?.playerId,gameFee:exchange?100:0,exchangeUrl:exchange?.publicUrl,
     killLimit:room.mode==='tdm'?null:room.killLimit,timeLimitSeconds:matchSeconds,
     roundWinLimit:room.mode==='tdm'?roundWinLimit:null,roundSeconds:room.mode==='tdm'?roundSeconds:null,
     respawnMs:room.mode==='dm'?dmRespawnMs:room.mode==='tdm'?null:4500};}
@@ -145,23 +157,25 @@ export async function startKarmaServer({
     write(session,{type:'error',version:2,code,message});
     session.socket.end();const timer=setTimeout(()=>session.socket.destroy(),250);timer.unref();
   }
-  function normalizedConfig(value,profile){
+  function normalizedConfig(value,profile,account){
     if(!plainObject(value)||Buffer.byteLength(JSON.stringify(value))>16384)reject('BAD_CONFIG','Invalid config');
-    if((value.age??0)!==0||(value.map??0)!==0)reject('BAD_CONFIG','This native release supports the past-era LAN map only');
+    const battlefield=multiplayerMaps.find(m=>m.mapIndex===(value.map??0));
+    if((value.age??0)!==0||!battlefield||(!battlefield.publicReady&&account?.role!=='admin'))reject('BAD_CONFIG','멀티플레이 검증이 완료된 전장을 선택하세요.');
+    if(battlefield.mapIndex!==0&&value.settings?.build!=='karma290-central4')reject('CLIENT_UPDATE_REQUIRED','새 전장을 사용하려면 클라이언트를 업데이트하세요.');
     const offered=value.character;
     if(!plainObject(offered))reject('BAD_CONFIG','Character is required');
     const original=characters.find(item=>item.age===0&&item.characterIndex===offered.index&&item.camp===offered.camp);
     const character=original&&catalog.characters[original.id];
     if(!character)reject('BAD_CONFIG','Unsupported character');
     const equipment=validateLoadout({
-      inventory:value.inventory??catalog.defaultInventory,
-      selectedWeapon:value.selectedWeapon??catalog.defaultSelectedWeapon,
+      inventory:value.inventory??character.defaultInventory??catalog.defaultInventory,
+      selectedWeapon:value.selectedWeapon??character.defaultSelectedWeapon??catalog.defaultSelectedWeapon,
       xp:profile.xp,character,weapons:catalog.weapons,ranks:catalog.ranks,
       slotRules:catalog.slots,constraints:catalog.constraints,
     });
     const build=value.settings?.build??'karma290-lan1';
     if(typeof build!=='string'||!/^[A-Za-z0-9_.-]{1,96}$/.test(build))reject('BAD_CONFIG','Invalid build');
-    const config={map:0,age:0,character:{index:original.characterIndex,camp:original.camp,
+    const config={map:battlefield.mapIndex,age:0,character:{index:original.characterIndex,camp:original.camp,
       model:path.basename(original.model.replaceAll('\\','/')).toLowerCase(),name:profile.name},
       inventory:equipment.inventory,selectedWeapon:equipment.selectedWeapon,
       settings:{build,mode:1}};
@@ -197,6 +211,7 @@ export async function startKarmaServer({
     },roundIntermissionMs);room.roundTimer.unref();
   }
   function startReason(room){
+    if(room.starting)return '거래소에서 참가자 이용료를 확인하고 있습니다.';
     if(room.clients.length<2)return '두 명 이상 접속해야 시작할 수 있습니다.';
     if(room.mode==='tdm'&&room.clients.length%2!==0)return '팀전은 양 팀 인원이 같아야 합니다. 한 명을 더 기다려 주세요.';
     return '';
@@ -204,8 +219,25 @@ export async function startKarmaServer({
   function lobbyInfo(room){return {type:'waiting',version:2,...roomInfo(room),players:room.clients.length,
     canStart:startReason(room)==='',startReason:startReason(room),
     members:room.clients.map(c=>({playerId:c.playerId,name:c.account.name,slot:c.slot,team:c.team}))};}
-  function startRoom(room){
+  async function startRoom(room){
     if(room.started||startReason(room)!=='')return;
+    let payment=null;
+    if(exchange){
+      room.starting=true;const participants=[...room.clients],paymentId=crypto.randomUUID();
+      broadcast(room,lobbyInfo(room));
+      try{
+        payment=await exchange.charge(paymentId,participants.map(c=>c.account));
+        if(closing||!rooms.has(room.code)||participants.length!==room.clients.length||participants.some((c,i)=>c.closed||room.clients[i]!==c))throw Error('참가자가 변경됐습니다. 다시 시작해 주세요.');
+        await Promise.all(participants.map(c=>refreshCoins(c.account)));
+        if(closing||!rooms.has(room.code)||participants.length!==room.clients.length||participants.some((c,i)=>c.closed||room.clients[i]!==c))throw Error('참가자가 변경됐습니다. 다시 시작해 주세요.');
+      }catch(problem){
+        if(payment)await exchange.refund(paymentId);
+        room.starting=false;
+        if(rooms.has(room.code))broadcast(room,{type:'start-denied',version:2,message:problem.code==='INSUFFICIENT_FUNDS'?problem.message:'대전을 시작하지 못했습니다. '+(payment?'이용료를 반환합니다. ':'')+(problem.code?'거래소 연결을 확인하세요.':problem.message),lobby:lobbyInfo(room)});
+        return;
+      }
+      room.starting=false;
+    }
     room.started=true;room.startedAt=Date.now();room.phase='active';room.round=1;room.roundWins=[0,0];
     for(const c of room.clients){c.alive=true;c.roundLife=1;c.deadAt=0;}
     room.kills=new Map(room.clients.map(client=>[client.playerId,0]));
@@ -224,6 +256,7 @@ export async function startKarmaServer({
     if(room.mode==='tdm')armRoundTimer(room);
     room.matchTimer=setTimeout(()=>finishRoom(room,'time-limit'),matchSeconds*1000);room.matchTimer.unref();
     log('room-started',{roomCount:rooms.size,players:room.clients.length,capacity:room.maxPlayers});
+    if(payment)exchange.confirm(payment.matchId);
   }
   function hello(session,message){
     if(message.type!=='hello'||message.version!==2||!['create','join','profile'].includes(message.op))reject('BAD_HELLO','Protocol 2 hello is required');
@@ -239,7 +272,7 @@ export async function startKarmaServer({
     }
     const capability=integer(message.clientMaxPlayers??2,'client capability',2,maxPlayers);
     if(online.has(identity.profile.playerId))reject('ALREADY_CONNECTED','This player is already connected');
-    const offered=normalizedConfig(message.config,identity.profile);
+    const offered=normalizedConfig(message.config,identity.profile,account);
     let room;
     if(message.op==='create'){
       if(rooms.size>=maxRooms)reject('ROOM_LIMIT','The server has reached its room limit');
@@ -257,9 +290,13 @@ export async function startKarmaServer({
       if(typeof message.code!=='string'||!/^\d{6}$/.test(message.code))reject('BAD_CODE','A six-digit room code is required');
       room=rooms.get(message.code);
       if(!room)reject('ROOM_NOT_FOUND','Room not found');
+      if(room.starting)reject('ROOM_STARTING','대전 시작 처리 중입니다. 잠시 후 다시 참가하세요.');
       if(room.started||room.clients.length>=room.maxPlayers)reject('ROOM_FULL','Room is full');
       if(room.maxPlayers>capability)reject('CLIENT_LIMIT','Update the client to enter this room size');
       if(room.clients[0].config.settings.build!==offered.config.settings.build)reject('BUILD_MISMATCH','Both clients must use the same build');
+      const hostMap=multiplayerMaps.find(m=>m.mapIndex===room.clients[0].config.map);
+      if(!hostMap?.publicReady&&account.role!=='admin')reject('MAP_NOT_RELEASED','이 전장은 아직 관리자 검증 중입니다.');
+      offered.config.map=room.clients[0].config.map;
     }
     session.playerId=identity.profile.playerId;session.character=offered.character;
     session.config=offered.config;session.room=room;session.slot=room.clients.length;session.team=session.slot%2;
@@ -369,7 +406,7 @@ export async function startKarmaServer({
     const profile=db.data.profiles[session.playerId];
     const result=session.room.drops.claimDrop(session.playerId,message,{
       state:session.state,character:session.character,xp:profile.xp,
-      weapons:catalog.weapons,ranks:catalog.ranks,
+      weapons:catalog.weapons,ranks:catalog.ranks,constraints:catalog.constraints,
     });
     if(!result.granted){write(session,{type:'pickup-denied',version:2,requestId:message.requestId,dropId:message.dropId,reason:result.reason});return;}
     const grant=result.grant;
@@ -482,9 +519,10 @@ export async function startKarmaServer({
     else if(room.mode==='tdm'&&new Set(remaining.filter(c=>c.alive).map(c=>c.team)).size<2)endRound(room,'team-eliminated');
     log('room-ended',{roomCount:rooms.size,players:online.size});
   }
-  function authResult(result){
+  async function authResult(result){
     if(!result.account)return result;
     const {account,...rest}=result,profile=db.ensure(account);
+    await refreshCoins(account);
     return {...rest,profile:publicProfile(profile,undefined,account)};
   }
   const reply=(response,status,value)=>{
@@ -524,9 +562,9 @@ export async function startKarmaServer({
       }
       if(request.method==='POST'&&route.startsWith('/auth/')){
         const ip=request.socket.remoteAddress||'unknown';
-        if(route==='/auth/register/request'){reply(response,200,authResult(await auth.registerRequest(await body(request),ip)));return;}
-        if(route==='/auth/register/verify'){reply(response,200,authResult(await auth.registerVerify(await body(request),ip)));return;}
-        if(route==='/auth/login'){reply(response,200,authResult(await auth.login(await body(request),ip)));return;}
+        if(route==='/auth/register/request'){reply(response,200,await authResult(await auth.registerRequest(await body(request),ip)));return;}
+        if(route==='/auth/register/verify'){reply(response,200,await authResult(await auth.registerVerify(await body(request),ip)));return;}
+        if(route==='/auth/login'){reply(response,200,await authResult(await auth.login(await body(request),ip)));return;}
         if(route==='/auth/logout'){
           const token=bearer(request),account=auth.logout(token),client=online.get(account.playerId);
           if(client?.authToken===token)client.socket.destroy();
@@ -536,9 +574,11 @@ export async function startKarmaServer({
       if(route.startsWith('/api/')){
         const account=auth.authenticate(bearer(request));
         if(request.method==='GET'&&route==='/api/me'){
+          if(url.searchParams.get('wallet')!=='0')await refreshCoins(account);
           reply(response,200,{profile:accountProfile(account),activity:db.data.activity.filter(item=>
             item.playerIds?.includes(account.playerId)||item.targetId===account.playerId).slice(-30).reverse(),
-            catalog:{characters:catalog.characters,weapons:catalog.weapons,ranks:catalog.ranks,slots:catalog.slots}});return;
+            catalog:{characters:catalog.characters,weapons:catalog.weapons,ranks:catalog.ranks,slots:catalog.slots,
+              classes:catalog.classes,constraints:catalog.constraints,progressionVersion:catalog.progressionVersion}});return;
         }
         if(request.method==='GET'&&route==='/api/leaderboard'){
           const disabled=new Set(auth.list().filter(item=>item.disabled).map(item=>item.playerId));
@@ -568,22 +608,30 @@ export async function startKarmaServer({
             const update=await body(request),allowed=['disabled','xp','kills','deaths','wins','losses','draws','matches','loadouts'];
             if(!Object.keys(update).length||Object.keys(update).some(key=>!allowed.includes(key)))authError(400,'BAD_UPDATE','수정할 수 없는 필드입니다.');
             if(online.has(playerId)&&Object.keys(update).some(key=>key!=='disabled'))authError(409,'PLAYER_ACTIVE','대전 종료 후 전적이나 장비를 수정해 주세요.');
-            const profile=db.ensure(target);
+            // Validate a detached candidate so a failed request cannot partially
+            // mutate the live profile (including an XP reduction).
+            const profile=clone(db.ensure(target));
             for(const key of ['xp','kills','deaths','wins','losses','draws','matches']){
               if(update[key]!==undefined)profile[key]=integer(update[key],key,0,Number.MAX_SAFE_INTEGER);
             }
             const sum=(profile.wins||0)+(profile.losses||0)+(profile.draws||0);
             if(update.matches!==undefined&&update.matches!==sum)authError(400,'BAD_COUNTERS','경기 수는 승·패·무 합계와 같아야 합니다.');
             profile.matches=sum;
-            if(update.loadouts!==undefined){
-              if(!plainObject(update.loadouts))authError(400,'BAD_LOADOUT','장비 설정이 올바르지 않습니다.');
+            if(update.loadouts!==undefined||update.xp!==undefined){
+              if(update.loadouts!==undefined&&!plainObject(update.loadouts))authError(400,'BAD_LOADOUT','장비 설정이 올바르지 않습니다.');
               const loadouts={};
-              for(const [characterId,selection] of Object.entries(update.loadouts)){
+              for(const [characterId,selection] of Object.entries(update.loadouts??profile.loadouts??{})){
                 const character=catalog.characters[characterId];
-                if(!character||!plainObject(selection))authError(400,'BAD_LOADOUT','캐릭터 장비 설정을 확인해 주세요.');
-                const valid=validateLoadout({...selection,xp:profile.xp,character,weapons:catalog.weapons,ranks:catalog.ranks,
-                  slotRules:catalog.slots,constraints:catalog.constraints});
-                loadouts[characterId]={inventory:valid.inventory,selectedWeapon:valid.selectedWeapon};
+                try{
+                  if(!character||!plainObject(selection))authError(400,'BAD_LOADOUT','캐릭터 장비 설정을 확인해 주세요.');
+                  const valid=validateLoadout({...selection,xp:profile.xp,character,weapons:catalog.weapons,ranks:catalog.ranks,
+                    slotRules:catalog.slots,constraints:catalog.constraints});
+                  loadouts[characterId]={inventory:valid.inventory,selectedWeapon:valid.selectedWeapon};
+                }catch(problem){
+                  // Explicitly supplied equipment must be valid. On an XP-only
+                  // downgrade, forget now-locked saved builds; never grant them.
+                  if(update.loadouts!==undefined)throw problem;
+                }
               }
               profile.loadouts=loadouts;
             }
@@ -668,7 +716,12 @@ export async function startKarmaServer({
 }
 
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
-  const instance=await startKarmaServer({
+  const dataDir=process.env.KARMA_DATA_DIR||path.join(directory,'data');
+  const exchange=process.env.KARMA_EXCHANGE_URL?createExchangeClient({url:process.env.KARMA_EXCHANGE_URL,
+    address:process.env.KARMA_EXCHANGE_ADDRESS,caFile:process.env.KARMA_EXCHANGE_CA,
+    keyFile:process.env.KARMA_EXCHANGE_KEY_FILE,dataDir}):null;
+  if(exchange)await exchange.init();
+  const instance=await startKarmaServer({exchange,
     host:process.env.KARMA_HOST||'0.0.0.0',
     port:Number(process.env.KARMA_PORT||29020),
     healthHost:process.env.KARMA_HEALTH_HOST||process.env.KARMA_HOST||'0.0.0.0',
@@ -676,6 +729,6 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
     dataDir:process.env.KARMA_DATA_DIR||path.join(directory,'data'),
   });
   let stopping=false;
-  const stop=async()=>{if(stopping)return;stopping=true;await instance.close();};
+  const stop=async()=>{if(stopping)return;stopping=true;await instance.close();exchange?.close();};
   process.on('SIGINT',stop);process.on('SIGTERM',stop);
 }

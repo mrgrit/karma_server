@@ -3,3 +3,5 @@ data/
 *.tmp
 .env
 node_modules/
+secrets/
+__pycache__/

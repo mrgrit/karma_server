@@ -1,0 +1,4 @@
+data/
+secrets/
+__pycache__/
+*.sqlite*

@@ -1,0 +1,35 @@
+services:
+  exchange:
+    build: .
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1.0
+    volumes:
+      - ./data:/data
+      - ./secrets:/run/karma-secrets:ro
+    environment:
+      LEDGER_FILE: /data/exchange.sqlite
+      SERVICE_KEY_FILE: /run/karma-secrets/service-key
+      KARMA_CA_FILE: /run/karma-secrets/game-ca.pem
+      KARMA_AUTH_URL: https://192.168.12.100:29021
+      PUBLIC_ORIGIN: https://exchange.ycdc.internal
+    networks:
+      apps:
+        aliases: [karma-exchange]
+      outbound: {}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3)"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+networks:
+  apps:
+    external: true
+    name: real-ycdc_apps
+  outbound:
+    external: true
+    name: real-ycdc_outbound

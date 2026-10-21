@@ -61,8 +61,13 @@ export function loadoutBudget({xp=0,character,ranks=DEFAULT_RANKS}){
   const base=int(character?.inventoryCapacity,'character inventory capacity',0,100000);
   return base+rankForXp(xp,ranks).budgetBonus;
 }
+export function characterUnlocked(character,xp=0){
+  int(xp,'XP');
+  return xp>=int(character?.unlockXp??0,'character unlock XP');
+}
 export function validateLoadout({inventory:slots,selectedWeapon,xp=0,character,weapons,ranks=DEFAULT_RANKS,checkRole=true,spawn=true,slotRules, constraints}){
   const list=inventory(slots,spawn),catalog=new Map(weapons.map(item=>[item.weaponId??item.id,item]));
+  if(!characterUnlocked(character,xp))fail('Character is locked until '+character.unlockXp+' XP');
   const budget=loadoutBudget({xp,character,ranks});
   let cost=0;
   for(const weapon of list){
@@ -78,15 +83,27 @@ export function validateLoadout({inventory:slots,selectedWeapon,xp=0,character,w
   if(spawn&&slotRules){
     for(const rule of slotRules){
       const weapon=list[int(rule.index,'slot index',0,6)];
-      if(weapon===EMPTY_SLOT){if(!rule.optional)fail('Required inventory slot is empty');continue;}
+      if(weapon===EMPTY_SLOT){if(!rule.optional&&!character.optionalSlots?.includes(rule.key))fail('Required inventory slot is empty');continue;}
       if(!rule.allowedIds.includes(weapon))fail('Weapon is unavailable in this slot');
       const allowed=character.allowedIdsBySlot?.[rule.key];
       if(checkRole&&allowed&&!allowed.includes(weapon))fail('Weapon is unavailable to this character role');
     }
   }
-  if(spawn&&constraints?.heavyCombination){
+  if(constraints?.heavyCombination){
     const heavy=constraints.heavyCombination;
     if(list.some(weapon=>heavy.primaryIds.includes(weapon))&&list.some(weapon=>heavy.specialIds.includes(weapon)))fail('Heavy weapon combination is unavailable');
+  }
+  if(constraints?.dualCannon){
+    const dual=constraints.dualCannon,cannons=list.filter(weapon=>dual.cannonIds.includes(weapon));
+    if(cannons.length>dual.maxCannons)fail('Too many cannons');
+    if(spawn&&dual.cannonIds.includes(list[dual.secondarySlot])&&cannons.length!==2)
+      fail('Secondary cannon slot requires the dual cannon loadout');
+    if(cannons.length===2){
+      if(character.role!==dual.role||xp<dual.minXp)fail('Dual cannon requires heavy class and '+dual.minXp+' XP');
+      const allowed=new Set([...dual.cannonIds,...dual.lightAutomaticIds,...dual.utilityIds]);
+      if(list.some(weapon=>weapon!==EMPTY_SLOT&&!allowed.has(weapon)))fail('Dual cannon requires sacrificing other equipment');
+      if(list.filter(weapon=>dual.lightAutomaticIds.includes(weapon)).length>1)fail('Dual cannon allows only one light automatic weapon');
+    }
   }
   if(cost>budget)fail('Inventory exceeds budget');
   return {inventory:list,selectedWeapon,cost,budget,remaining:budget-cost,rank:rankForXp(xp,ranks)};
@@ -264,7 +281,7 @@ export class DropLedger{
     this.drops.set(dropId,drop);
     return {created:true,drop:clone(drop)};
   }
-  claimDrop(playerId,{dropId,requestId,life},{state,character,xp,weapons,ranks=DEFAULT_RANKS}){
+  claimDrop(playerId,{dropId,requestId,life},{state,character,xp,weapons,ranks=DEFAULT_RANKS,constraints}){
     if(!this.players.includes(playerId))fail('Unknown claimant');
     id(dropId,'drop ID');id(requestId,'request ID');int(life,'claimant life',1);
     const requestKey=key(this.matchId,playerId,requestId),prior=this.requests.get(requestKey);
@@ -286,8 +303,9 @@ export class DropLedger{
     if(replaceSlot>=52)return deny('inventory-full');
     const replacedWeapon=slots[replaceSlot]??EMPTY_SLOT;slots[replaceSlot]=drop.weapon;
     try{
-      // Enemy weapons may be picked up; initial role restrictions apply only at spawn.
-      validateLoadout({inventory:slots,selectedWeapon:drop.weapon,xp,character,weapons,ranks,checkRole:false,spawn:false});
+      // A single enemy weapon may cross class restrictions. Two-cannon and
+      // machine-gun/launcher limits still apply to the entire resulting inventory.
+      validateLoadout({inventory:slots,selectedWeapon:drop.weapon,xp,character,weapons,ranks,constraints,checkRole:false,spawn:false});
     }catch(error){return deny('loadout: '+error.message);}
     const grant={id:'grant-'+key(this.matchId,dropId,playerId,life).slice(0,40),
       matchId:this.matchId,dropId,requestId,playerId,life,
