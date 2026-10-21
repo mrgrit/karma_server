@@ -21,7 +21,7 @@ export function createExchangeClient({url,caFile,keyFile,dataDir,address,logger=
       res.on('end',()=>{try{const result=JSON.parse(data);if(res.statusCode!==200)throw Object.assign(Error(result.error?.message||'거래소 요청 실패'),{code:result.error?.code});resolve(result);}catch(error){reject(error);}});
       res.on('error',reject);
     });
-    req.setTimeout(6000,()=>req.destroy(Object.assign(Error('거래소 응답이 지연됩니다. 잠시 후 다시 시작하세요.'),{code:'EXCHANGE_UNAVAILABLE'})));
+    req.setTimeout(30000,()=>req.destroy(Object.assign(Error('블록체인 정산 응답이 지연됩니다. 잠시 후 다시 시작하세요.'),{code:'EXCHANGE_UNAVAILABLE'})));
     req.on('error',reject);req.end(body);
   });
   async function refund(id){
@@ -36,7 +36,7 @@ export function createExchangeClient({url,caFile,keyFile,dataDir,address,logger=
     async init(){await recover();},
     async wallet(profile){return request('wallet',{profile:{playerId:profile.playerId,name:profile.name,role:profile.role}});},
     async charge(id,players){
-      active.add(id);pending[id]={expiresAt:Date.now()+20000};save();
+      active.add(id);pending[id]={expiresAt:Date.now()+90000};save();
       try{await request('reserve',{matchId:id,expiresAt:pending[id].expiresAt,players:players.map(p=>({playerId:p.playerId,name:p.name,role:p.role}))});await request('commit',{matchId:id});return {matchId:id,fee:100};}
       catch(error){await refund(id);active.delete(id);throw error;}
     },

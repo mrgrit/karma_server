@@ -61,6 +61,7 @@ async function accepted(server,options){
 async function start(host,guest,map,name){
   assert.equal(host.response.room.map,map);assert.equal(guest.response.room.map,map);
   assert.equal(host.response.room.mapName,name);assert.equal(guest.response.room.mapName,name);
+  for(const client of [host,guest]){client.send({type:'lobby-update',requestId:'test-ready',ready:true});await wait('prepared',()=>client.latest('lobby-updated'));}
   host.send({type:'start-match',roomId:host.response.room.roomId});
   for(const client of [host,guest]){
     const ready=await wait('map peer-ready',()=>client.latest('peer-ready'));

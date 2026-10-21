@@ -1,5 +1,6 @@
 services:
   exchange:
+    image: karma-exchange-chain:3.3.0
     build: .
     restart: unless-stopped
     read_only: true
@@ -17,10 +18,13 @@ services:
       KARMA_CA_FILE: /run/karma-secrets/game-ca.pem
       KARMA_AUTH_URL: https://192.168.12.100:29021
       PUBLIC_ORIGIN: https://exchange.ycdc.internal
+      CHAIN_CONFIG_FILE: /run/karma-secrets/chain.json
+      CHAIN_OPERATOR_KEY_FILE: /run/karma-secrets/chain-operator.key
     networks:
       apps:
         aliases: [karma-exchange]
       outbound: {}
+      chain: {}
     healthcheck:
       test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3)"]
       interval: 20s
@@ -33,3 +37,6 @@ networks:
   outbound:
     external: true
     name: real-ycdc_outbound
+  chain:
+    external: true
+    name: karma-chain

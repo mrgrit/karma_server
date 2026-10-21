@@ -89,6 +89,9 @@ class Ledger:
         db = self.connect()
         try:
             db.execute('BEGIN IMMEDIATE')
+            migrated = db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='chain_commits'").fetchone()
+            require(not migrated or not db.execute('SELECT 1 FROM chain_commits LIMIT 1').fetchone(),
+                    '블록체인 전환된 지갑은 블록체인 정산 경로로만 변경할 수 있습니다.', 'CHAIN_REQUIRED', 503)
             yield db
             db.commit()
         except BaseException:

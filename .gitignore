@@ -5,3 +5,9 @@ data/
 node_modules/
 secrets/
 __pycache__/
+*.chain-pending.json*
+*.chain.lock
+chain.json
+operator.key
+owner.key
+deployment-pending.json

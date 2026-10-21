@@ -26,6 +26,7 @@ async function client(i,mode,code){
  await new Promise((resolve,reject)=>{socket.once('connect',resolve);socket.once('error',reject);});clients.push(c);
  c.send({type:'hello',version:2,op:i===0?'create':'join',code,config,mode,maxPlayers:8,clientMaxPlayers:8,authToken:server.auth.issueSession(account).authToken});
  await wait('welcome',()=>c.messages.find(m=>m.type==='welcome'));
+ c.send({type:'lobby-update',requestId:'test-ready',ready:true});
  return c;
 }
 async function room(mode,code){

@@ -36,6 +36,7 @@ async function connect(hello){
     while((index=buffer.indexOf('\n'))>=0){
       const item=JSON.parse(buffer.slice(0,index));buffer=buffer.slice(index+1);
       client.messages.push(item);
+      if(item.type==='welcome'&&item.room)client.send({type:'lobby-update',requestId:'test-ready',ready:true});
       for(const pending of [...client.pending])if(pending.predicate(item)){
         client.pending.splice(client.pending.indexOf(pending),1);clearTimeout(pending.timer);pending.resolve(item);
       }

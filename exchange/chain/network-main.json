@@ -1,0 +1,11 @@
+{
+  "name": "KARMA Department Chain",
+  "chainId": 2902026,
+  "consensus": "QBFT",
+  "validators": 4,
+  "physicalHosts": 1,
+  "settlement": "0x18471Dc888379Bdba914135281eF7c803018AEbB",
+  "genesisHash": "0x5a385992951c36364b3d21fc151054d43cc5dcf90867d3147a4c3733e195948a",
+  "codeHash": "0x6c61479caf03718f0e1a4303d0496b1f7267cc137b3c77450e8047d93116d16a",
+  "deploymentHash": "0xaf2899804b99148c4b14335396b7fc2714edf8c5473f87e669d7da69ad3587215"
+}

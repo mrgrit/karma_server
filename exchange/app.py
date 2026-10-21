@@ -90,7 +90,8 @@ class Exchange:
         route = handler.path.split('?', 1)[0]
         method = handler.command
         if method == 'GET' and route == '/health':
-            return 200, {'ok': True, 'service': 'karma-exchange', 'version': 1}, {}
+            chain = self.ledger.backend.head() if hasattr(self.ledger, 'backend') else None
+            return 200, {'ok': True, 'service': 'karma-exchange', 'version': 2, 'blockchain': chain is not None, 'blockNumber': chain['number'] if chain else None}, {}
         if method == 'GET' and route in ['/', '/app.js', '/style.css']:
             name = 'index.html' if route == '/' else route[1:]
             kind = {'index.html': 'text/html', 'app.js': 'text/javascript', 'style.css': 'text/css'}[name]
@@ -116,6 +117,15 @@ class Exchange:
             return 200, {'ok': True}, {'Set-Cookie': '__Host-karma-exchange='+sid+'; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=43200'}
         hashed, session, profile = self.session(handler.headers.get('Cookie'))
         uid = profile['playerId']
+        if method == 'GET' and route == '/api/chain':
+            require(hasattr(self.ledger, 'chain_state'), '블록체인 전환 전입니다.', 'CHAIN_NOT_ENABLED', 503)
+            return 200, self.ledger.chain_state(), {}
+        if method == 'GET' and route.startswith('/api/chain/transaction/'):
+            import re
+            tx_hash = route.rsplit('/', 1)[1]
+            require(re.fullmatch(r'0x[a-fA-F0-9]{64}', tx_hash), '거래 해시를 확인하세요.')
+            require(hasattr(self.ledger, 'chain_receipt'), '블록체인 전환 전입니다.', 'CHAIN_NOT_ENABLED', 503)
+            return 200, self.ledger.chain_receipt(tx_hash), {}
         if method == 'POST' and route == '/api/logout':
             with self.lock:
                 self.sessions.pop(hashed, None)
@@ -185,7 +195,15 @@ def serve(app, host='0.0.0.0', port=8080):
 
 if __name__ == '__main__':
     secret_file = Path(os.environ['SERVICE_KEY_FILE'])
-    app = Exchange(Ledger(os.environ.get('LEDGER_FILE', '/data/exchange.sqlite')), os.environ['KARMA_AUTH_URL'], os.environ['PUBLIC_ORIGIN'], secret_file.read_text().strip(), os.environ['KARMA_CA_FILE'])
+    if os.environ.get('CHAIN_CONFIG_FILE'):
+        from chain_backend import EvmBackend
+        from chain_ledger import ChainLedger
+        ledger = ChainLedger(os.environ.get('LEDGER_FILE', '/data/exchange.sqlite'), EvmBackend(os.environ['CHAIN_CONFIG_FILE'], os.environ['CHAIN_OPERATOR_KEY_FILE']))
+        ledger.audit()  # Refuse startup on a different chain or an incomplete migration.
+    else:
+        require(os.environ.get('ALLOW_LEGACY_LEDGER') == '1', '블록체인 설정이 필요합니다. 구 원장으로 자동 전환하지 않습니다.')
+        ledger = Ledger(os.environ.get('LEDGER_FILE', '/data/exchange.sqlite'))
+    app = Exchange(ledger, os.environ['KARMA_AUTH_URL'], os.environ['PUBLIC_ORIGIN'], secret_file.read_text().strip(), os.environ['KARMA_CA_FILE'])
     server = serve(app)
     print(json.dumps({'event': 'exchange-started', 'port': 8080}), flush=True)
     server.serve_forever()

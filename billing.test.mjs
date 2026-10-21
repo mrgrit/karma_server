@@ -23,7 +23,8 @@ async function join(code,host=false){
  c.latest=type=>c.messages.filter(m=>m.type===type).at(-1);c.send=m=>socket.write(JSON.stringify(m)+'\n');
  await new Promise(resolve=>socket.once('connect',resolve));
  c.send({type:'hello',version:2,op:host?'create':'join',authToken:server.auth.issueSession(account).authToken,code,mode:'dm',maxPlayers:8,clientMaxPlayers:8,manualStart:true,config:{map:0,age:0,character:{index:0,camp:0},settings:{build:'karma290-central4'}}});
- const welcome=await wait('welcome',()=>c.latest('welcome'));c.start=()=>c.send({type:'start-match',roomId:welcome.room.roomId});return c;
+ const welcome=await wait('welcome',()=>c.latest('welcome'));c.start=()=>c.send({type:'start-match',roomId:welcome.room.roomId});
+ c.send({type:'lobby-update',requestId:'test-ready',ready:true});await wait('ready ack',()=>c.latest('lobby-updated'));return c;
 }
 try{
  const a=await join('931001',true),b=await join('931001');await delay(100);assert.equal(charges,0,'lobby entrance is free');
@@ -33,5 +34,11 @@ try{
  fail=false;c.start();await wait('retry funded start',()=>d.latest('peer-ready'));assert.equal(balances.get(c.id),200);
  const e=await join('931003',true),f=await join('931003');pause=new Promise(r=>resume=r);const before=charges;e.start();await wait('pending second room',()=>charges===before+1);f.socket.end();await delay(100);resume();pause=null;
  await wait('refund after participant leaves',()=>refunds===1);assert.equal(balances.get(e.id),300);assert.equal(balances.get(f.id),300);assert(!e.latest('peer-ready'));
- console.log('PASS billing: lobby free, one fee per match, duplicate start serialized, funded retry after denial, coins in ready profile, participant change refunds without starting.');
+ const g=await join('931004',true),h=await join('931004');pause=new Promise(r=>resume=r);const readyCharges=charges;g.start();await wait('pending readiness race',()=>charges===readyCharges+1);
+ h.send({type:'lobby-update',requestId:'edit-begins',ready:false});await wait('unready accepted during billing',()=>h.messages.some(m=>m.type==='lobby-updated'&&m.requestId==='edit-begins'&&!m.ready));
+ h.send({type:'lobby-update',requestId:'edit-finished',ready:true});await wait('ready restored during billing',()=>h.messages.some(m=>m.type==='lobby-updated'&&m.requestId==='edit-finished'&&m.ready));
+ resume();pause=null;await wait('readiness revision refunds',()=>refunds===2);await wait('readiness start denied',()=>g.latest('start-denied'));
+ assert.equal(balances.get(g.id),300);assert.equal(balances.get(h.id),300);assert(!g.latest('peer-ready'),'Readiness changes during billing must cancel even when everyone readies again');
+ g.start();await wait('explicit retry after readiness refund',()=>h.latest('peer-ready'));assert.equal(balances.get(h.id),200);
+ console.log('PASS billing: lobby free, one fee per match, duplicate start serialized, funded retry, participant/readiness changes refund before start, restored-ready race cancellation and explicit retry.');
 }finally{for(const c of clients)c.socket.destroy();await server.close();fs.rmSync(dataDir,{recursive:true,force:true});}

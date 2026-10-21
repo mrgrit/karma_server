@@ -39,7 +39,13 @@ async function peer({code='941001',host=false,capacity=3,mode='dm',build='karma2
 }
 async function admitted(options){const c=await peer(options);await wait('welcome',()=>c.latest('welcome')||c.latest('error'));assert(!c.latest('error'),JSON.stringify(c.latest('error')));return c;}
 async function denied(options,code){const c=await peer(options);assert.equal((await wait('error',()=>c.latest('error'))).code,code);return c;}
-async function start(host){host.send({type:'start-match',roomId:host.latest('welcome').room.roomId});await wait('started',()=>host.latest('peer-ready'));}
+async function start(host){
+  const roomId=host.latest('welcome').room.roomId;
+  for(const c of clients.filter(c=>!c.socket.destroyed&&c.latest('welcome')?.room.roomId===roomId)){
+    c.send({type:'lobby-update',requestId:'test-ready',ready:true});await wait('ready ack',()=>c.latest('lobby-updated'));
+  }
+  host.send({type:'start-match',roomId});await wait('started',()=>host.latest('peer-ready'));
+}
 async function leave(c){if(!c.socket.destroyed){c.socket.end();await new Promise(resolve=>c.socket.once('close',resolve));}await sleep(30);}
 async function rooms(identity){return await(await fetch('http://127.0.0.1:'+server.healthPort+'/api/rooms',{headers:identity?{Authorization:'Bearer '+identity.token}:{}})).json();}
 function state(c,extra={}){const ready=c.latest('peer-ready');return {type:'state',version:1,seq:++c.seq,life:ready.initialLife,weapon:9,selectedWeapon:9,pos:[10,20,30],yaw:0.2,pitch:0.3,sector:1,hp:100,inventory:ready.config.inventory,ammo:{9:{magazine:11,reserve:42}},...extra};}
@@ -94,6 +100,12 @@ try{
   const request={type:'drop-claim',requestId:'manual-a',life:1,weapon:9,magazine:11,reserve:42};a.send(request);
   const grant=(await wait('drop grant',()=>a.latest('drop-grant'))).grant;assert.equal(grant.inventory[grant.removeSlot],255);assert.equal(grant.drop.reserve,42);assert.equal(grant.drop.magazine,11);assert.equal(grant.selectedWeapon,1);
   a.send(request);assert.equal((await a.find('idempotent drop',m=>m.type==='drop-grant'&&m.replay)).grant.drop.id,grant.drop.id);
+  // Reproduce the installed v0.5.0 G crash: native state has switched to the
+  // pistol but still carries the old shot from its now-dropped gun.
+  a.send({type:'game',message:state(a,{inventory:grant.inventory,weapon:grant.selectedWeapon,selectedWeapon:grant.selectedWeapon,
+    ammo:{1:{magazine:8,reserve:32}},shot:{id:1,life:1,weapon:9,origin:[10,20,30],direction:[1,0,0],sector:1,renderSector:1,yaw:0.2,pitch:0.3}})});
+  const afterDrop=await c.find('stale shot does not disconnect after G',m=>m.type==='game'&&m.senderId===a.id&&m.message.seq===a.seq);
+  assert(!afterDrop.message.shot,'Old shot is not replayed');assert(!a.latest('error'));assert(!a.socket.destroyed);
   c.send({type:'game',message:state(c)});c.send({type:'pickup-claim',requestId:'same-gun',life:1,dropId:grant.drop.id});
   assert.equal((await wait('same gun denied',()=>c.latest('pickup-denied'))).reason,'weapon-already-owned');
   c.send({type:'drop-claim',requestId:'clear-c-slot',life:1,weapon:9,magazine:11,reserve:42});await wait('c drop grant',()=>c.latest('drop-grant'));

@@ -130,7 +130,7 @@ try{
     const socket=net.createConnection({port:server.port,host:'127.0.0.1'});sockets.push(socket);
     const items=[];let buffer='';
     socket.setEncoding('utf8');socket.on('error',()=>{});
-    socket.on('data',text=>{buffer+=text;let at;while((at=buffer.indexOf('\n'))>=0){items.push(JSON.parse(buffer.slice(0,at)));buffer=buffer.slice(at+1);}});
+    socket.on('data',text=>{buffer+=text;let at;while((at=buffer.indexOf('\n'))>=0){const item=JSON.parse(buffer.slice(0,at));items.push(item);if(item.type==='welcome'&&item.room)send({type:'lobby-update',requestId:'test-ready',ready:true});buffer=buffer.slice(at+1);}});
     await new Promise(resolve=>socket.once('connect',resolve));
     const send=value=>socket.write(JSON.stringify(value)+'\n');
     send({type:'hello',version:2,authToken:token,op,code:'654321',config:cfg,clientMaxPlayers:2});

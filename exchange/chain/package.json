@@ -1,0 +1,7 @@
+{
+  "name": "karma-permissioned-chain",
+  "private": true,
+  "type": "module",
+  "scripts": {"build": "node compile.mjs"},
+  "dependencies": {"@openzeppelin/contracts": "5.4.0", "solc": "0.8.30"}
+}

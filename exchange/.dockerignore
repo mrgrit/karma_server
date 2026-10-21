@@ -4,3 +4,8 @@ __pycache__
 *.sqlite*
 test_*
 test-fixtures
+chain/node_modules
+chain/contracts
+chain/package*.json
+chain/compile.mjs
+chain/bootstrap.py
