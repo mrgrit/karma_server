@@ -27,7 +27,11 @@ try{
   await assert.rejects(()=>required.registerVerify({email:'person@example.test',code:sent[0].code},'ip1'),error=>error.code==='CODE_LOCKED');
   now+=61000;
   await required.registerRequest({email:'person@example.test',password,name:'Tester'},'ip2');
-  const registered=await required.registerVerify({email:'person@example.test',code:sent.at(-1).code},'ip2');
+  const verified=await required.registerVerify({email:'person@example.test',code:sent.at(-1).code},'ip2');
+  assert.equal(verified.approvalRequired,true);assert.equal(verified.authToken,undefined);
+  await assert.rejects(()=>required.login({email:'person@example.test',password},'ip3'),error=>error.code==='APPROVAL_PENDING');
+  required.approve(required.list()[0].playerId,'test-admin');
+  const registered=await required.login({email:'person@example.test',password},'ip3');
   assert.equal(registered.account.emailVerified,true);
   assert.equal(required.authenticate(registered.authToken).name,'Tester');
   const text=fs.readFileSync(path.join(temp,'required.json'),'utf8');
@@ -52,8 +56,30 @@ try{
     return {status:response.status,value:await response.json()};
   }
   const config=await request('/api/auth-config');assert.equal(config.value.emailVerificationRequired,false);
+  assert.equal(config.value.registrationApprovalRequired,true);
   let signup=await request('/auth/register/request',{method:'POST',body:{email:'user@example.test',password,name:'일반 사용자'}});
   assert.equal(signup.status,200);assert.equal(signup.value.requiresVerification,false);
+  assert.equal(signup.value.approvalRequired,true);assert.equal(signup.value.authToken,undefined);
+  const awaiting=auth.list().find(x=>x.email==='user@example.test');
+  assert.equal(awaiting.approvalStatus,'pending');assert.equal(Object.keys(auth.read().sessions).length,0);
+  const reopened=new AuthService({filename:auth.filename,verificationRequired:false});
+  assert.throws(()=>reopened.issueSession(awaiting),error=>error.code==='APPROVAL_PENDING');
+  const cached=reopened.read(),cachedToken='a'.repeat(64);
+  cached.sessions[crypto.createHash('sha256').update(cachedToken).digest('hex')]={email:awaiting.email,playerId:awaiting.playerId,expiresAt:Date.now()+60000};
+  assert.throws(()=>reopened.authenticate(cachedToken,cached),error=>error.code==='APPROVAL_PENDING');
+  assert.equal((await request('/auth/login',{method:'POST',body:{email:'user@example.test',password}})).value.error.code,'APPROVAL_PENDING');
+  assert.equal((await request('/api/admin/users/'+awaiting.playerId,{method:'PATCH',body:{approvalStatus:'approved'}})).status,401);
+  const adminAccount=await auth.createAccount({email:'admin@example.test',password,name:'관리자',role:'admin'});
+  const adminLogin=await request('/auth/login',{method:'POST',body:{email:'admin@example.test',password}});
+  assert.equal(adminLogin.value.profile.isAdmin,true);
+  const admin=adminLogin.value,headers={token:admin.authToken};
+  assert.equal((await request('/api/admin/users',headers)).value.users.find(x=>x.playerId===awaiting.playerId).approvalStatus,'pending');
+  assert.ok(!(await request('/api/leaderboard',headers)).value.players.some(x=>x.playerId===awaiting.playerId));
+  assert.equal((await request('/api/admin/users/'+awaiting.playerId,{...headers,method:'PATCH',body:{approvalStatus:'approved',xp:100}})).status,400);
+  const approval=()=>request('/api/admin/users/'+awaiting.playerId,{...headers,method:'PATCH',body:{approvalStatus:'approved'}});
+  assert.equal((await approval()).status,200);assert.equal((await approval()).status,200);
+  assert.equal(auth.read().accounts['user@example.test'].approvedBy,adminAccount.playerId);
+  signup=await request('/auth/login',{method:'POST',body:{email:'user@example.test',password}});
   assert.equal(signup.value.profile.emailVerified,false);assert.equal(signup.value.profile.isAdmin,false);
   assert.equal(signup.value.profile.email,'user@example.test');
   assert.equal(signup.value.profile.progressionVersion,2);
@@ -63,10 +89,10 @@ try{
   assert.equal((await request('/api/me')).status,401);
   assert.equal((await request('/api/admin/users',{token:user.authToken})).status,403);
   assert.equal((await request('/auth/login',{method:'POST',body:{email:'user@example.test',password:password+'wrong'}})).status,401);
-  const adminAccount=await auth.createAccount({email:'admin@example.test',password,name:'관리자',role:'admin'});
-  const adminLogin=await request('/auth/login',{method:'POST',body:{email:'admin@example.test',password}});
-  assert.equal(adminLogin.value.profile.isAdmin,true);
-  const admin=adminLogin.value,headers={token:admin.authToken};
+  assert.equal((await request('/api/admin/users/'+adminAccount.playerId,{token:user.authToken,method:'PATCH',body:{approvalStatus:'approved'}})).status,403);
+  // Existing databases without this field remain usable, including their sessions.
+  const legacy=auth.read();delete legacy.accounts['admin@example.test'].approvalStatus;auth.write(legacy);
+  assert.equal((await request('/api/me',headers)).status,200);
   let patch=await request('/api/admin/users/'+user.profile.playerId,{...headers,method:'PATCH',body:{xp:100,kills:2,deaths:1,wins:1,losses:0,draws:1}});
   assert.equal(patch.status,200);assert.equal(patch.value.profile.matches,2);
   assert.equal((await request('/api/me',{token:user.authToken})).value.profile.rank.id,'private');
@@ -95,6 +121,7 @@ try{
   assert.equal(login.status,200);
   const dashboard=(await request('/api/dashboard',headers)).value;
   assert.equal(dashboard.summary.registeredUsers,2);assert.ok(dashboard.activity.some(x=>x.event==='admin-user-update'));
+  assert.equal(dashboard.activity.filter(x=>x.event==='admin-user-approved').length,1);
   assert.equal((await request('/api/admin/users/'+adminAccount.playerId,{...headers,method:'PATCH',body:{disabled:true}})).status,400);
 
   const original=JSON.parse(fs.readFileSync(path.join(directory,'characters.json'),'utf8').replace(/^\uFEFF/,'')).find(x=>x.age===0);

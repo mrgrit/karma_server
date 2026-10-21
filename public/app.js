@@ -231,6 +231,7 @@ function activityText(entry){
   'death-confirmed':['전투 결과가 기록되었습니다.','킬 / 데스 갱신'],
   'profile-updated':['플레이어 기록이 갱신되었습니다.','경험치 · 전적'],
   'admin-user-updated':['관리자가 사용자 기록을 수정했습니다.','관리 작업'],
+  'admin-user-approved':['관리자가 신규 가입을 승인했습니다.','가입 승인'],
   'admin-user-update':['관리자가 사용자 기록을 수정했습니다.','관리 작업'],
   'pickup-granted':['전장 장비를 획득했습니다.','장비 습득'],
   'player-disconnected':[`${name} 님이 접속을 종료했습니다.`,'게임 접속']
@@ -260,7 +261,9 @@ function renderDashboard(){
 function renderUsers(){
  if(!isAdmin()){empty($('admin-users'),'관리자 권한이 필요합니다.');return;}
  const query=$('user-search').value.trim().toLocaleLowerCase('ko-KR');
- const users=state.users.filter(u=>[displayName(u),u.email||''].some(v=>v.toLocaleLowerCase('ko-KR').includes(query)));
+ setText('approval-summary',`승인 대기 ${state.users.filter(u=>u.approvalStatus==='pending').length}명 · 신규 가입자는 승인 후 이용할 수 있습니다.`);
+ const users=state.users.filter(u=>[displayName(u),u.email||''].some(v=>v.toLocaleLowerCase('ko-KR').includes(query)))
+  .sort((a,b)=>Number(b.approvalStatus==='pending')-Number(a.approvalStatus==='pending')||(a.createdAt||0)-(b.createdAt||0));
  if(!users.length){empty($('admin-users'),query?'검색 결과가 없습니다.':'등록된 사용자가 없습니다.');return;}
  const table=node('table'),head=node('thead'),row=node('tr');
  ['사용자','이메일','계급','XP','킬 / 데스','승 / 패 / 무','상태',''].forEach(t=>row.append(node('th',t)));head.append(row);
@@ -268,10 +271,19 @@ function renderUsers(){
  users.forEach(u=>{
   const tr=node('tr'),action=node('td'),button=node('button','수정','admin-edit-button');button.type='button';
   button.addEventListener('click',()=>openEdit(u));action.append(button);
+  if(u.approvalStatus==='pending'&&!u.disabled){
+   const approve=node('button','가입 승인','button small');approve.type='button';
+   approve.addEventListener('click',async()=>{
+    approve.disabled=true;
+    try{await api('/api/admin/users/'+encodeURIComponent(u.playerId),{method:'PATCH',body:{approvalStatus:'approved'}});
+     toast(displayName(u)+' 님의 가입을 승인했습니다.');await refresh();}
+    catch(error){message('page-notice',errorText(error));approve.disabled=false;}
+   });action.prepend(approve);
+  }
   tr.append(node('td',displayName(u),'name-cell'),node('td',u.email||'—','table-muted'),node('td',rankName(u.rank)),
    node('td',format(u.xp)),node('td',`${format(u.kills)} / ${format(u.deaths)}`),
    node('td',`${format(u.wins)} / ${format(u.losses)} / ${format(u.draws)}`),
-   node('td',u.disabled?'비활성':u.role==='admin'?'관리자':'활성',u.disabled?'disabled-tag':'table-muted'),action);
+   node('td',u.disabled?'비활성':u.approvalStatus==='pending'?'승인 대기':u.role==='admin'?'관리자':'승인됨',u.disabled?'disabled-tag':'table-muted'),action);
   body.append(tr);
  });
  table.append(head,body);$('admin-users').replaceChildren(table);
@@ -318,6 +330,9 @@ function authMode(mode){
 }
 function openAuth(){authMode('login');if(!$('auth-dialog').open)$('auth-dialog').showModal();$('auth-email').focus();}
 async function finishAuth(data){
+ if(data.approvalRequired){
+  authMode('login');message('auth-error',data.message||'가입 신청이 접수되었습니다. 관리자 승인 후 로그인해 주세요.');return;
+ }
  if(!data.authToken)throw new Error('로그인 토큰을 받지 못했습니다.');
  saveToken(data.authToken);state.me=data.profile||null;
  $('auth-dialog').close();$('auth-password').value='';state.registration=null;

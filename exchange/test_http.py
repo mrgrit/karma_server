@@ -17,6 +17,7 @@ class HttpTests(unittest.TestCase):
         self.disabled=False
         def upstream(path,token=None,body=None):
             if self.disabled:raise Problem('사용 중지된 계정','ACCOUNT_DISABLED',403)
+            if path=='/auth/register/request':return {'ok':True,'approvalRequired':True,'requiresVerification':False}
             if path=='/auth/login':
                 if body.get('password')!='test-password':raise Problem('로그인 실패','LOGIN_FAILED',401)
                 return {'profile':self.profile,'authToken':'test-token','expiresAt':9999999999999}
@@ -61,6 +62,13 @@ class HttpTests(unittest.TestCase):
         self.assertEqual(len(data['market']['assets']),2)
         self.assertNotIn('authToken',json.dumps(data));self.assertNotIn('email',data['profile'])
         self.assertEqual(self.call('/api/logout',{})[0],200);self.assertEqual(self.call('/api/state')[0],401)
+
+    def test_pending_signup_has_no_session_or_wallet(self):
+        status,data,headers=self.call('/api/register',dict(email='new@test.invalid',password='test-password',name='New'))
+        self.assertEqual(status,200);self.assertTrue(data['approvalRequired'])
+        self.assertNotIn('Set-Cookie',headers);self.assertEqual(self.ex.sessions,{})
+        self.assertEqual(self.ex.ledger.users(),[])
+        self.assertEqual(self.call('/api/state')[0],401)
 
 
 if __name__=='__main__':unittest.main()

@@ -76,6 +76,8 @@ class Exchange:
         path = '/auth/register/request' if register else '/auth/login'
         result = self.account_api(path, body={k: body.get(k) for k in (['email', 'password', 'name'] if register else ['email', 'password'])})
         require(not result.get('requiresVerification'), '현재 가입은 카르마 클라이언트에서 인증을 완료해 주세요.')
+        if result.get('approvalRequired'):
+            return None
         self.ledger.ensure(result['profile'])
         sid = secrets.token_urlsafe(32)
         with self.lock:
@@ -109,6 +111,8 @@ class Exchange:
             require(handler.headers.get('Origin') == self.origin, '다른 사이트에서 보낸 요청입니다.', 'CSRF', 403)
         if method == 'POST' and route in ['/api/login', '/api/register']:
             sid = self.login(handler.body(), route == '/api/register')
+            if sid is None:
+                return 200, {'ok': True, 'approvalRequired': True, 'message': '가입 신청이 접수되었습니다. 관리자 승인 후 로그인해 주세요.'}, {}
             return 200, {'ok': True}, {'Set-Cookie': '__Host-karma-exchange='+sid+'; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=43200'}
         hashed, session, profile = self.session(handler.headers.get('Cookie'))
         uid = profile['playerId']

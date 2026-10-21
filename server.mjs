@@ -557,7 +557,7 @@ export async function startKarmaServer({
           nativeClientMaxPlayers:8,acceptedMessages,relayedMessages,uptimeSeconds:Math.floor(process.uptime())});return;
       }
       if(request.method==='GET'&&route==='/api/auth-config'){
-        reply(response,200,{emailVerificationRequired:auth.verificationRequired,
+        reply(response,200,{emailVerificationRequired:auth.verificationRequired,registrationApprovalRequired:true,
           registrationAvailable:!auth.verificationRequired||auth.mailer.configured});return;
       }
       if(request.method==='POST'&&route.startsWith('/auth/')){
@@ -581,7 +581,7 @@ export async function startKarmaServer({
               classes:catalog.classes,constraints:catalog.constraints,progressionVersion:catalog.progressionVersion}});return;
         }
         if(request.method==='GET'&&route==='/api/leaderboard'){
-          const disabled=new Set(auth.list().filter(item=>item.disabled).map(item=>item.playerId));
+          const disabled=new Set(auth.list().filter(item=>item.disabled||item.approvalStatus!=='approved').map(item=>item.playerId));
           const players=Object.values(db.data.profiles).filter(item=>!disabled.has(item.playerId))
             .sort((a,b)=>b.xp-a.xp||b.kills-a.kills||a.playerId.localeCompare(b.playerId))
             .slice(0,200).map(item=>{
@@ -599,13 +599,23 @@ export async function startKarmaServer({
         if(route.startsWith('/api/admin/')){
           if(account.role!=='admin')authError(403,'ADMIN_REQUIRED','관리자 권한이 필요합니다.');
           if(request.method==='GET'&&route==='/api/admin/users'){
-            reply(response,200,{users:auth.list().map(item=>({...accountProfile(item),email:item.email,disabled:item.disabled}))});return;
+            reply(response,200,{users:auth.list().map(item=>({...accountProfile(item),email:item.email,disabled:item.disabled,
+              approvalStatus:item.approvalStatus,createdAt:item.createdAt,approvedAt:item.approvedAt??null}))});return;
           }
           const match=route.match(/^\/api\/admin\/users\/([a-zA-Z0-9_.:-]{1,96})$/);
           if(request.method==='PATCH'&&match){
             const playerId=match[1],target=auth.list().find(item=>item.playerId===playerId);
             if(!target)authError(404,'USER_NOT_FOUND','사용자를 찾을 수 없습니다.');
-            const update=await body(request),allowed=['disabled','xp','kills','deaths','wins','losses','draws','matches','loadouts'];
+            const update=await body(request);
+            if(update.approvalStatus!==undefined){
+              if(Object.keys(update).length!==1||update.approvalStatus!=='approved')authError(400,'BAD_APPROVAL','가입 승인은 별도로 요청해 주세요.');
+              const approved=auth.approve(playerId,account.playerId);
+              if(target.approvalStatus==='pending'){
+                db.activity('admin-user-approved',{actorId:account.playerId,targetId:playerId});db.flush();
+              }
+              reply(response,200,{ok:true,approvalStatus:approved.approvalStatus});return;
+            }
+            const allowed=['disabled','xp','kills','deaths','wins','losses','draws','matches','loadouts'];
             if(!Object.keys(update).length||Object.keys(update).some(key=>!allowed.includes(key)))authError(400,'BAD_UPDATE','수정할 수 없는 필드입니다.');
             if(online.has(playerId)&&Object.keys(update).some(key=>key!=='disabled'))authError(409,'PLAYER_ACTIVE','대전 종료 후 전적이나 장비를 수정해 주세요.');
             // Validate a detached candidate so a failed request cannot partially

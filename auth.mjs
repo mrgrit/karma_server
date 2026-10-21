@@ -6,6 +6,12 @@ import nodemailer from 'nodemailer';
 import {atomicWriteJson} from './progression.mjs';
 const scrypt=promisify(crypto.scrypt);
 const hash=value=>crypto.createHash('sha256').update(value).digest('hex');
+const approvalPending=()=>({ok:true,requiresVerification:false,approvalRequired:true,approvalStatus:'pending',
+  message:'가입 신청이 접수되었습니다. 관리자 승인 후 로그인할 수 있습니다.'});
+function requireApproved(account){
+  if(account.approvalStatus&&account.approvalStatus!=='approved')
+    authError(403,'APPROVAL_PENDING','관리자 승인 대기 중입니다. 승인 후 로그인해 주세요.');
+}
 export function authError(status,code,message){throw Object.assign(new Error(message),{status,code});}
 export function emailValue(value){
   const email=typeof value==='string'?value.trim().toLowerCase():'';
@@ -74,8 +80,8 @@ export class AuthService{
     this.rate('register-ip:'+ip,10,600000);this.rate('register-email:'+email,5,600000);
     if(this.read().accounts[email])authError(409,'EMAIL_EXISTS','이미 가입한 이메일입니다. 로그인해 주세요.');
     if(!this.verificationRequired){
-      const account=await this.createAccount({email,password,name,emailVerified:false});
-      return {...this.issueSession(account),requiresVerification:false};
+      await this.createAccount({email,password,name,emailVerified:false,approvalStatus:'pending'});
+      return approvalPending();
     }
     const previous=this.pending.get(email),now=this.now();
     if(previous&&now-previous.requestedAt<60000)authError(429,'RESEND_WAIT','인증번호 재전송은 60초 후 가능합니다.');
@@ -104,9 +110,9 @@ export class AuthService{
     const data=this.read();
     if(data.accounts[email])authError(409,'EMAIL_EXISTS','이미 가입한 이메일입니다.');
     const account={email,playerId:crypto.randomUUID(),name:entry.name,password:entry.password,
-      role:'user',disabled:false,emailVerified:true,verifiedAt:this.now(),createdAt:this.now()};
+      role:'user',disabled:false,approvalStatus:'pending',emailVerified:true,verifiedAt:this.now(),createdAt:this.now()};
     data.accounts[email]=account;this.write(data);this.pending.delete(email);
-    return this.issueSession(account);
+    return approvalPending();
   }
   async login({email,password},ip){
     email=emailValue(email);passwordValue(password);
@@ -122,6 +128,7 @@ export class AuthService{
   issueSession(account){
     const data=this.read(),current=data.accounts[account.email];
     if(!current||current.disabled)authError(403,'ACCOUNT_DISABLED','사용할 수 없는 계정입니다.');
+    requireApproved(current);
     const authToken=crypto.randomBytes(32).toString('hex'),expiresAt=this.now()+12*3600000;
     for(const [key,session] of Object.entries(data.sessions))if(session.expiresAt<=this.now())delete data.sessions[key];
     data.sessions[hash(authToken)]={email:account.email,playerId:account.playerId,expiresAt};
@@ -134,6 +141,7 @@ export class AuthService{
     if(!session||session.expiresAt<=this.now())authError(401,'SESSION_EXPIRED','로그인이 만료되었습니다. 다시 로그인해 주세요.');
     const account=data.accounts[session.email];
     if(!account||account.playerId!==session.playerId||account.disabled)authError(403,'ACCOUNT_DISABLED','사용 중지된 계정입니다.');
+    requireApproved(account);
     return structuredClone(account);
   }
   logout(authToken){
@@ -141,17 +149,27 @@ export class AuthService{
     delete data.sessions[hash(authToken)];this.write(data);
     return account;
   }
-  async createAccount({email,password,name,role='user',playerId=crypto.randomUUID(),emailVerified=true}){
+  async createAccount({email,password,name,role='user',playerId=crypto.randomUUID(),emailVerified=true,approvalStatus='approved'}){
     email=emailValue(email);name=nameValue(name);
     if(!['admin','user'].includes(role))throw Error('Invalid account role');
+    if(!['approved','pending'].includes(approvalStatus))throw Error('Invalid approval status');
     const derived=await passwordHash(password),data=this.read();
     if(data.accounts[email])throw Error('Account already exists');
-    const account={email,playerId,name,password:derived,role,disabled:false,emailVerified,
+    const account={email,playerId,name,password:derived,role,disabled:false,emailVerified,approvalStatus,
       verifiedAt:emailVerified?this.now():null,createdAt:this.now()};
     data.accounts[email]=account;this.write(data);return structuredClone(account);
   }
   list(){
-    return Object.values(this.read().accounts).map(({password,...account})=>account);
+    return Object.values(this.read().accounts).map(({password,...account})=>({...account,approvalStatus:account.approvalStatus||'approved'}));
+  }
+  approve(playerId,actorId){
+    const data=this.read(),account=Object.values(data.accounts).find(value=>value.playerId===playerId);
+    if(!account)authError(404,'USER_NOT_FOUND','사용자를 찾을 수 없습니다.');
+    if(account.disabled)authError(409,'ACCOUNT_DISABLED','사용 중지를 해제한 뒤 승인해 주세요.');
+    if(account.approvalStatus==='pending'){
+      account.approvalStatus='approved';account.approvedAt=this.now();account.approvedBy=actorId;this.write(data);
+    }
+    return {...account,password:undefined,approvalStatus:account.approvalStatus||'approved'};
   }
   setDisabled(playerId,disabled){
     if(typeof disabled!=='boolean')throw Error('disabled must be boolean');

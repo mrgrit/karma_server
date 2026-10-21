@@ -48,7 +48,9 @@ journalctl --user -u karma-server.service -n 50
 
 ## 회원가입·로그인
 
-현재 LAN 배포는 `EMAIL_VERIFICATION=off`이며 이메일·비밀번호·이름으로 바로 가입합니다. 이메일은 `emailVerified:false`로 기록합니다. 인증을 하지 않았는데 인증된 것으로 표시하지 않습니다.
+현재 LAN 배포는 `EMAIL_VERIFICATION=off`이며 이메일·비밀번호·이름으로 가입을 신청합니다. 신규 계정은 **관리자 승인 대기**로 저장되고, 승인 전에는 로그인·게임 접속·거래소 이용이 차단됩니다. 이메일은 `emailVerified:false`로 기록합니다.
+
+관리자는 대시보드의 **사용자 관리 → 가입 승인**으로 계정을 승인합니다. 승인 대기자는 목록 위에 표시되며 승인자·시각과 활동 기록을 남깁니다. 기존 계정은 계속 사용할 수 있습니다. 승인 여부와 사용 중지는 별도 상태이며, 사용 중지 해제로 가입 승인을 우회할 수 없습니다. 이메일 인증을 나중에 켜도 인증 완료 후 관리자 승인이 필요합니다. 체험 코인은 승인 후 첫 지갑 생성 때 한 번 지급됩니다.
 
 나중에 `EMAIL_VERIFICATION=required`와 SMTP 설정을 적용하면 인증번호를 실제 메일로 보냅니다. 코드 유효기간 10분, 재전송 간격 60초, 코드 입력 최대 5회이며 이메일/IP별 요청 제한이 있습니다. SMTP가 없거나 전송이 실패하면 가입은 503 오류로 중단합니다. 메일 전송은 TLS 인증서를 확인하며 STARTTLS 또는 TLS를 사용합니다.
 
@@ -56,9 +58,9 @@ journalctl --user -u karma-server.service -n 50
 
 | 요청 | 본문 / 응답 |
 | --- | --- |
-| `GET /api/auth-config` | `{emailVerificationRequired,registrationAvailable}` |
-| `POST /auth/register/request` | `{email,password,name}`. 인증 off: `{ok:true,requiresVerification:false,authToken,expiresAt,profile}`. 인증 required: `{ok:true,requiresVerification:true,expiresIn:600,resendAfter:60}` |
-| `POST /auth/register/verify` | `{email,code}` → `{ok:true,authToken,expiresAt,profile}` |
+| `GET /api/auth-config` | `{emailVerificationRequired,registrationAvailable,registrationApprovalRequired:true}` |
+| `POST /auth/register/request` | `{email,password,name}`. 인증 off: `{ok:true,requiresVerification:false,approvalRequired:true,approvalStatus:'pending',message}`. 인증 required: `{ok:true,requiresVerification:true,expiresIn:600,resendAfter:60}` |
+| `POST /auth/register/verify` | `{email,code}` → `{ok:true,requiresVerification:false,approvalRequired:true,approvalStatus:'pending',message}` |
 | `POST /auth/login` | `{email,password}` → `{ok:true,authToken,expiresAt,profile}` |
 | `POST /auth/logout` | `Authorization: Bearer <authToken>` → `{ok:true}` |
 
@@ -85,8 +87,8 @@ node admin.mjs reset-pass user@example.com
 | `GET /api/me` | `profile`, 본인 `activity`, `catalog:{characters,weapons,ranks,slots}` |
 | `GET /api/leaderboard` | XP·킬 기준 상위 200명 `players`. 이메일·인증 정보 제외 |
 | `GET /api/dashboard` | `summary`, 현재 `rooms`, 최근 `activity` |
-| `GET /api/admin/users` | 관리자만. 계정별 전적·장비와 이메일·사용 중지 상태 |
-| `PATCH /api/admin/users/:id` | 관리자만. `disabled,xp,kills,deaths,wins,losses,draws,matches,loadouts` 중 변경 필드 |
+| `GET /api/admin/users` | 관리자만. 계정별 전적·장비와 이메일·가입 승인·사용 중지 상태 |
+| `PATCH /api/admin/users/:id` | 관리자만. 승인 요청은 `{approvalStatus:'approved'}` 단독. 기록 수정은 `disabled,xp,kills,deaths,wins,losses,draws,matches,loadouts` 중 변경 필드 |
 
 현재 대전 중인 사용자의 전적·장비 수정은 종료 후 가능합니다. 사용 중지는 즉시 연결에 반영합니다. 경기 수는 승·패·무 합계와 일치해야 하며, 장비 수정은 원본 비용과 슬롯·계급 한도를 다시 검증합니다. 관리자 변경에는 관리자 ID, 대상 ID, 변경 필드의 감사 기록을 남깁니다. 토큰이나 비밀번호 값은 기록하지 않습니다.
 
