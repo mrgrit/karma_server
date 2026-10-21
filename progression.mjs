@@ -6,10 +6,10 @@ import crypto from 'node:crypto';
 
 export const DEFAULT_RANKS=Object.freeze([
   {id:'recruit',minXp:0,budgetBonus:0},
-  {id:'private',minXp:100,budgetBonus:100},
-  {id:'corporal',minXp:300,budgetBonus:200},
-  {id:'sergeant',minXp:600,budgetBonus:300},
-  {id:'lieutenant',minXp:1000,budgetBonus:400},
+  {id:'private',minXp:1000,budgetBonus:100},
+  {id:'corporal',minXp:3000,budgetBonus:200},
+  {id:'sergeant',minXp:6000,budgetBonus:300},
+  {id:'lieutenant',minXp:10000,budgetBonus:400},
 ].map(Object.freeze));
 export const EMPTY_SLOT=255;
 const clone=value=>structuredClone(value);

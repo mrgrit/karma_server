@@ -1172,7 +1172,7 @@
       },
       "roleSource": "local-lan-class-progression-v2",
       "roleDescription": "자동소총과 수류탄·회복 장비로 돌파합니다. 저격총·중화기는 시작 장비로 선택할 수 없습니다.",
-      "unlockXp": 100,
+      "unlockXp": 1000,
       "unlockRankId": "private",
       "unlockRankName": "이병",
       "optionalSlots": [],
@@ -1262,7 +1262,7 @@
       },
       "roleSource": "local-lan-class-progression-v2",
       "roleDescription": "저격총과 가벼운 보조 장비로 원거리를 담당합니다. 기관총·로켓은 시작 장비로 선택할 수 없습니다.",
-      "unlockXp": 100,
+      "unlockXp": 1000,
       "unlockRankId": "private",
       "unlockRankName": "이병",
       "optionalSlots": [],
@@ -1445,7 +1445,7 @@
       },
       "roleSource": "local-lan-class-progression-v2",
       "roleDescription": "자동소총과 수류탄·회복 장비로 돌파합니다. 저격총·중화기는 시작 장비로 선택할 수 없습니다.",
-      "unlockXp": 300,
+      "unlockXp": 3000,
       "unlockRankId": "corporal",
       "unlockRankName": "상병",
       "optionalSlots": [],
@@ -1535,7 +1535,7 @@
       },
       "roleSource": "local-lan-class-progression-v2",
       "roleDescription": "저격총과 가벼운 보조 장비로 원거리를 담당합니다. 기관총·로켓은 시작 장비로 선택할 수 없습니다.",
-      "unlockXp": 300,
+      "unlockXp": 3000,
       "unlockRankId": "corporal",
       "unlockRankName": "상병",
       "optionalSlots": [],
@@ -1625,7 +1625,7 @@
       },
       "roleSource": "local-lan-class-progression-v2",
       "roleDescription": "자동소총과 수류탄·회복 장비로 돌파합니다. 저격총·중화기는 시작 장비로 선택할 수 없습니다.",
-      "unlockXp": 600,
+      "unlockXp": 6000,
       "unlockRankId": "sergeant",
       "unlockRankName": "병장",
       "optionalSlots": [],
@@ -1720,7 +1720,7 @@
       },
       "roleSource": "local-lan-class-progression-v2",
       "roleDescription": "기관총 또는 로켓으로 지원합니다. 병장부터 다른 장비를 포기하고 판져파우스트·바주카 쌍포를 선택할 수 있습니다.",
-      "unlockXp": 600,
+      "unlockXp": 6000,
       "unlockRankId": "sergeant",
       "unlockRankName": "병장",
       "optionalSlots": [
@@ -1813,7 +1813,7 @@
       },
       "roleSource": "local-lan-class-progression-v2",
       "roleDescription": "기관총 또는 로켓으로 지원합니다. 병장부터 다른 장비를 포기하고 판져파우스트·바주카 쌍포를 선택할 수 있습니다.",
-      "unlockXp": 1000,
+      "unlockXp": 10000,
       "unlockRankId": "lieutenant",
       "unlockRankName": "소위",
       "optionalSlots": [
@@ -1909,7 +1909,7 @@
       },
       "roleSource": "local-lan-class-progression-v2",
       "roleDescription": "자동소총과 수류탄·회복 장비로 돌파합니다. 저격총·중화기는 시작 장비로 선택할 수 없습니다.",
-      "unlockXp": 100,
+      "unlockXp": 1000,
       "unlockRankId": "private",
       "unlockRankName": "이병",
       "optionalSlots": [],
@@ -2097,7 +2097,7 @@
       },
       "roleSource": "local-lan-class-progression-v2",
       "roleDescription": "저격총과 가벼운 보조 장비로 원거리를 담당합니다. 기관총·로켓은 시작 장비로 선택할 수 없습니다.",
-      "unlockXp": 100,
+      "unlockXp": 1000,
       "unlockRankId": "private",
       "unlockRankName": "이병",
       "optionalSlots": [],
@@ -2362,7 +2362,7 @@
       },
       "roleSource": "local-lan-class-progression-v2",
       "roleDescription": "자동소총과 수류탄·회복 장비로 돌파합니다. 저격총·중화기는 시작 장비로 선택할 수 없습니다.",
-      "unlockXp": 300,
+      "unlockXp": 3000,
       "unlockRankId": "corporal",
       "unlockRankName": "상병",
       "optionalSlots": [],
@@ -2452,7 +2452,7 @@
       },
       "roleSource": "local-lan-class-progression-v2",
       "roleDescription": "저격총과 가벼운 보조 장비로 원거리를 담당합니다. 기관총·로켓은 시작 장비로 선택할 수 없습니다.",
-      "unlockXp": 300,
+      "unlockXp": 3000,
       "unlockRankId": "corporal",
       "unlockRankName": "상병",
       "optionalSlots": [],
@@ -2542,7 +2542,7 @@
       },
       "roleSource": "local-lan-class-progression-v2",
       "roleDescription": "자동소총과 수류탄·회복 장비로 돌파합니다. 저격총·중화기는 시작 장비로 선택할 수 없습니다.",
-      "unlockXp": 600,
+      "unlockXp": 6000,
       "unlockRankId": "sergeant",
       "unlockRankName": "병장",
       "optionalSlots": [],
@@ -2637,7 +2637,7 @@
       },
       "roleSource": "local-lan-class-progression-v2",
       "roleDescription": "기관총 또는 로켓으로 지원합니다. 병장부터 다른 장비를 포기하고 판져파우스트·바주카 쌍포를 선택할 수 있습니다.",
-      "unlockXp": 600,
+      "unlockXp": 6000,
       "unlockRankId": "sergeant",
       "unlockRankName": "병장",
       "optionalSlots": [
@@ -2730,7 +2730,7 @@
       },
       "roleSource": "local-lan-class-progression-v2",
       "roleDescription": "기관총 또는 로켓으로 지원합니다. 병장부터 다른 장비를 포기하고 판져파우스트·바주카 쌍포를 선택할 수 있습니다.",
-      "unlockXp": 1000,
+      "unlockXp": 10000,
       "unlockRankId": "lieutenant",
       "unlockRankName": "소위",
       "optionalSlots": [
@@ -2777,25 +2777,25 @@
     {
       "id": "private",
       "name": "이병",
-      "minXp": 100,
+      "minXp": 1000,
       "budgetBonus": 100
     },
     {
       "id": "corporal",
       "name": "상병",
-      "minXp": 300,
+      "minXp": 3000,
       "budgetBonus": 200
     },
     {
       "id": "sergeant",
       "name": "병장",
-      "minXp": 600,
+      "minXp": 6000,
       "budgetBonus": 300
     },
     {
       "id": "lieutenant",
       "name": "소위",
-      "minXp": 1000,
+      "minXp": 10000,
       "budgetBonus": 400
     }
   ],
@@ -2876,7 +2876,7 @@
     },
     "dualCannon": {
       "role": "heavy",
-      "minXp": 600,
+      "minXp": 6000,
       "rankId": "sergeant",
       "rankName": "병장",
       "cannonIds": [
@@ -4030,9 +4030,9 @@
   },
   "progressionVersion": 2,
   "balanceNotes": [
-    "Every camp has assault, sniper and heavy starters at 0 XP; additional character variants unlock at 100/300/600/1000 XP.",
+    "Every camp has assault, sniper and heavy starters at 0 XP; additional character variants unlock at 1000/3000/6000/10000 XP.",
     "Original item points and original character capacity stay unchanged; rank grants only existing budget bonuses, never damage, HP or speed buffs.",
-    "Dual cannon is an explicit heavy-class 600 XP unlock, not a budget loophole. Panzerfaust 21 + Bazooka 22 + MP38 9 + binocular 50 costs 1405.",
+    "Dual cannon is an explicit heavy-class 6000 XP unlock, not a budget loophole. Panzerfaust 21 + Bazooka 22 + MP38 9 + binocular 50 costs 1405.",
     "Two-cannon restrictions continue after enemy weapon pickup. A single looted weapon may cross the initial class restriction, subject to points and heavy-combination constraints.",
     "Different character variants retain the shipped character data. Tier unlock is not an extra stat buff."
   ]

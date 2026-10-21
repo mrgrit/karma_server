@@ -139,7 +139,7 @@ try{
   assert.match((await lockedCharacter.type('error')).message,/locked/i);
   const prematureDual=await connect({op:'create',playerId:'premature-dual',code:'123456',
     config:{...config,character:{camp:0,index:4},inventory:[50,9,21,22,255,255,255],selectedWeapon:21}});
-  assert.match((await prematureDual.type('error')).message,/600 XP/i);
+  assert.match((await prematureDual.type('error')).message,/6000 XP/i);
   const oldId=await connect({op:'create',playerId:'constructor',code:'123456'});
   assert.equal((await oldId.type('error')).code,'BAD_MESSAGE');
   host=await connect({op:'create',playerId:'host-profile',code:'123456'});
