@@ -152,6 +152,8 @@ class ChainLedger(Ledger):
                 entries=[(uid,b['symbol']) for b in value['balances']]
                 for row in db.execute("SELECT id,asset,side FROM orders WHERE owner=? AND status='open'",(uid,)):
                     entries.append(('@order:'+row['id'],'KARMA' if row['side']=='buy' else row['asset']))
+                for row in db.execute("SELECT id FROM service_jobs WHERE buyer=? AND state NOT IN ('paid','refunded')", (uid,)):
+                    entries.append(('@service:'+row['id'], 'KARMA'))
                 amounts=self.backend.balances(entries,block)
                 for owner,symbol in entries:
                     require(amounts[(owner,symbol)]==self.balance(db,owner,symbol),'블록체인 잔액과 거래소 인덱스가 다릅니다.','CHAIN_DIVERGENCE',503)
@@ -190,6 +192,19 @@ class ChainLedger(Ledger):
             value=self.backend.summary()
             with self.connect() as db:
                 value['transactions']=[dict(r) for r in db.execute('SELECT tx_hash transactionHash,block_number blockNumber,created FROM chain_commits ORDER BY sequence DESC LIMIT 30')]
+            return value
+
+    def community(self, uid):
+        with self.serialized():
+            self.recover()
+            return super().community(uid)
+
+    def economy(self):
+        with self.serialized():
+            self.recover()
+            value = super().economy()
+            amounts = self.backend.balances([('@treasury', 'KARMA'), ('@reserve', 'KARMA')])
+            require(value['treasury'] == amounts[('@treasury', 'KARMA')] and value['reserve'] == amounts[('@reserve', 'KARMA')], '공동 금고 블록체인 잔액이 일치하지 않습니다.', 'CHAIN_DIVERGENCE', 503)
             return value
 
     def chain_receipt(self, tx_hash):

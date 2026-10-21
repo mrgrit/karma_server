@@ -20,14 +20,22 @@ try{
  const players=[0,1].map(i=>({playerId:crypto.randomUUID(),name:'Fixture '+i,role:'user'}));
  const available=async p=>(await bridge.wallet(p)).balances.find(b=>b.symbol==='KARMA').available;
  assert.equal(await available(players[0]),300);
- const paid=crypto.randomUUID();await bridge.charge(paid,players);bridge.confirm(paid);
+ const paid=crypto.randomUUID();await bridge.charge(paid,players);await bridge.confirm(paid);
  assert.equal(await available(players[0]),200);assert.equal(await available(players[1]),200);
  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(temp,'exchange-pending.json'))),{});
  const interrupted=crypto.randomUUID();await bridge.charge(interrupted,players);assert.equal(await available(players[0]),100);
  bridge.close();bridge=createExchangeClient(opts);await bridge.init();
  assert.equal(await available(players[0]),200,'unfinished start is refunded after game server restart');
  await bridge.refund(interrupted);assert.equal(await available(players[0]),200,'refund is idempotent');
- for(let i=0;i<2;i++){const id=crypto.randomUUID();await bridge.charge(id,players);bridge.confirm(id);}
+ // A persisted admission decision must finalize after restart, never refund.
+ const admitted=crypto.randomUUID();await bridge.charge(admitted,players);
+ bridge.close();
+ const pendingPath=path.join(temp,'exchange-pending.json'),pending=JSON.parse(fs.readFileSync(pendingPath));
+ pending[admitted].phase='finalizing';fs.writeFileSync(pendingPath,JSON.stringify(pending));
+ bridge=createExchangeClient(opts);await bridge.init();
+ assert.equal(await available(players[0]),100,'admitted match finalizes after restart');
+ assert.deepEqual(JSON.parse(fs.readFileSync(pendingPath)),{});
+ const last=crypto.randomUUID();await bridge.charge(last,players);await bridge.confirm(last);
  const rejected=crypto.randomUUID();await assert.rejects(bridge.charge(rejected,players),{code:'INSUFFICIENT_FUNDS'});
  assert.equal(await available(players[0]),0);
  await assert.rejects(bridge.request('reserve',{matchId:crypto.randomUUID(),players,expiresAt:Date.now()-1000}),{code:'RESERVATION_EXPIRED'});

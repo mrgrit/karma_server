@@ -13,6 +13,7 @@ class AdminFundingTests(unittest.TestCase):
             admin, student = str(uuid.uuid4()), str(uuid.uuid4())
             ledger.ensure({'playerId': student, 'name': '학생', 'role': 'user'})
             with ledger.transaction() as db:
+                ledger.move(db, str(uuid.uuid4()), COIN, '@mint', student, 300, 'Legacy welcome fixture', '@department')
                 db.execute('INSERT INTO users VALUES(?,?,?,?)', (admin, '관리자', 'admin', ledger.now()))
                 ledger.move(db, str(uuid.uuid4()), COIN, '@mint', admin, 10_000_000, '기존 최초 지급', '@department')
                 ledger.move(db, str(uuid.uuid4()), COIN, admin, '@treasury', 100, '기존 대전 이용료', '@game-server')

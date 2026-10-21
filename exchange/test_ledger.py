@@ -12,7 +12,9 @@ class LedgerTests(unittest.TestCase):
         self.path = Path(self.temp.name)/'ledger.sqlite'
         self.db = Ledger(self.path)
         self.a, self.b, self.c = [dict(playerId=str(uuid.uuid4()), name='학생 '+str(i), role='admin' if i == 0 else 'user') for i in range(3)]
-        for p in [self.a, self.b, self.c]:
+        self.db.ensure(self.a)
+        self.db.treasury_fund(self.a['playerId'], self.key(), dict(amount=10000, reason='Test operating budget'))
+        for p in [self.b, self.c]:
             self.db.ensure(p)
 
     def tearDown(self):
@@ -25,12 +27,12 @@ class LedgerTests(unittest.TestCase):
         return str(uuid.uuid4())
 
     def test_initial_once_and_restart(self):
-        self.assertEqual(self.balance(self.a), 100000000)
+        self.assertEqual(self.balance(self.a), 99990000)
         self.assertEqual(self.balance(self.b), 300)
         for _ in range(3):
             Ledger(self.path).ensure(self.a)
             Ledger(self.path).ensure(self.b)
-        self.assertEqual(self.balance(self.a), 100000000)
+        self.assertEqual(self.balance(self.a), 99990000)
         self.assertEqual(self.balance(self.b), 300)
         self.db.audit()
 
@@ -100,7 +102,7 @@ class LedgerTests(unittest.TestCase):
         self.assertEqual(self.balance(self.b), 200)
         self.db.game('commit', dict(matchId=gid))
         Ledger(self.path).game('commit', dict(matchId=gid))
-        self.assertEqual(self.db.audit()['treasury'], 200)
+        self.assertEqual(self.db.audit()['treasury'], 9600)
         self.db.game('refund', dict(matchId=gid))
         self.db.game('refund', dict(matchId=gid))
         self.assertEqual(self.balance(self.b), 300)

@@ -22,6 +22,9 @@ class ChainTests(unittest.TestCase):
         self.backend=EvmBackend(self.keys/'chain.json',self.keys/'operator.key')
         self.path=self.root/'exchange.sqlite'
         self.ledger=ChainLedger(self.path,self.backend)
+        self.admin=dict(playerId=str(uuid.uuid4()),name='Isolated budget admin',role='admin')
+        self.ledger.ensure(self.admin)
+        self.ledger.treasury_fund(self.admin['playerId'],str(uuid.uuid4()),dict(amount=10000,reason='Isolated test budget'))
         self.a,self.b=[{'playerId':str(uuid.uuid4()),'name':'Isolated Chain Test '+str(i),'role':'user'} for i in range(2)]
         for p in (self.a,self.b):self.ledger.ensure(p)
 
@@ -52,13 +55,13 @@ class ChainTests(unittest.TestCase):
         self.ledger.game('reserve',request);self.ledger.game('reserve',request)
         self.assertEqual(self.balance(self.a),200)
         self.ledger.game('commit',{'matchId':gid});self.ledger.game('commit',{'matchId':gid})
-        self.assertEqual(self.ledger.audit()['treasury'],200)
+        self.assertEqual(self.ledger.audit()['treasury'],9600)
         proof=self.ledger.wallet(self.a['playerId'])['history'][0]
         self.assertTrue(proof['transactionHash'].startswith('0x'))
         self.assertEqual(self.ledger.chain_receipt(proof['transactionHash'])['status'],'confirmed')
         self.ledger.game('refund',{'matchId':gid});self.ledger.game('refund',{'matchId':gid})
         self.assertEqual(self.balance(self.a),300)
-        self.assertEqual(self.ledger.audit()['treasury'],0)
+        self.assertEqual(self.ledger.audit()['treasury'],9400)
 
     def test_crash_after_chain_commit_before_sql_materialization(self):
         key=str(uuid.uuid4()); original=self.ledger.apply_plan
@@ -105,6 +108,34 @@ class ChainTests(unittest.TestCase):
         with self.assertRaises(Problem) as error:self.ledger.wallet(self.a['playerId'])
         self.assertEqual(error.exception.code,'CHAIN_DIVERGENCE')
 
+    def test_community_escrow_reward_recovery_and_game_split_on_chain(self):
+        a,b,admin=self.a['playerId'],self.b['playerId'],self.admin['playerId'];key=lambda:str(uuid.uuid4())
+        supply=self.ledger.audit()['supplies']
+        mid=self.ledger.mission_action(admin,key(),dict(action='create',title='Chain mission',description='Complete a lab',reward=200,slots=2,deadline=self.ledger.now()+86400000))['missionId']
+        cid=self.ledger.mission_action(a,key(),dict(action='claim',missionId=mid))['claimId']
+        self.ledger.mission_action(a,key(),dict(action='submit',missionId=mid,claimId=cid,evidence='Lab result'))
+        payload=dict(action='approve',missionId=mid,claimId=cid,review='Verified');once=key()
+        self.ledger.apply_plan=lambda *_:(_ for _ in ()).throw(OSError('power loss during reward'))
+        with self.assertRaises(OSError):self.ledger.mission_action(admin,once,payload)
+        self.ledger=ChainLedger(self.path,self.backend)
+        self.ledger.mission_action(admin,once,payload)
+        self.assertEqual(self.balance(self.a),500)
+        self.ledger.mission_action(admin,key(),dict(action='close',missionId=mid))
+        sid=self.ledger.service_action(b,key(),dict(action='create',title='Review',description='Code review',price=200,days=1))['serviceId']
+        jid=self.ledger.service_action(a,key(),dict(action='buy',serviceId=sid,request='Review this'))['jobId']
+        self.assertEqual(self.ledger.wallet(a)['serviceLocked'],200)
+        self.ledger.job_action(b,key(),dict(action='accept',jobId=jid))
+        self.ledger.job_action(b,key(),dict(action='deliver',jobId=jid,note='Reviewed'))
+        once=key();payload=dict(action='complete',jobId=jid)
+        self.ledger.job_action(a,once,payload);self.ledger.job_action(a,once,payload)
+        self.assertEqual(self.balance(self.b),500)
+        match=dict(matchId=key(),players=[self.a,self.b])
+        self.ledger.game('reserve',match);self.ledger.game('commit',match);self.ledger.game('finalize',match);self.ledger.game('finalize',match)
+        self.assertEqual(self.ledger.economy()['reserve'],40)
+        self.assertEqual(self.ledger.economy()['totals']['servicePaid'],200)
+        self.assertEqual(self.ledger.audit()['supplies'],supply)
+        self.assertEqual(self.backend.balances([('@mission:'+mid,'KARMA'),('@service:'+jid,'KARMA')]),{('@mission:'+mid,'KARMA'):0,('@service:'+jid,'KARMA'):0})
+
 
 @unittest.skipUnless(os.environ.get('CHAIN_TEST_RPC'),'Requires private EVM')
 class MigrationTests(unittest.TestCase):
@@ -113,6 +144,8 @@ class MigrationTests(unittest.TestCase):
             root=Path(folder); path=root/'old.sqlite'; legacy=Ledger(path)
             a,b=[{'playerId':str(uuid.uuid4()),'name':'Migration Test '+str(i),'role':'admin' if i==0 else 'user'} for i in range(2)]
             for p in (a,b):legacy.ensure(p)
+            with legacy.transaction() as db:
+                legacy.move(db,str(uuid.uuid4()),'KARMA','@mint',b['playerId'],300,'Legacy welcome fixture','@department')
             legacy.issue(b['playerId'],str(uuid.uuid4()),{'symbol':'LAB','name':'Imported coin','supply':100})
             legacy.order(b['playerId'],str(uuid.uuid4()),{'asset':'LAB','side':'sell','price':10,'quantity':7})
             match={'matchId':str(uuid.uuid4()),'players':[a,b]}

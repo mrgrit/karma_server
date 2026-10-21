@@ -22,6 +22,9 @@ profiles=json.loads((root/'profiles.json').read_text())
 key='quorum-transfer-once'
 payload={'asset':'KARMA','to':profiles[1]['playerId'],'amount':100}
 if action=='init':
+    admin=dict(playerId=str(uuid.uuid4()),name='Quorum budget',role='admin')
+    ledger.ensure(admin)
+    ledger.treasury_fund(admin['playerId'],str(uuid.uuid4()),dict(amount=10000,reason='Isolated fixture budget'))
     for profile in profiles:ledger.ensure(profile)
     print(json.dumps({'ready':True,'block':backend.head()['number']}))
 elif action=='one-down':

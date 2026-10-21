@@ -28,8 +28,12 @@ export function createExchangeClient({url,caFile,keyFile,dataDir,address,logger=
     try{await request('refund',{matchId:id});delete pending[id];save();return true;}
     catch(error){if(error.code==='NOT_FOUND'&&Date.now()>pending[id]?.expiresAt){delete pending[id];save();return true;}logger('exchange-refund-pending',{matchId:id});return false;}
   }
+  async function finalize(id){
+    try{save();await request('finalize',{matchId:id});delete pending[id];save();return true;}
+    catch{logger('exchange-finalize-pending',{matchId:id});return false;}
+  }
   let recovering=false;
-  async function recover(){if(recovering)return;recovering=true;try{for(const id of Object.keys(pending))if(!active.has(id))await refund(id);}finally{recovering=false;}}
+  async function recover(){if(recovering)return;recovering=true;try{for(const id of Object.keys(pending)){if(pending[id]?.phase==='finalizing')await finalize(id);else if(!active.has(id))await refund(id);}}finally{recovering=false;}}
   const active=new Set();const timer=setInterval(recover,10000);timer.unref();
   return {
     publicUrl:base.origin,request,
@@ -41,7 +45,12 @@ export function createExchangeClient({url,caFile,keyFile,dataDir,address,logger=
       catch(error){await refund(id);active.delete(id);throw error;}
     },
     async refund(id){active.delete(id);return refund(id);},
-    confirm(id){delete pending[id];active.delete(id);try{save();}catch{logger('exchange-confirm-persistence-failed',{matchId:id});}},
+    confirm(id){
+      if(!pending[id])return Promise.resolve(true);
+      pending[id].phase='finalizing';
+      try{save();}catch{logger('exchange-confirm-persistence-failed',{matchId:id});return Promise.resolve(false);}
+      active.delete(id);return finalize(id);
+    },
     close(){clearInterval(timer);},
   };
 }

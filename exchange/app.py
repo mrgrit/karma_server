@@ -91,17 +91,17 @@ class Exchange:
         method = handler.command
         if method == 'GET' and route == '/health':
             chain = self.ledger.backend.head() if hasattr(self.ledger, 'backend') else None
-            return 200, {'ok': True, 'service': 'karma-exchange', 'version': 2, 'blockchain': chain is not None, 'blockNumber': chain['number'] if chain else None}, {}
-        if method == 'GET' and route in ['/', '/app.js', '/style.css']:
+            return 200, {'ok': True, 'service': 'karma-exchange', 'version': 3, 'blockchain': chain is not None, 'blockNumber': chain['number'] if chain else None}, {}
+        if method == 'GET' and route in ['/', '/app.js', '/community.js', '/style.css']:
             name = 'index.html' if route == '/' else route[1:]
-            kind = {'index.html': 'text/html', 'app.js': 'text/javascript', 'style.css': 'text/css'}[name]
+            kind = {'index.html': 'text/html', 'app.js': 'text/javascript', 'community.js': 'text/javascript', 'style.css': 'text/css'}[name]
             return 200, (ROOT/'public'/name).read_bytes(), {'Content-Type': kind+'; charset=utf-8'}
         if route.startswith('/service/'):
             require(method == 'POST' and hmac.compare_digest(handler.headers.get('Authorization', ''), 'Bearer '+self.key), '서비스 인증이 필요합니다.', 'SERVICE_AUTH', 401)
             body = handler.body()
             if route == '/service/wallet':
                 return 200, self.ledger.ensure(body['profile']), {}
-            if route in ['/service/reserve', '/service/commit', '/service/refund']:
+            if route in ['/service/reserve', '/service/commit', '/service/refund', '/service/finalize']:
                 return 200, self.ledger.game(route.rsplit('/', 1)[1], body), {}
             raise Problem('서비스 경로를 찾을 수 없습니다.', 'NOT_FOUND', 404)
         require(route.startswith('/api/'), '페이지를 찾을 수 없습니다.', 'NOT_FOUND', 404)
@@ -117,6 +117,10 @@ class Exchange:
             return 200, {'ok': True}, {'Set-Cookie': '__Host-karma-exchange='+sid+'; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=43200'}
         hashed, session, profile = self.session(handler.headers.get('Cookie'))
         uid = profile['playerId']
+        if method == 'GET' and route == '/api/community':
+            return 200, self.ledger.community(uid), {}
+        if method == 'GET' and route == '/api/economy':
+            return 200, self.ledger.economy(), {}
         if method == 'GET' and route == '/api/chain':
             require(hasattr(self.ledger, 'chain_state'), '블록체인 전환 전입니다.', 'CHAIN_NOT_ENABLED', 503)
             return 200, self.ledger.chain_state(), {}
@@ -142,7 +146,9 @@ class Exchange:
         if method == 'POST':
             body = handler.body()
             key = handler.headers.get('Idempotency-Key')
-            actions = {'/api/transfer': self.ledger.transfer, '/api/issue': self.ledger.issue, '/api/order': self.ledger.order, '/api/cancel': self.ledger.cancel, '/api/reward': self.ledger.reward}
+            actions = {'/api/transfer': self.ledger.transfer, '/api/issue': self.ledger.issue, '/api/order': self.ledger.order, '/api/cancel': self.ledger.cancel, '/api/reward': self.ledger.reward,
+                       '/api/treasury/fund': self.ledger.treasury_fund, '/api/welcome/claim': self.ledger.welcome_claim,
+                       '/api/mission': self.ledger.mission_action, '/api/service': self.ledger.service_action, '/api/job': self.ledger.job_action}
             if route in actions:
                 return 200, actions[route](uid, key, body), {}
         raise Problem('요청 경로를 찾을 수 없습니다.', 'NOT_FOUND', 404)

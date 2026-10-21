@@ -41,6 +41,10 @@ class HttpTests(unittest.TestCase):
         return status,json.loads(raw),reply_headers
 
     def login(self):
+        if not self.ex.ledger.users():
+            admin=dict(playerId=str(uuid.uuid4()),name='Budget admin',role='admin')
+            self.ex.ledger.ensure(admin)
+            self.ex.ledger.treasury_fund(admin['playerId'],str(uuid.uuid4()),dict(amount=10000,reason='Test budget'))
         status,data,h=self.call('/api/login',dict(email='student@test.invalid',password='test-password'))
         self.assertEqual(status,200);self.cookie=h['Set-Cookie'].split(';',1)[0]
         self.assertIn('HttpOnly',h['Set-Cookie']);self.assertIn('SameSite=Strict',h['Set-Cookie'])
@@ -69,6 +73,21 @@ class HttpTests(unittest.TestCase):
         self.assertNotIn('Set-Cookie',headers);self.assertEqual(self.ex.sessions,{})
         self.assertEqual(self.ex.ledger.users(),[])
         self.assertEqual(self.call('/api/state')[0],401)
+
+    def test_community_auth_roles_and_escrow(self):
+        for url in ['/api/community','/api/economy']:
+            self.assertEqual(self.call(url)[0],401)
+        self.login()
+        self.assertEqual(self.call('/api/community')[0],200)
+        self.assertEqual(self.call('/api/economy')[1]['spendable'],9700)
+        h={'Idempotency-Key':str(uuid.uuid4())}
+        self.assertEqual(self.call('/api/treasury/fund',dict(amount=100,reason='Test'),headers=h)[0],403)
+        self.assertEqual(self.call('/api/mission',dict(action='create'),headers={'Idempotency-Key':str(uuid.uuid4())})[0],403)
+        payload=dict(action='create',title='Code review',description='Review your code',price=100,days=1)
+        first=self.call('/api/service',payload,headers=h)
+        self.assertEqual(first[0],200);self.assertEqual(first[1],self.call('/api/service',payload,headers=h)[1])
+        self.assertEqual(len(self.call('/api/community')[1]['services']),1)
+        self.disabled=True;self.assertEqual(self.call('/api/community')[0],403)
 
 
 if __name__=='__main__':unittest.main()

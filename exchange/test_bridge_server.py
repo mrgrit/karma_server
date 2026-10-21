@@ -1,10 +1,13 @@
 """Isolated TLS integration fixture. Never deploy its certificate or key."""
-import sys,ssl,threading,json
+import sys,ssl,threading,json,uuid
 from pathlib import Path
 from app import Exchange,serve
 from ledger import Ledger
 root=Path(__file__).parent
 app=Exchange(Ledger(Path(sys.argv[1])/'ledger.sqlite'),'https://unused.invalid','https://localhost','test-only-service-key-'+'a'*48)
+admin=dict(playerId=str(uuid.uuid4()),name='Fixture budget',role='admin')
+app.ledger.ensure(admin)
+app.ledger.treasury_fund(admin['playerId'],str(uuid.uuid4()),dict(amount=10000,reason='Fixture budget'))
 server=serve(app,'127.0.0.1',0)
 context=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 context.load_cert_chain(root/'test-fixtures/localhost.pem',root/'test-fixtures/localhost.key')

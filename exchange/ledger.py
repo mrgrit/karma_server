@@ -8,10 +8,8 @@ import time
 import uuid
 from pathlib import Path
 
-COIN = 'KARMA'
-FEE = 100  # 100 minor units = one department coin.
-MAX_AMOUNT = 10**12
-
+from common import COIN, FEE, MAX_AMOUNT, Problem, require, integer, user_id, clean_text
+from economy import CommunityEconomy
 
 class Connection(sqlite3.Connection):
     def __exit__(self, *args):
@@ -21,38 +19,9 @@ class Connection(sqlite3.Connection):
             self.close()
 
 
-class Problem(Exception):
-    def __init__(self, message, code='BAD_REQUEST', status=400):
-        super().__init__(message)
-        self.code, self.status = code, status
 
 
-def require(condition, message, code='BAD_REQUEST', status=400):
-    if not condition:
-        raise Problem(message, code, status)
-
-
-def integer(value, low=1, high=MAX_AMOUNT):
-    require(type(value) is int and low <= value <= high, '수량과 가격 범위를 확인하세요.')
-    return value
-
-
-def user_id(value):
-    require(isinstance(value, str) and re.fullmatch(r'[a-f0-9-]{36}', value), '사용자 ID가 올바르지 않습니다.')
-    try:
-        valid = str(uuid.UUID(value)) == value
-    except ValueError:
-        valid = False
-    require(valid, '사용자 ID가 올바르지 않습니다.')
-    return value
-
-
-def clean_text(value, length):
-    require(isinstance(value, str) and 1 <= len(value.strip()) <= length and not any(ord(c) < 32 for c in value), '이름 또는 지급 사유를 확인하세요.')
-    return value.strip()
-
-
-class Ledger:
+class Ledger(CommunityEconomy):
     def __init__(self, filename):
         self.filename = str(filename)
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
@@ -72,6 +41,7 @@ class Ledger:
                 CREATE TABLE IF NOT EXISTS games(id TEXT PRIMARY KEY, players TEXT NOT NULL, state TEXT NOT NULL, fee INTEGER NOT NULL, updated INTEGER NOT NULL);
             ''')
             db.execute('INSERT OR IGNORE INTO assets VALUES(?,?,?,?,?,?)', (COIN, '학과 코인', '@department', 0, 2, self.now()))
+            self.initialize_economy(db)
 
     @staticmethod
     def now():
@@ -137,8 +107,13 @@ class Ledger:
         exists = db.execute('SELECT 1 FROM users WHERE id=?', (uid,)).fetchone()
         db.execute('INSERT INTO users VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,role=excluded.role', (uid, name, role, self.now()))
         if not exists:
-            grant = 100000000 if role == 'admin' else 300
-            self.move(db, str(uuid.uuid4()), COIN, '@mint', uid, grant, '관리자 최초 지급' if role == 'admin' else '체험 코인 최초 지급', '@department')
+            supply = db.execute('SELECT supply FROM assets WHERE symbol=?', (COIN,)).fetchone()[0]
+            if role == 'admin' and supply == 0:
+                self.move(db, str(uuid.uuid4()), COIN, '@mint', uid, 100000000, '운영 준비금 최초 발행', '@department')
+                db.execute("INSERT INTO welcome_grants VALUES(?,'paid')", (uid,))
+            else:
+                db.execute("INSERT INTO welcome_grants VALUES(?,'pending')", (uid,))
+                self.pay_welcome(db, uid)
         return uid
 
     def ensure(self, profile):
@@ -153,8 +128,11 @@ class Ledger:
             for order in db.execute("SELECT * FROM orders WHERE owner=? AND status='open'", (uid,)):
                 asset = COIN if order['side'] == 'buy' else order['asset']
                 locked[asset] = locked.get(asset, 0)+order['remaining']*(order['price'] if order['side'] == 'buy' else 1)
+            service_locked = sum(self.balance(db, '@service:'+r['id']) for r in db.execute("SELECT id FROM service_jobs WHERE buyer=? AND state NOT IN ('paid','refunded')", (uid,)))
+            locked[COIN] = locked.get(COIN, 0)+service_locked
+            welcome = db.execute('SELECT state FROM welcome_grants WHERE uid=?', (uid,)).fetchone()
             history = [dict(r) for r in db.execute('SELECT * FROM journal WHERE source=? OR destination=? ORDER BY id DESC LIMIT 100', (uid, uid))]
-            return {'playerId': uid, 'balances': balances, 'locked': locked, 'history': history, 'gameFee': FEE, 'coin': COIN}
+            return {'playerId': uid, 'balances': balances, 'locked': locked, 'serviceLocked': service_locked, 'welcomePending': bool(welcome and welcome['state']=='pending'), 'history': history, 'gameFee': FEE, 'coin': COIN}
 
     def market(self, uid=None):
         with self.connect() as db:
@@ -200,7 +178,8 @@ class Ledger:
             for target in recipients:
                 user_id(target)
                 require(db.execute('SELECT 1 FROM users WHERE id=?', (target,)).fetchone(), '지급 대상의 지갑이 없습니다.')
-                self.move(db, tx, COIN, '@mint', target, amount, reason, actor)
+                self.treasury_spend(db, tx, target, amount, reason, actor)
+                self.event(db, 'reward', amount, actor, target, '', tx)
             return {'ok': True, 'transactionId': tx, 'recipients': len(recipients)}
         return self.perform(actor, key, 'reward', payload, apply)
 
@@ -280,7 +259,15 @@ class Ledger:
                     self.move(db, gid, COIN, '@game:'+gid, '@treasury', len(json.loads(game['players']))*FEE, '대전 이용료 확정', '@game-server')
                     db.execute("UPDATE games SET state='committed',updated=? WHERE id=?", (self.now(), gid))
                 return {'ok': True, 'state': 'committed'}
+            if action == 'finalize':
+                require(game['state'] in ('committed', 'finalized'), '시작이 확정되지 않은 대전입니다.', 'MATCH_CONFLICT', 409)
+                if game['state'] == 'committed':
+                    reserve = len(json.loads(game['players']))*game['fee']//5
+                    self.move(db, gid, COIN, '@treasury', '@reserve', reserve, '게임 수입 20% 예비금', '@game-server')
+                    db.execute("UPDATE games SET state='finalized',updated=? WHERE id=?", (self.now(), gid))
+                return {'ok': True, 'state': 'finalized'}
             require(action == 'refund', '지원하지 않는 결제 처리입니다.')
+            require(game['state'] != 'finalized', '정상 시작이 최종 확정된 대전은 환불 대상이 아닙니다.', 'MATCH_FINALIZED', 409)
             if game['state'] != 'refunded':
                 source = '@game:'+gid if game['state'] == 'reserved' else '@treasury'
                 for uid in json.loads(game['players']):
@@ -290,6 +277,7 @@ class Ledger:
 
     def audit(self):
         with self.connect() as db:
+            self.audit_community(db)
             supplies = [dict(r) for r in db.execute('SELECT a.symbol,a.supply,COALESCE(SUM(b.amount),0) accounted FROM assets a LEFT JOIN balances b ON b.asset=a.symbol GROUP BY a.symbol')]
             require(all(r['supply'] == r['accounted'] for r in supplies), '원장 보존 검사 실패', 'LEDGER_INVARIANT', 500)
             return {'ok': True, 'supplies': supplies, 'treasury': self.balance(db, '@treasury'), 'journal': [dict(r) for r in db.execute('SELECT * FROM journal ORDER BY id DESC LIMIT 100')]}
