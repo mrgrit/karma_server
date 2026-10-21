@@ -9,7 +9,7 @@ import {startKarmaServer} from './server.mjs';
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'karma-lobby-'));
 const server=await startKarmaServer({host:'127.0.0.1',port:0,healthPort:0,dataDir:temp,logger:()=>{}});
 const catalog=JSON.parse(fs.readFileSync(new URL('loadouts.json',import.meta.url),'utf8').replace(/^\uFEFF/,''));
-const config={map:0,age:0,character:{index:0,camp:0},inventory:catalog.defaultInventory,selectedWeapon:9,settings:{build:'karma290-central3'}};
+const config={map:0,age:0,character:{index:0,camp:0},rank:{id:'lieutenant'},inventory:catalog.defaultInventory,selectedWeapon:9,settings:{build:'karma290-central3'}};
 const clients=[],delay=ms=>new Promise(r=>setTimeout(r,ms));
 async function wait(label,fn){for(let i=0;i<250;i++){const value=fn();if(value)return value;await delay(20);}throw Error('Timeout: '+label);}
 async function join(code,mode='dm',host=false,capacity=8){
@@ -39,6 +39,8 @@ try {
   host.start();host.start();
   const ready=await wait('partial-capacity start',()=>host.latest('peer-ready'));
   assert.equal(ready.peers.length,1);assert.equal(ready.maxPlayers,8);
+  assert.equal(ready.config.rank.id,'recruit','server replaces client-supplied rank');
+  assert.equal(ready.peers[0].config.rank.id,'recruit','remote rank is provided by server');
   await wait('guest ready',()=>guest.latest('peer-ready'));await delay(60);
   assert.equal(host.messages.filter(m=>m.type==='peer-ready').length,1);
 

@@ -177,7 +177,7 @@ export async function startKarmaServer({
     if(typeof build!=='string'||!/^[A-Za-z0-9_.-]{1,96}$/.test(build))reject('BAD_CONFIG','Invalid build');
     const config={map:battlefield.mapIndex,age:0,character:{index:original.characterIndex,camp:original.camp,
       model:path.basename(original.model.replaceAll('\\','/')).toLowerCase(),name:profile.name},
-      inventory:equipment.inventory,selectedWeapon:equipment.selectedWeapon,
+      inventory:equipment.inventory,selectedWeapon:equipment.selectedWeapon,rank:rankForXp(profile.xp,catalog.ranks),
       settings:{build,mode:1}};
     return {config,character,characterId:original.id};
   }
