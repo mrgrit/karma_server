@@ -2,7 +2,7 @@
 
 같은 LAN에서 실행하는 Karma290 클라이언트의 계정, 방 관리, 메시지 전달, 계급·경험치·전적·출전 장비 저장, 무기 습득 소유권을 담당합니다. Node.js 20 이상이 필요합니다. 이메일 전송 라이브러리 Nodemailer 버전을 lockfile에 고정하며 그 밖의 서버 기능은 Node 기본 모듈을 사용합니다.
 
-클라이언트 v0.3.0은 **1:1, 4:4 팀전, 2~8인 개인 데스매치**를 지원합니다. 원본 게임 8개 동시 검사는 한 Windows PC에서, 물리 PC 간 대전은 두 PC로 확인했습니다. 서버의 최대 20개 방 × 8명 검사는 모의 통신 부하이며 실제 160명 플레이 검증은 아닙니다.
+클라이언트 v0.3.1은 **1:1, 4:4 팀전, 2~8인 개인 데스매치**를 지원합니다. 원본 게임 8개 동시 검사는 한 Windows PC에서, 물리 PC 간 대전은 두 PC로 확인했습니다. 서버의 최대 20개 방 × 8명 검사는 모의 통신 부하이며 실제 160명 플레이 검증은 아닙니다.
 
 ## 실행과 검사
 
@@ -101,7 +101,7 @@ TCP 한 줄마다 JSON 객체 하나를 전달합니다. 한 메시지 최대 64
 입장:
 
 ```json
-{"type":"hello","version":2,"op":"create","authToken":"login-response-token","clientMaxPlayers":8,"maxPlayers":8,"mode":"tdm","config":{"age":0,"map":0,"character":{"index":0,"camp":0},"inventory":[50,9,1,6,48,24,18],"selectedWeapon":9,"settings":{"build":"karma290-central3"}}}
+{"type":"hello","version":2,"op":"create","authToken":"login-response-token","clientMaxPlayers":8,"maxPlayers":8,"mode":"tdm","manualStart":true,"config":{"age":0,"map":0,"character":{"index":0,"camp":0},"inventory":[50,9,1,6,48,24,18],"selectedWeapon":9,"settings":{"build":"karma290-central3"}}}
 ```
 
 참가는 `op:"join", code:"123456"`을 사용합니다. 모든 접속에 로그인 `authToken`이 필수이며 플레이어 ID와 이름은 인증 계정에서 결정합니다. 클라이언트가 보낸 `playerId/name`으로 다른 사용자를 가장할 수 없습니다. `op:"profile"`은 방을 만들지 않고 `welcome`으로 프로필을 받은 뒤 연결을 끝냅니다. 프로필 조회에는 `config`가 필요 없습니다.
@@ -111,7 +111,8 @@ TCP 한 줄마다 JSON 객체 하나를 전달합니다. 한 메시지 최대 64
 | `type` | 내용 |
 | --- | --- |
 | `welcome` | `profile`, `room:{roomId,code,maxPlayers}`, `role`, `slot`. 프로필 조회의 `room`은 `null` |
-| `waiting` | `roomId`, `code`, `maxPlayers`, 현재 `players` |
+| `waiting` | 방 정보, 현재 `players`, `hostId`, `members` 이름/슬롯/팀, `manualStart`, `canStart`, `startReason` |
+| `start-denied` | 시작 거절 `message`와 현재 `lobby`. 연결 유지 |
 | `peer-ready` | 입장 완료. `role`, `slot`, 방 정보, 검증된 자신의 `config`, `remoteHello`, 전체 상대 목록 `peers`, `profile` |
 | `game` | 기존 게임 `message`와 연결에서 결정한 `senderId`, `slot` |
 | `round-ended` | 팀전 라운드 종료, 승리 팀, 팀 라운드 승수 및 다음 시작 시각 |
@@ -128,7 +129,7 @@ TCP 한 줄마다 JSON 객체 하나를 전달합니다. 한 메시지 최대 64
 | `match-ended` | 확정된 `result:{id,reason,players,winnerIds,scores,draw,startedAt,endedAt}`. 대전 종료 후 원본 게임도 종료 |
 | `error` | `code`, `message` 후 해당 연결 종료 |
 
-정원이 모두 들어오면 `peer-ready`를 보냅니다. 별도 ready ACK는 필요 없습니다. 일반 게임 송신은 `{"type":"game","message":{...}}`입니다. 선택적인 `targetId`가 있으면 같은 방의 해당 상대에게만 전달합니다. 기존 2인 게임은 생략해도 됩니다. `ping`에는 `pong`으로 응답합니다.
+v0.3.1 클라이언트는 `manualStart:true`로 방을 만듭니다. 방장은 `{"type":"start-match","roomId":"현재 방 ID"}`를 보내 시작합니다. 두 명 이상이어야 하며 팀전은 짝수 인원만 가능합니다. 최대 인원이 차도 자동 시작하지 않습니다. 시작 전 방장 이탈 시 남은 첫 참가자에게 권한을 넘기고 팀을 다시 배정합니다. 시작 승인 시 실제 참가자에게 `peer-ready`를 보냅니다. 구버전의 `manualStart` 없는 방은 정원이 찼을 때 자동 시작합니다. 별도 ready ACK는 필요 없습니다. 일반 게임 송신은 `{"type":"game","message":{...}}`입니다. 선택적인 `targetId`가 있으면 같은 방의 해당 상대에게만 전달합니다. 기존 2인 게임은 생략해도 됩니다. `ping`에는 `pong`으로 응답합니다.
 
 구버전 `clientMaxPlayers:2` 클라이언트는 8인 방 입장이 거절됩니다. 최신 클라이언트는 `clientMaxPlayers:8`을 사용하며, 각 명중 메시지의 `targetId`로 피해자를 지정합니다. 게임 상태는 같은 방의 전체 상대에게 전달합니다.
 

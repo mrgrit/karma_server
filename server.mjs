@@ -136,6 +136,7 @@ export async function startKarmaServer({
     for(const client of room.clients)if(client!==except&&write(client,message))relayedMessages++;
   }
   function roomInfo(room){return {roomId:room.id,code:room.code,maxPlayers:room.maxPlayers,mode:room.mode,
+    manualStart:room.manualStart===true,hostId:room.clients[0]?.playerId,
     killLimit:room.mode==='tdm'?null:room.killLimit,timeLimitSeconds:matchSeconds,
     roundWinLimit:room.mode==='tdm'?roundWinLimit:null,roundSeconds:room.mode==='tdm'?roundSeconds:null,
     respawnMs:room.mode==='dm'?dmRespawnMs:room.mode==='tdm'?null:4500};}
@@ -195,8 +196,16 @@ export async function startKarmaServer({
       armRoundTimer(room);
     },roundIntermissionMs);room.roundTimer.unref();
   }
+  function startReason(room){
+    if(room.clients.length<2)return '두 명 이상 접속해야 시작할 수 있습니다.';
+    if(room.mode==='tdm'&&room.clients.length%2!==0)return '팀전은 양 팀 인원이 같아야 합니다. 한 명을 더 기다려 주세요.';
+    return '';
+  }
+  function lobbyInfo(room){return {type:'waiting',version:2,...roomInfo(room),players:room.clients.length,
+    canStart:startReason(room)==='',startReason:startReason(room),
+    members:room.clients.map(c=>({playerId:c.playerId,name:c.account.name,slot:c.slot,team:c.team}))};}
   function startRoom(room){
-    if(room.started||room.clients.length!==room.maxPlayers)return;
+    if(room.started||startReason(room)!=='')return;
     room.started=true;room.startedAt=Date.now();room.phase='active';room.round=1;room.roundWins=[0,0];
     for(const c of room.clients){c.alive=true;c.roundLife=1;c.deadAt=0;}
     room.kills=new Map(room.clients.map(client=>[client.playerId,0]));
@@ -242,7 +251,7 @@ export async function startKarmaServer({
       const mode=message.mode??(capacity===2?'duel':'dm');
       if(!['duel','dm','tdm'].includes(mode)||(mode==='duel'&&capacity!==2)||(mode==='tdm'&&capacity%2!==0))
         reject('BAD_MODE','Choose duel (2), deathmatch (2–8), or even-sized team deathmatch');
-      room={id:crypto.randomUUID(),code,maxPlayers:capacity,mode,killLimit:mode==='tdm'?matchKills*4:matchKills,clients:[],started:false,ending:false};
+      room={id:crypto.randomUUID(),code,maxPlayers:capacity,mode,manualStart:message.manualStart===true,killLimit:mode==='tdm'?matchKills*4:matchKills,clients:[],started:false,ending:false};
       rooms.set(code,room);
     }else{
       if(typeof message.code!=='string'||!/^\d{6}$/.test(message.code))reject('BAD_CODE','A six-digit room code is required');
@@ -266,8 +275,8 @@ export async function startKarmaServer({
     write(session,{type:'welcome',version:2,
       profile:publicProfile(identity.profile,session.character,account),room:roomInfo(room),
       role:session.slot===0?'host':'join',slot:session.slot,team:session.team});
-    if(room.clients.length<room.maxPlayers)broadcast(room,{type:'waiting',version:2,...roomInfo(room),players:room.clients.length});
-    startRoom(room);
+    broadcast(room,lobbyInfo(room));
+    if(!room.manualStart&&room.clients.length===room.maxPlayers)startRoom(room);
   }
   function damageProof(session,value){
     if(!plainObject(value))reject('BAD_PROOF','Damage proof is required');
@@ -377,6 +386,14 @@ export async function startKarmaServer({
     if(!session.playerId){hello(session,message);return;}
     if(message.type==='ping'){write(session,{type:'pong',version:2});return;}
     if(message.type==='leave'){session.socket.end();return;}
+    if(message.type==='start-match'){
+      const room=session.room;
+      if(room.started)return;
+      const reason=message.roomId!==room.id?'현재 방의 시작 요청이 아닙니다.':
+        room.clients[0]!==session?'방장만 시작할 수 있습니다.':startReason(room);
+      if(reason){write(session,{type:'start-denied',version:2,message:reason,lobby:lobbyInfo(room)});return;}
+      startRoom(room);return;
+    }
     if(!session.room.started)reject('NOT_READY','Waiting for the other players');
     if(session.room.phase==='intermission'&&message.type!=='leave'&&message.message?.type!=='leave')return;
     if(message.type==='damage-proof'){damageProof(session,message.proof);return;}
@@ -453,7 +470,7 @@ export async function startKarmaServer({
       if(room.clients.length===0)rooms.delete(room.code);
       else{
         room.clients.forEach((client,slot)=>{client.slot=slot;client.team=slot%2;});
-        broadcast(room,{type:'waiting',version:2,...roomInfo(room),players:room.clients.length});
+        broadcast(room,lobbyInfo(room));
       }
       return;
     }
