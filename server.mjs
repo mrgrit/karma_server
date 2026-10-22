@@ -10,6 +10,7 @@ import {validateLanMessage} from './lan-validation.mjs';
 import {AuthService,authError} from './auth.mjs';
 import {createExchangeClient} from './exchange-client.mjs';
 import {serveClientRelease} from './client-release.mjs';
+import {createChatFilter,ChatArchive} from './chat-policy.mjs';
 import {
   CombatLedger,DropLedger,validateLoadout,rankForXp,loadoutBudget,characterUnlocked,
   newProgressProfile,applyDeathToProfile,atomicWriteJson,
@@ -126,6 +127,8 @@ export async function startKarmaServer({
   const weaponById=new Map(catalog.weapons.map(item=>[item.weaponId??item.id,item]));
   const db=new ProfileDatabase(path.join(path.resolve(dataDir),'profiles.json'));
   const auth=authService||new AuthService({filename:path.join(path.resolve(dataDir),'auth.json')});
+  const filterChat=createChatFilter(readJson(path.join(directory,'chat-policy.json')));
+  const chatArchive=new ChatArchive(path.join(path.resolve(dataDir),'chat-logs'));
   const coinProfiles=new Map();
   async function refreshCoins(account){
     if(!exchange)return;
@@ -451,6 +454,10 @@ export async function startKarmaServer({
        (evidence.victimId!==null&&(evidence.victimId!==session.playerId||evidence.victimLife!==proof.victimLife))){
       write(session,{type:'proof-rejected',version:2,id:proof.id,reason:'no-matching-shot-or-hit'});return;
     }
+    // Classification comes from the matching relayed hit, never a caller's
+    // headshot flag. Projectiles/pellets cannot acquire a bullet headshot.
+    proof.hitKind=evidence.kind||'unknown';
+    proof.hitRegion=evidence.kind==='bullet'?evidence.region:null;
     session.room.combat.recordDamage(session.playerId,proof);
   }
   function updateState(session,message){
@@ -498,7 +505,13 @@ export async function startKarmaServer({
       const living=new Set(room.clients.filter(c=>!c.closed&&c.alive).map(c=>c.team));
       if(living.size<2)endRound(room,'team-eliminated');
     });
-    broadcast(room,{type:'death-confirmed',version:2,receipt:result.receipt});
+    const receipt=result.receipt;
+    const feed={id:receipt.id,kind:receipt.verified?'kill':receipt.killer==='self'?'self':'death',
+      killerId:receipt.verified||receipt.killer==='self'?receipt.killerId:null,victimId:receipt.victimId,
+      killerName:receipt.verified?(db.data.profiles[receipt.killerId]?.name||'플레이어'):'',
+      victimName:session.account.name,weapon:receipt.weapon,weaponName:weaponById.get(receipt.weapon)?.name||'무기',
+      headshot:receipt.verified&&receipt.damage?.hitKind==='bullet'&&receipt.damage.hitRegion===0,time:Date.now()};
+    broadcast(room,{type:'death-confirmed',version:2,receipt,feed});
     const previousXp=new Map([result.receipt.victimId,result.receipt.killerId].map(id=>[id,db.data.profiles[id]?.xp||0]));
     const changed=db.award(result.receipt);
     for(const profile of changed){
@@ -580,14 +593,19 @@ export async function startKarmaServer({
       const previous=session.chatSeen.get(requestId);
       if(previous){
         if(previous.text!==text||previous.channel!==message.channel)reject('CHAT_REPLAY','같은 채팅 요청의 내용이 다릅니다.');
-        write(session,previous);return;
+        write(session,previous.item);return;
       }
       const now=Date.now();session.chatTimes=(session.chatTimes||[]).filter(t=>now-t<5000);
       if(session.chatTimes.length>=5)reject('CHAT_RATE_LIMIT','채팅을 너무 빠르게 보냈습니다. 잠시 후 다시 보내세요.');
       session.chatTimes.push(now);
+      const filtered=filterChat(text);
       const item={type:'chat',version:2,id:crypto.randomUUID(),requestId,roomId:room.id,
-        senderId:session.playerId,name:session.account.name,team:session.team,channel:message.channel,text,time:now};
-      session.chatSeen.set(requestId,item);if(session.chatSeen.size>100)session.chatSeen.delete(session.chatSeen.keys().next().value);
+        senderId:session.playerId,name:session.account.name,team:session.team,channel:message.channel,...filtered,time:now};
+      try{chatArchive.append({id:item.id,requestId,time:now,roomId:room.id,roomName:room.name,mode:room.mode,
+        phase:room.started?'game':'lobby',senderId:session.playerId,name:session.account.name,team:session.team,
+        channel:message.channel,originalText:message.text,displayText:filtered.text,moderated:filtered.moderated});}
+      catch(problem){logger('chat-storage-error',{code:problem.code||'WRITE_FAILED'});reject('CHAT_STORAGE_UNAVAILABLE','채팅 기록을 저장하지 못해 전송하지 않았습니다. 잠시 후 다시 보내세요.');}
+      session.chatSeen.set(requestId,{text,channel:message.channel,item});if(session.chatSeen.size>100)session.chatSeen.delete(session.chatSeen.keys().next().value);
       for(const recipient of activeClients(room))if(item.channel==='all'||recipient.team===session.team)write(recipient,item);
     }catch(problem){write(session,{type:'chat-denied',version:2,requestId:typeof message.requestId==='string'?message.requestId.slice(0,96):'',code:problem.code||'BAD_CHAT',message:problem.message});}
   }
@@ -641,7 +659,7 @@ export async function startKarmaServer({
       if(!target||friendly(session,target))return;
     }
     const evidence=game.type==='hit'?{
-      id:game.id,life:game.life,weapon:game.weapon,victimLife:game.victimLife,
+      id:game.id,life:game.life,weapon:game.weapon,victimLife:game.victimLife,kind:game.kind,region:game.kind==='bullet'?game.region:null,
       victimId:target?.playerId??(room.clients.length===2?room.clients.find(client=>client!==session).playerId:null),
     }:game.shot?{...game.shot,victimId:null}:null;
     if(evidence){
@@ -798,6 +816,11 @@ export async function startKarmaServer({
         }
         if(route.startsWith('/api/admin/')){
           if(account.role!=='admin')authError(403,'ADMIN_REQUIRED','관리자 권한이 필요합니다.');
+          if(request.method==='GET'&&route==='/api/admin/chat-logs'){
+            reply(response,200,chatArchive.read({day:url.searchParams.get('day')||undefined,cursor:url.searchParams.get('cursor')??undefined,
+              limit:url.searchParams.has('limit')?Number(url.searchParams.get('limit')):100,channel:url.searchParams.get('channel')||'',
+              room:url.searchParams.get('room')||'',sender:url.searchParams.get('sender')||'',moderatedOnly:url.searchParams.get('moderated')==='1'}));return;
+          }
           if(request.method==='GET'&&route==='/api/admin/users'){
             reply(response,200,{users:auth.list().map(item=>({...accountProfile(item),email:item.email,disabled:item.disabled,
               approvalStatus:item.approvalStatus,createdAt:item.createdAt,approvedAt:item.approvedAt??null}))});return;

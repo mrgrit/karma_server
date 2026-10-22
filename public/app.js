@@ -7,6 +7,7 @@ const titles={
  loadout:['내 장비','PERSONAL LOADOUT','캐릭터에 저장된 시작 장비와 점수 한도를 확인하세요.'],
  leaderboard:['명예의 전당','LEADERBOARD','서버에서 기록한 경험치와 전투 성과를 확인하세요.'],
  activity:['활동 기록','OPERATIONS LOG','최근 경기와 서버의 활동을 확인하세요.'],
+ chatlogs:['채팅 기록','CHAT ARCHIVE','전체·팀 채팅과 마스킹 기록을 확인하세요.'],
  admin:['사용자 관리','PERSONNEL MANAGEMENT','사용자 계정, 전적과 저장 장비를 관리하세요.']
 };
 const state={token:null,me:null,catalog:{},players:[],dashboard:null,activity:[],users:[],
@@ -89,7 +90,7 @@ function setConnection(ok){
 function empty(target,text){target.replaceChildren(node('div',text,'empty'));}
 function view(name,writeHash=true){
  if(!(name in titles))name='overview';
- if(name==='admin'&&!isAdmin())name='overview';
+ if(['admin','chatlogs'].includes(name)&&!isAdmin())name='overview';
  state.view=name;
  document.querySelectorAll('.view').forEach(el=>el.hidden=el.id!==`${name}-view`);
  document.querySelectorAll('.nav-item').forEach(el=>{
@@ -101,14 +102,16 @@ function view(name,writeHash=true){
  if(writeHash&&location.hash!==`#${name}`)history.replaceState(null,'',`#${name}`);
  document.title=`${title} · KARMA`;
  if(name==='admin'&&isAdmin())renderUsers();
+ if(name==='chatlogs'&&isAdmin()&&!state.chatLoaded)loadChatLogs(false);
 }
 function renderIdentity(){
  const p=state.me,logged=!!p;
- $('login-button').hidden=logged;$('logout-button').hidden=!logged;$('admin-nav').hidden=!isAdmin();
+ $('login-button').hidden=logged;$('logout-button').hidden=!logged;$('admin-nav').hidden=!isAdmin();$('chatlogs-nav').hidden=!isAdmin();
+ if(!isAdmin()){state.chatEntries=[];state.chatLoaded=false;state.chatCursor=null;$('chatlog-table').replaceChildren();$('chatlog-original').checked=false;}
  setText('account-name',logged?displayName(p):'방문자');
  setText('account-initial',logged?Array.from(displayName(p))[0]:'—');
  setText('account-role',logged?(isAdmin()?'서버 관리자':rankName(p.rank)):'로그인하고 기록을 확인하세요');
- if(!logged&&state.view==='admin')view('overview');
+ if(!logged&&['admin','chatlogs'].includes(state.view))view('overview');
 }
 function rankProgress(profile){
  const ranks=Array.isArray(state.catalog.ranks)?[...state.catalog.ranks].sort((a,b)=>number(a.minXp)-number(b.minXp)):[];
@@ -317,6 +320,33 @@ async function refresh(){
   view(location.hash.slice(1)||state.view,false);
  }finally{state.loading=false;$('refresh-button').disabled=false;}
 }
+function renderChatLogs(){
+ if(!isAdmin()){empty($('chatlog-table'),'관리자 로그인이 필요합니다.');return;}
+ const entries=state.chatEntries||[];if(!entries.length){empty($('chatlog-table'),'조건에 맞는 기록이 없습니다.');return;}
+ const original=$('chatlog-original').checked,table=node('table'),head=node('thead'),row=node('tr'),body=node('tbody');
+ for(const text of ['시각','방 / 상태','발신자','대상','표시 내용',...(original?['원문']:[])])row.append(node('th',text));head.append(row);
+ for(const item of entries){
+  const tr=node('tr');tr.append(node('td',new Date(item.time).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}),'table-muted'),
+   node('td',`${item.roomName} · ${item.phase==='lobby'?'대기실':'게임 중'}`),node('td',item.name),
+   node('td',item.channel==='team'?`팀 ${item.team===0?'RED':'BLUE'}`:'전체'),node('td',item.displayText+(item.moderated?'  [마스킹]':''),'chat-record'));
+  if(original)tr.append(node('td',item.originalText,'chat-record'));body.append(tr);
+ }
+ table.append(head,body);$('chatlog-table').replaceChildren(table);
+}
+async function loadChatLogs(more){
+ if(!isAdmin()||state.chatLoading)return;state.chatLoading=true;const token=state.token;
+ $('chatlog-search').disabled=true;$('chatlog-more').disabled=true;
+ try{
+  if(!more)state.chatQuery={day:$('chatlog-day').value,channel:$('chatlog-channel').value,room:$('chatlog-room').value.trim(),sender:$('chatlog-sender').value.trim(),moderated:$('chatlog-moderated').checked?'1':'0'};
+  const query=new URLSearchParams(state.chatQuery);if(more&&state.chatCursor)query.set('cursor',state.chatCursor);
+  const data=await api('/api/admin/chat-logs?'+query);
+  if(token!==state.token||!isAdmin())return;
+  state.chatEntries=more?(state.chatEntries||[]).concat(data.entries):data.entries;state.chatCursor=data.nextCursor;state.chatLoaded=true;
+  $('chatlog-day').value=data.day;state.chatQuery.day=data.day;$('chatlog-days').replaceChildren(...data.days.map(day=>{const option=node('option');option.value=day;return option;}));
+  $('chatlog-more').hidden=!data.nextCursor;setText('chatlog-notice',`${data.day} · ${state.chatEntries.length}개 표시${data.nextCursor?' · 이전 기록을 더 볼 수 있습니다.':''}`);renderChatLogs();
+ }catch(error){message('chatlog-notice',errorText(error));}
+ finally{state.chatLoading=false;$('chatlog-search').disabled=false;$('chatlog-more').disabled=false;}
+}
 function authMode(mode){
  state.authMode=mode;state.verification=false;state.registration=null;clearInterval(codeTimer);
  $('login-tab').setAttribute('aria-selected',String(mode==='login'));
@@ -428,6 +458,9 @@ document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener
 document.querySelectorAll('[data-go]').forEach(button=>button.addEventListener('click',()=>view(button.dataset.go)));
 document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$(button.dataset.close).close()));
 $('refresh-button').addEventListener('click',refresh);
+$('chatlog-form').addEventListener('submit',event=>{event.preventDefault();loadChatLogs(false);});
+$('chatlog-more').addEventListener('click',()=>loadChatLogs(true));
+$('chatlog-original').addEventListener('change',renderChatLogs);
 $('user-search').addEventListener('input',renderUsers);
 window.addEventListener('hashchange',()=>view(location.hash.slice(1),false));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});

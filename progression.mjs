@@ -120,6 +120,11 @@ function damageValue(value){
     after:int(value.after,'native HP after',-100000,10000),
   };
   if(damage.after>=damage.before)fail('Native damage must reduce HP');
+  if(value.hitKind!==undefined){
+    if(!['bullet','pellets','unknown'].includes(value.hitKind))fail('Invalid damage kind');
+    damage.hitKind=value.hitKind;
+    damage.hitRegion=value.hitKind==='bullet'?int(value.hitRegion,'hit region',0,14):null;
+  }
   return damage;
 }
 function validLethalDamage(damage,death){

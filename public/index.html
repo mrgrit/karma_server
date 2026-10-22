@@ -23,6 +23,7 @@
       <button class="nav-item" data-view="leaderboard"><span aria-hidden="true">≋</span>명예의 전당</button>
       <button class="nav-item" data-view="activity"><span aria-hidden="true">◷</span>활동 기록</button>
       <button class="nav-item" data-view="admin" id="admin-nav" hidden><span aria-hidden="true">⚑</span>사용자 관리</button>
+      <button class="nav-item" data-view="chatlogs" id="chatlogs-nav" hidden><span aria-hidden="true">☷</span>채팅 기록</button>
     </nav>
     <div class="sidebar-bottom">
       <div class="server-label"><i id="sidebar-dot"></i><span id="sidebar-status">서버 연결 확인 중</span></div>
@@ -84,6 +85,23 @@
       <section id="admin-view" class="view" hidden>
         <p id="approval-summary" class="help-note" role="status">신규 가입자는 관리자 승인 후 이용할 수 있습니다.</p>
         <article class="panel"><div class="panel-heading"><div><div class="eyebrow">PERSONNEL MANAGEMENT</div><h2>사용자 관리</h2></div><label class="search-field"><span class="sr-only">사용자 검색</span><input id="user-search" type="search" placeholder="닉네임 · 이메일 검색" autocomplete="off"></label></div><div id="admin-users" class="table-wrap"></div></article>
+      </section>
+      <section id="chatlogs-view" class="view" hidden>
+        <p class="help-note">전체·팀 채팅의 원문과 표시 내용을 관리자만 조회합니다. 한국 시간 기준이며 자동 삭제하지 않습니다. 적용 전 채팅은 복구할 수 없습니다.</p>
+        <article class="panel">
+          <form id="chatlog-form" class="chat-filters">
+            <label>날짜<input id="chatlog-day" type="date" list="chatlog-days"><datalist id="chatlog-days"></datalist></label>
+            <label>대상<select id="chatlog-channel"><option value="">전체 기록</option><option value="all">전체 채팅</option><option value="team">팀 채팅</option></select></label>
+            <label>방 이름 / ID<input id="chatlog-room" maxlength="96" placeholder="모든 방"></label>
+            <label>닉네임 / ID<input id="chatlog-sender" maxlength="96" placeholder="모든 사용자"></label>
+            <label class="checkbox-label"><input id="chatlog-moderated" type="checkbox">마스킹된 내용만</label>
+            <label class="checkbox-label"><input id="chatlog-original" type="checkbox">원문 표시</label>
+            <button class="button primary" id="chatlog-search" type="submit">조회</button>
+          </form>
+          <div id="chatlog-notice" class="inline-notice" role="status">조회할 날짜와 조건을 선택하세요.</div>
+          <div id="chatlog-table" class="table-wrap"></div>
+          <button id="chatlog-more" class="button secondary" type="button" hidden>이전 기록 더 보기</button>
+        </article>
       </section>
       <footer class="page-footer"><span>KARMA <b>OPERATIONS CENTER</b></span><span>전적은 서버가 확인한 경기 결과를 기준으로 합니다.</span></footer>
     </main>

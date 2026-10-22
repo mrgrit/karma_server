@@ -1,0 +1,5 @@
+{
+  "substringTerms": ["씨발", "시발", "씨빨", "시빨", "개새끼", "씹새끼", "개자식", "병신", "좆", "존나", "지랄", "염병", "미친놈", "미친년"],
+  "wordTerms": ["ㅅㅂ", "ㅆㅂ", "ㅂㅅ", "ㅈㄹ", "fuck", "fucking", "fucker", "motherfucker", "shit", "bullshit", "bitch", "asshole"],
+  "exceptions": ["시발점", "시발역"]
+}
