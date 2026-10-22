@@ -2,6 +2,7 @@ import re
 import uuid
 
 COIN = 'KARMA'
+WELCOME_GRANT = 10000  # 100 KARMA, paid once from the communal treasury.
 FEE = 100  # 100 minor units = one department coin.
 MAX_AMOUNT = 10**12
 

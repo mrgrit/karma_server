@@ -20,7 +20,7 @@ reviewForm('mission-create','/api/mission',f=>({action:'create',title:f.get('tit
 reviewForm('service-create','/api/service',f=>({action:'create',title:f.get('title'),description:f.get('description'),price:minor(f.get('price')),days:whole(f.get('days'))}),'서비스 등록',b=>`${b.title} · ${money(b.price)} KARMA · 수락 후 ${b.days}일 이내 제공합니다.`);
 reviewForm('treasury-fund','/api/treasury/fund',f=>({amount:minor(f.get('amount')),reason:f.get('reason')}),'공동 금고 운영 예산 입금',b=>`내 지갑에서 ${money(b.amount)} KARMA를 공동 금고로 이체합니다. 사유: ${b.reason}`);
 $('economy-refresh').addEventListener('click',refresh);
-$('welcome-claim').addEventListener('click',()=>openAction('체험 코인 받기','/api/welcome/claim',{},[],'최초 1회 3 KARMA를 공동 금고에서 받습니다.'));
+$('welcome-claim').addEventListener('click',()=>openAction('체험 코인 받기','/api/welcome/claim',{},[],'최초 1회 100 KARMA를 공동 금고에서 받습니다.'));
 function renderCommunity(){
  const me=state.data?.profile,c=me?state.community:null,e=me?state.economy:null,admin=me?.role==='admin';
  document.querySelectorAll('.admin-only').forEach(n=>n.hidden=!admin);$('welcome-pending').hidden=!state.data?.wallet.welcomePending;

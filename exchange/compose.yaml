@@ -1,6 +1,6 @@
 services:
   exchange:
-    image: karma-exchange-chain:3.4.0
+    image: karma-exchange-chain:3.4.1
     build: .
     restart: unless-stopped
     read_only: true

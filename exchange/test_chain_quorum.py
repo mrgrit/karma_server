@@ -1,3 +1,4 @@
+from test_support import existing_student
 """Operator-run fault test on the new chain, before production migration.
 
 init -> stop one validator / verify head advances -> stop another -> pending
@@ -25,7 +26,7 @@ if action=='init':
     admin=dict(playerId=str(uuid.uuid4()),name='Quorum budget',role='admin')
     ledger.ensure(admin)
     ledger.treasury_fund(admin['playerId'],str(uuid.uuid4()),dict(amount=10000,reason='Isolated fixture budget'))
-    for profile in profiles:ledger.ensure(profile)
+    for profile in profiles:existing_student(ledger,profile)
     print(json.dumps({'ready':True,'block':backend.head()['number']}))
 elif action=='one-down':
     before=backend.head()['number'];after=before;deadline=time.monotonic()+25

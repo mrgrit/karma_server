@@ -9,6 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {validateLanMessage} from './lan-validation.mjs';
 import {AuthService,authError} from './auth.mjs';
 import {createExchangeClient} from './exchange-client.mjs';
+import {serveClientRelease} from './client-release.mjs';
 import {
   CombatLedger,DropLedger,validateLoadout,rankForXp,loadoutBudget,characterUnlocked,
   newProgressProfile,applyDeathToProfile,atomicWriteJson,
@@ -709,6 +710,7 @@ export async function startKarmaServer({
   async function httpRequest(request,response){
     try{
       const url=new URL(request.url,'http://localhost'),route=url.pathname;
+      if(serveClientRelease(request,response,route,path.join(directory,'client-release')))return;
       if(request.method==='GET'&&route==='/health'){
         reply(response,200,{ok:true,protocol:2,rooms:rooms.size,players:online.size,maxRooms,maxPlayersPerRoom:maxPlayers,
           nativeClientMaxPlayers:8,acceptedMessages,relayedMessages,uptimeSeconds:Math.floor(process.uptime())});return;

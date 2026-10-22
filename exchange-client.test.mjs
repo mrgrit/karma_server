@@ -13,11 +13,10 @@ let bridge;
 try{
  const lines=createInterface({input:child.stdout});
  const [line]=await Promise.race([once(lines,'line'),once(child,'error').then(([e])=>Promise.reject(e)),once(child,'exit').then(()=>Promise.reject(Error('TLS fixture exited')))]);
- const {port}=JSON.parse(line);lines.close();
+ const {port,players}=JSON.parse(line);lines.close();
  const keyFile=path.join(temp,'key');fs.writeFileSync(keyFile,'test-only-service-key-'+'a'.repeat(48));
  const opts={url:`https://localhost:${port}`,address:'127.0.0.1',caFile:'exchange/test-fixtures/localhost.pem',keyFile,dataDir:temp};
  bridge=createExchangeClient(opts);await bridge.init();
- const players=[0,1].map(i=>({playerId:crypto.randomUUID(),name:'Fixture '+i,role:'user'}));
  const available=async p=>(await bridge.wallet(p)).balances.find(b=>b.symbol==='KARMA').available;
  assert.equal(await available(players[0]),300);
  const paid=crypto.randomUUID();await bridge.charge(paid,players);await bridge.confirm(paid);

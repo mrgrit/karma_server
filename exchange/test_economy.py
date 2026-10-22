@@ -1,3 +1,4 @@
+from test_support import existing_student
 import concurrent.futures
 import tempfile
 import unittest
@@ -12,7 +13,7 @@ class EconomyTests(unittest.TestCase):
         self.profiles=[dict(playerId=str(uuid.uuid4()),name='학생 '+str(i),role='admin' if i==0 else 'user') for i in range(4)]
         self.admin,self.a,self.b,self.c=[p['playerId'] for p in self.profiles]
         self.db.ensure(self.profiles[0]);self.db.treasury_fund(self.admin,self.key(),{'amount':10000,'reason':'테스트 예산'})
-        for p in self.profiles[1:]:self.db.ensure(p)
+        for p in self.profiles[1:]:existing_student(self.db,p)
     def tearDown(self): self.temp.cleanup()
     def key(self): return str(uuid.uuid4())
     def balance(self,uid):
@@ -39,11 +40,24 @@ class EconomyTests(unittest.TestCase):
             db=Ledger(Path(root)/'empty.sqlite');p=dict(playerId=self.key(),name='신입',role='user')
             self.assertTrue(db.ensure(p)['welcomePending']);self.assertEqual(db.wallet(p['playerId'])['balances'][0]['available'],0)
             admin=dict(playerId=self.key(),name='관리자',role='admin');db.ensure(admin)
-            db.treasury_fund(admin['playerId'],self.key(),{'amount':300,'reason':'체험 예산'})
+            db.treasury_fund(admin['playerId'],self.key(),{'amount':10000,'reason':'체험 예산'})
             for _ in range(2):db.welcome_claim(p['playerId'],self.key(),{})
-            self.assertEqual(db.wallet(p['playerId'])['balances'][0]['available'],300)
+            self.assertEqual(db.wallet(p['playerId'])['balances'][0]['available'],10000)
             db=Ledger(db.filename);db.ensure(p);self.assertFalse(db.wallet(p['playerId'])['welcomePending'])
             self.assertEqual(db.audit()['supplies'][0]['supply'],100000000)
+
+    def test_hundred_coin_grant_atomic_once_and_legacy_not_topped_up(self):
+        admin=self.profiles[0];p=dict(playerId=self.key(),name='New hundred grant',role='user')
+        self.db.treasury_fund(self.admin,self.key(),dict(amount=10000,reason='Welcome budget'))
+        supply=self.db.audit()['supplies'];before=self.balance('@treasury')
+        self.db.ensure(p)
+        self.assertEqual(self.balance(p['playerId']),10000)
+        self.assertEqual(self.balance('@treasury'),before-10000)
+        def retry(_):self.db.welcome_claim(p['playerId'],self.key(),{})
+        with concurrent.futures.ThreadPoolExecutor(4) as pool:list(pool.map(retry,range(4)))
+        self.db=Ledger(self.db.filename);self.db.ensure(p);self.db.ensure(self.profiles[1])
+        self.assertEqual(self.balance(p['playerId']),10000);self.assertEqual(self.balance(self.a),300)
+        self.assertEqual(self.db.audit()['supplies'],supply)
 
     def test_mission_reserve_approve_close_reject_and_replay(self):
         before=self.balance('@treasury');mid=self.mission(3);a=self.claim(mid,self.a);b=self.claim(mid,self.b)
@@ -57,7 +71,7 @@ class EconomyTests(unittest.TestCase):
         self.change(self.admin,mid,b,'reject',review='기한 내 미제출')
         self.assertEqual(self.balance(self.a),500);self.assertEqual(self.balance('@mission:'+mid),0)
         self.assertEqual(self.balance('@treasury'),before-200);self.db.audit()
-        self.assertEqual(self.db.economy()['totals']['reissued'],1100) # three welcome grants + reward
+        self.assertEqual(self.db.economy()['totals']['reissued'],200) # current mission reward; legacy balances excluded
 
     def test_mission_last_slot_race_and_expiry(self):
         mid=self.mission(1)

@@ -1,3 +1,4 @@
+from test_support import existing_student
 import concurrent.futures
 import tempfile
 import unittest
@@ -15,7 +16,7 @@ class LedgerTests(unittest.TestCase):
         self.db.ensure(self.a)
         self.db.treasury_fund(self.a['playerId'], self.key(), dict(amount=10000, reason='Test operating budget'))
         for p in [self.b, self.c]:
-            self.db.ensure(p)
+            existing_student(self.db,p)
 
     def tearDown(self):
         self.temp.cleanup()

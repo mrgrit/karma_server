@@ -1,3 +1,4 @@
+from test_support import existing_student
 """Run against real QBFT EVM, using isolated contracts and disposable users only."""
 import concurrent.futures
 import json
@@ -26,7 +27,7 @@ class ChainTests(unittest.TestCase):
         self.ledger.ensure(self.admin)
         self.ledger.treasury_fund(self.admin['playerId'],str(uuid.uuid4()),dict(amount=10000,reason='Isolated test budget'))
         self.a,self.b=[{'playerId':str(uuid.uuid4()),'name':'Isolated Chain Test '+str(i),'role':'user'} for i in range(2)]
-        for p in (self.a,self.b):self.ledger.ensure(p)
+        for p in (self.a,self.b):existing_student(self.ledger,p)
 
     def tearDown(self):self.temp.cleanup()
     def balance(self,p,asset='KARMA'):
@@ -107,6 +108,14 @@ class ChainTests(unittest.TestCase):
         with self.ledger.connect() as db:db.execute('UPDATE balances SET amount=amount+100 WHERE owner=?',(self.a['playerId'],))
         with self.assertRaises(Problem) as error:self.ledger.wallet(self.a['playerId'])
         self.assertEqual(error.exception.code,'CHAIN_DIVERGENCE')
+
+    def test_new_hundred_coin_welcome_on_chain(self):
+        self.ledger.treasury_fund(self.admin['playerId'],str(uuid.uuid4()),dict(amount=600,reason='Welcome budget'))
+        p=dict(playerId=str(uuid.uuid4()),name='Hundred coin starter',role='user')
+        supply=self.ledger.audit()['supplies'];self.ledger.ensure(p);self.ledger.ensure(p)
+        self.assertEqual(self.balance(p),10000)
+        self.assertEqual(self.ledger.economy()['spendable'],0)
+        self.assertEqual(self.ledger.audit()['supplies'],supply)
 
     def test_community_escrow_reward_recovery_and_game_split_on_chain(self):
         a,b,admin=self.a['playerId'],self.b['playerId'],self.admin['playerId'];key=lambda:str(uuid.uuid4())

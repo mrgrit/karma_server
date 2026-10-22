@@ -11,3 +11,4 @@ chain.json
 operator.key
 owner.key
 deployment-pending.json
+client-release/

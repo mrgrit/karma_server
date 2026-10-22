@@ -2,7 +2,7 @@
 import json
 import uuid
 from datetime import datetime, timezone
-from common import COIN, MAX_AMOUNT, require, integer, user_id, clean_text
+from common import COIN, WELCOME_GRANT, MAX_AMOUNT, require, integer, user_id, clean_text
 
 DAY = 86400000
 
@@ -79,18 +79,18 @@ class CommunityEconomy:
 
     def pay_welcome(self, db, uid):
         row = db.execute('SELECT state FROM welcome_grants WHERE uid=?', (uid,)).fetchone()
-        if row and row['state'] == 'pending' and self.treasury_available(db) >= 300:
+        if row and row['state'] == 'pending' and self.treasury_available(db) >= WELCOME_GRANT:
             tx = str(uuid.uuid4())
-            self.treasury_spend(db, tx, uid, 300, '체험 코인 최초 지급', '@department')
+            self.treasury_spend(db, tx, uid, WELCOME_GRANT, '체험 코인 최초 지급', '@department')
             db.execute("UPDATE welcome_grants SET state='paid' WHERE uid=?", (uid,))
-            self.event(db, 'welcome', 300, '@department', uid, uid, tx)
+            self.event(db, 'welcome', WELCOME_GRANT, '@department', uid, uid, tx)
 
     def welcome_claim(self, actor, key, payload):
         def apply(db, tx):
             row = db.execute('SELECT state FROM welcome_grants WHERE uid=?', (actor,)).fetchone()
             require(row, '지갑을 먼저 만들어 주세요.')
             if row['state'] == 'pending':
-                require(self.treasury_available(db) >= 300, '체험 코인 예산을 준비 중입니다. 나중에 다시 받아 주세요.', 'TREASURY_INSUFFICIENT', 409)
+                require(self.treasury_available(db) >= WELCOME_GRANT, '체험 코인 예산을 준비 중입니다. 나중에 다시 받아 주세요.', 'TREASURY_INSUFFICIENT', 409)
                 self.pay_welcome(db, actor)
             return {'ok': True}
         return self.perform(actor, key, 'welcome-claim', payload, apply)

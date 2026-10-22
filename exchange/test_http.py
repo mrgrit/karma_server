@@ -44,7 +44,7 @@ class HttpTests(unittest.TestCase):
         if not self.ex.ledger.users():
             admin=dict(playerId=str(uuid.uuid4()),name='Budget admin',role='admin')
             self.ex.ledger.ensure(admin)
-            self.ex.ledger.treasury_fund(admin['playerId'],str(uuid.uuid4()),dict(amount=10000,reason='Test budget'))
+            self.ex.ledger.treasury_fund(admin['playerId'],str(uuid.uuid4()),dict(amount=19700,reason='Test budget'))
         status,data,h=self.call('/api/login',dict(email='student@test.invalid',password='test-password'))
         self.assertEqual(status,200);self.cookie=h['Set-Cookie'].split(';',1)[0]
         self.assertIn('HttpOnly',h['Set-Cookie']);self.assertIn('SameSite=Strict',h['Set-Cookie'])
@@ -52,7 +52,7 @@ class HttpTests(unittest.TestCase):
     def test_auth_csrf_service_boundary_and_revocation(self):
         self.assertEqual(self.call('/api/state')[0],401)
         self.assertEqual(self.call('/api/login',{},origin=False)[0],403)
-        self.login();self.assertEqual(self.call('/api/state')[1]['wallet']['balances'][0]['available'],300)
+        self.login();self.assertEqual(self.call('/api/state')[1]['wallet']['balances'][0]['available'],10000)
         self.assertEqual(self.call('/api/admin/audit')[0],403)
         self.assertEqual(self.call('/service/wallet',{'profile':self.profile})[0],401)
         self.assertEqual(self.call('/api/issue',{'symbol':'LAB','name':'Lab','supply':10},origin=False)[0],403)
