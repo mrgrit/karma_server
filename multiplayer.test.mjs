@@ -7,8 +7,8 @@ import net from 'node:net';
 import {startKarmaServer} from './server.mjs';
 
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'karma-multiplayer-'));
-const server=await startKarmaServer({host:'127.0.0.1',port:0,healthPort:0,dataDir:temp,matchKills:2,
- roundWinLimit:2,roundIntermissionMs:120,dmRespawnMs:150,logger:()=>{}});
+const server=await startKarmaServer({host:'127.0.0.1',port:0,healthPort:0,dataDir:temp,matchKills:10,
+ roundWinLimit:5,roundIntermissionMs:120,dmRespawnMs:150,logger:()=>{}});
 const catalog=JSON.parse(fs.readFileSync(new URL('loadouts.json',import.meta.url),'utf8').replace(/^\uFEFF/,''));
 const config={map:0,age:0,character:{index:0,camp:0},inventory:catalog.defaultInventory,selectedWeapon:9,settings:{build:'karma290-central3'}};
 const clients=[];
@@ -24,7 +24,7 @@ async function client(i,mode,code){
  c.state=(extra={})=>c.send({type:'game',message:{version:1,type:c.life>1?'respawn':'state',life:c.life,seq:++c.seq,
   pos:[100,400,100],sector:4,weapon:9,selectedWeapon:9,hp:100,yaw:0,pitch:0,inventory:config.inventory,...extra}});
  await new Promise((resolve,reject)=>{socket.once('connect',resolve);socket.once('error',reject);});clients.push(c);
- c.send({type:'hello',version:2,op:i===0?'create':'join',code,config,mode,maxPlayers:8,clientMaxPlayers:8,authToken:server.auth.issueSession(account).authToken});
+ c.send({type:'hello',version:2,op:i===0?'create':'join',code,config,mode,maxPlayers:8,clientMaxPlayers:8,killLimit:2,roundWinLimit:2,timeLimitSeconds:60,authToken:server.auth.issueSession(account).authToken});
  await wait('welcome',()=>c.messages.find(m=>m.type==='welcome'));
  c.send({type:'lobby-update',requestId:'test-ready',ready:true});
  return c;
@@ -56,6 +56,10 @@ try{
  const result=await wait('DM winner',()=>dm[0].messages.find(m=>m.type==='match-ended'));
  assert.deepEqual(result.result.winnerIds,[dm[7].id]);assert.equal(result.result.scores[dm[7].id],2);
  assert.equal(result.result.mode,'dm');
+ assert.equal(result.result.killLimit,2);assert.equal(result.result.timeLimitSeconds,60);
+ assert.equal(result.result.deaths[dm[3].id],2);assert.equal(result.result.points[dm[7].id],50);assert.equal(result.result.points[dm[3].id],10);
+ assert.equal(result.result.names[dm[7].id],'Player 7');assert.equal(result.result.players.length,8,'departed participants remain in final results');
+ assert.deepEqual(dm[0].messages.filter(m=>m.type==='match-snapshot').at(-1).players.find(p=>p.playerId===dm[7].id),{playerId:dm[7].id,kills:2,deaths:0,points:50});
  const tdm=await room('tdm','880002');
  for(let i=0;i<8;i++){const ready=tdm[i].messages.find(m=>m.type==='peer-ready');assert.equal(ready.team,i%2);}
  tdm[0].send({type:'game',targetId:tdm[2].id,message:{version:1,type:'hit',life:1,seq:++tdm[0].seq,id:'friendly',victimLife:1,weapon:9,kind:'bullet',region:1,direction:[1,0,0]}});
@@ -78,6 +82,7 @@ try{
  const teamResult=await wait('team victory',()=>tdm[0].messages.find(m=>m.type==='match-ended'));
  assert.deepEqual(new Set(teamResult.result.winnerIds),new Set(tdm.filter((_,i)=>i%2===0).map(c=>c.id)));
  assert.deepEqual(teamResult.result.teamScores,[8,0]);assert.deepEqual(teamResult.result.roundWins,[2,0]);assert.equal(teamResult.result.mode,'tdm');
+ assert.equal(teamResult.result.roundWinLimit,2);assert.equal(teamResult.result.killLimit,null);
  console.log('PASS: 8-player DM targeted hit/slot7 kill, survivor continuation, enforced respawn delay, individual winner; 4:4 friendly fire rejection, no mid-round respawn, team elimination, next-round lives and four match winners.');
 }finally{
  for(const c of clients)c.socket.destroy();await server.close();

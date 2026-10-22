@@ -48,7 +48,7 @@ function ammoValue(value){
 }
 function teamScores(room){
   const scores=[0,0];
-  for(const client of room.clients)scores[client.team]+=(room.kills?.get(client.playerId)||0);
+  for(const client of room.participants?.values()||room.clients)scores[client.team]+=(room.kills?.get(client.playerId)||0);
   return scores;
 }
 class ProfileDatabase{
@@ -96,7 +96,11 @@ class ProfileDatabase{
     const players=[...new Set(participants.map(client=>client.playerId))],draw=winnerIds.length===0;
     const result={id:room.id,reason,startedAt:room.startedAt,endedAt:Date.now(),players,
       winnerIds,scores:Object.fromEntries(room.kills),draw,mode:room.mode,
-      teams:Object.fromEntries(participants.map(c=>[c.playerId,c.team])),teamScores:teamScores(room),roundWins:room.roundWins||null};
+      teams:Object.fromEntries(participants.map(c=>[c.playerId,c.team])),teamScores:teamScores(room),roundWins:room.roundWins||null,
+      names:Object.fromEntries(players.map(id=>[id,this.data.profiles[id]?.name||'Player'])),
+      deaths:Object.fromEntries(room.deaths),points:Object.fromEntries(room.points),
+      roomName:room.name,map:room.map,killLimit:room.mode==='tdm'?null:room.killLimit,
+      roundWinLimit:room.mode==='tdm'?room.roundWinLimit:null,timeLimitSeconds:room.timeLimitSeconds};
     for(const playerId of players){
       const profile=this.data.profiles[playerId];
       const counter=draw?'draws':winnerIds.includes(playerId)?'wins':'losses';
@@ -158,11 +162,11 @@ export async function startKarmaServer({
   }
   function activeClients(room){return room.clients.filter(c=>!c.closed);}
   function lateJoinEnabled(room){return room.mode==='dm'&&room.build==='karma290-central5';}
-  function remainingSeconds(room){return room.started?Math.max(0,Math.ceil((room.startedAt+matchSeconds*1000-Date.now())/1000)):matchSeconds;}
+  function remainingSeconds(room){return room.started?Math.max(0,Math.ceil((room.startedAt+room.timeLimitSeconds*1000-Date.now())/1000)):room.timeLimitSeconds;}
   function roomInfo(room){return {roomId:room.id,code:room.code,roomName:room.name,maxPlayers:room.maxPlayers,mode:room.mode,map:room.map,mapName:multiplayerMaps.find(m=>m.mapIndex===room.map)?.name,
     manualStart:room.manualStart===true,hostId:room.clients[0]?.playerId,gameFee:exchange?100:0,exchangeUrl:exchange?.publicUrl,
-    killLimit:room.mode==='tdm'?null:room.killLimit,timeLimitSeconds:matchSeconds,
-    roundWinLimit:room.mode==='tdm'?roundWinLimit:null,roundSeconds:room.mode==='tdm'?roundSeconds:null,
+    killLimit:room.mode==='tdm'?null:room.killLimit,timeLimitSeconds:room.timeLimitSeconds,
+    roundWinLimit:room.mode==='tdm'?room.roundWinLimit:null,roundSeconds:room.mode==='tdm'?roundSeconds:null,
     respawnMs:room.mode==='dm'?dmRespawnMs:room.mode==='tdm'?null:4500,
     lateJoinEnabled:lateJoinEnabled(room),remainingSeconds:remainingSeconds(room)};}
   function roomDirectory(account){
@@ -174,7 +178,8 @@ export async function startKarmaServer({
         mapName:multiplayerMaps.find(m=>m.mapIndex===room.map)?.name,mode:room.mode,
         players:players.length,maxPlayers:room.maxPlayers,
         state:room.starting?'starting':full?'full':room.started?'playing':'waiting',joinable,
-        build:room.build,gameFee:exchange?100:0,remainingSeconds:remainingSeconds(room)};
+        build:room.build,gameFee:exchange?100:0,remainingSeconds:remainingSeconds(room),
+        killLimit:room.mode==='tdm'?null:room.killLimit,roundWinLimit:room.mode==='tdm'?room.roundWinLimit:null,timeLimitSeconds:room.timeLimitSeconds};
     }).sort((a,b)=>Number(b.joinable)-Number(a.joinable)||a.code.localeCompare(b.code));
   }
   function peerInfo(client){return {role:client.room.clients[0]===client?'host':'join',slot:client.slot,
@@ -187,7 +192,7 @@ export async function startKarmaServer({
       profile:publicProfile(db.data.profiles[client.playerId],client.character,client.account)});
   }
   function scoreSnapshot(room){return {type:'match-snapshot',version:2,remainingSeconds:remainingSeconds(room),
-    players:activeClients(room).map(c=>({playerId:c.playerId,kills:room.kills.get(c.playerId)||0,deaths:room.deaths.get(c.playerId)||0}))};}
+    players:activeClients(room).map(c=>({playerId:c.playerId,kills:room.kills.get(c.playerId)||0,deaths:room.deaths.get(c.playerId)||0,points:room.points.get(c.playerId)||0}))};}
   function friendly(a,b){return a!==b&&a.room.mode==='tdm'&&a.team===b.team;}
   function error(session,code,message){
     write(session,{type:'error',version:2,code,message});
@@ -228,7 +233,7 @@ export async function startKarmaServer({
     room.phase='intermission';clearTimeout(room.roundTimer);
     if(winner!==null)room.roundWins[winner]++;
     broadcast(room,{type:'round-ended',version:2,round:room.round,winnerTeam:winner,roundWins:[...room.roundWins],reason,nextRoundInMs:roundIntermissionMs});
-    if(winner!==null&&room.roundWins[winner]>=roundWinLimit){
+    if(winner!==null&&room.roundWins[winner]>=room.roundWinLimit){
       finishRoom(room,'round-limit',room.clients.filter(c=>!c.closed&&c.team===winner).map(c=>c.playerId));return;
     }
     room.roundTimer=setTimeout(()=>{
@@ -310,13 +315,14 @@ export async function startKarmaServer({
     for(const c of room.clients){c.alive=true;c.roundLife=1;c.deadAt=0;room.participants.set(c.playerId,{playerId:c.playerId,team:c.team,lastLife:1});room.paid.add(c.playerId);}
     room.kills=new Map(room.clients.map(client=>[client.playerId,0]));
     room.deaths=new Map(room.clients.map(client=>[client.playerId,0]));
+    room.points=new Map(room.clients.map(client=>[client.playerId,0]));
     const playerIds=room.clients.map(client=>client.playerId);
     room.combat=new CombatLedger({matchId:room.id,playerIds});
     room.drops=new DropLedger({matchId:room.id,playerIds,maxDistance:350});
     room.dropOrder=[];room.evidence=new Map();
     for(const client of room.clients)ready(client);
     if(room.mode==='tdm')armRoundTimer(room);
-    room.matchTimer=setTimeout(()=>finishRoom(room,'time-limit'),matchSeconds*1000);room.matchTimer.unref();
+    room.matchTimer=setTimeout(()=>finishRoom(room,'time-limit'),room.timeLimitSeconds*1000);room.matchTimer.unref();
     log('room-started',{roomCount:rooms.size,players:room.clients.length,capacity:room.maxPlayers});
     if(payment)exchange.confirm(payment.matchId);
   }
@@ -348,7 +354,10 @@ export async function startKarmaServer({
       if(!['duel','dm','tdm'].includes(mode)||(mode==='duel'&&capacity!==2)||(mode==='tdm'&&capacity%2!==0))
         reject('BAD_MODE','Choose duel (2), deathmatch (2–8), or even-sized team deathmatch');
       room={id:crypto.randomUUID(),code,name:roomDisplayName(message.roomName,account.name+'의 방'),maxPlayers:capacity,mode,map:offered.config.map,build:offered.config.settings.build,lobbyRevision:0,
-        manualStart:message.manualStart===true,killLimit:mode==='tdm'?matchKills*4:matchKills,clients:[],
+        manualStart:message.manualStart===true,
+        killLimit:message.killLimit===undefined?Math.min(30,matchKills):integer(message.killLimit,'kill limit (1–30)',1,30),
+        roundWinLimit:message.roundWinLimit===undefined?Math.min(10,roundWinLimit):integer(message.roundWinLimit,'round win limit (1–10)',1,10),
+        timeLimitSeconds:message.timeLimitSeconds===undefined?Math.min(1800,matchSeconds):integer(message.timeLimitSeconds,'match seconds (60–1800)',60,1800),clients:[],
         pending:new Map(),participants:new Map(),paid:new Set(),started:false,ending:false};
       rooms.set(code,room);
     }else{
@@ -365,7 +374,9 @@ export async function startKarmaServer({
       if(!hostMap?.publicReady&&account.role!=='admin')reject('MAP_NOT_RELEASED','이 전장은 아직 관리자 검증 중입니다.');
       offered.config.map=room.map;
     }
-    if(room.started&&!room.participants.has(playerId)&&room.participants.size>=512)reject('MATCH_HISTORY_FULL','이 대전의 누적 참가자 한도에 도달했습니다. 다음 대전을 이용하세요.');
+    // Rich results include names and four ID-keyed score tables. Bound history
+    // so the final UTF-8 message fits the clients' 64 KiB frame limit.
+    if(room.started&&!room.participants.has(playerId)&&room.participants.size>=128)reject('MATCH_HISTORY_FULL','이 대전의 누적 참가자 한도에 도달했습니다. 다음 대전을 이용하세요.');
     const occupied=new Set([...activeClients(room).map(c=>c.slot),...room.pending.values()].map(value=>typeof value==='number'?value:value.slot));
     let slot=0;while(occupied.has(slot))slot++;
     room.pending.set(playerId,{session,slot});pendingPlayers.set(playerId,session);
@@ -403,6 +414,7 @@ export async function startKarmaServer({
         room.participants.set(playerId,{playerId,team:session.team,lastLife:initialLife});room.paid.add(playerId);
         if(!room.kills.has(playerId))room.kills.set(playerId,0);
         if(!room.deaths.has(playerId))room.deaths.set(playerId,0);
+        if(!room.points.has(playerId))room.points.set(playerId,0);
         broadcast(room,{type:'peer-joined',version:2,peer:peerInfo(session)},session);
         ready(session,true);broadcast(room,scoreSnapshot(room));
         for(const other of activeClients(room))if(other!==session&&other.latestPose)
@@ -487,19 +499,20 @@ export async function startKarmaServer({
       if(living.size<2)endRound(room,'team-eliminated');
     });
     broadcast(room,{type:'death-confirmed',version:2,receipt:result.receipt});
+    const previousXp=new Map([result.receipt.victimId,result.receipt.killerId].map(id=>[id,db.data.profiles[id]?.xp||0]));
     const changed=db.award(result.receipt);
     for(const profile of changed){
+      room.points.set(profile.playerId,(room.points.get(profile.playerId)||0)+profile.xp-previousXp.get(profile.playerId));
       const client=online.get(profile.playerId);
       if(client)write(client,{type:'profile',version:2,profile:publicProfile(profile,client.character,client.account)});
     }
     if(result.receipt.verified){
       const killer=result.receipt.killerId;
       room.kills.set(killer,(room.kills.get(killer)||0)+1);
-      const killerClient=room.clients.find(c=>c.playerId===killer);
-      const reached=room.mode==='tdm'?teamScores(room)[killerClient.team]>=room.killLimit:room.kills.get(killer)>=room.killLimit;
-      if(reached&&room.mode!=='tdm')queueMicrotask(()=>finishRoom(room,'kill-limit',room.mode==='tdm'?
-        room.clients.filter(c=>!c.closed&&c.team===killerClient.team).map(c=>c.playerId):[killer]));
+      const reached=room.kills.get(killer)>=room.killLimit;
+      if(reached&&room.mode!=='tdm')queueMicrotask(()=>finishRoom(room,'kill-limit',[killer]));
     }
+    broadcast(room,scoreSnapshot(room));
     const dropped=message.drop;
     if(!plainObject(dropped)||!session.inventory.includes(dropped.selectedWeapon)||
        weaponById.get(dropped.selectedWeapon)?.isWeapon!==true)return;
@@ -554,6 +567,30 @@ export async function startKarmaServer({
     write(session,{type:'drop-grant',version:2,grant,replay:result.duplicate});
     if(!result.duplicate)broadcast(session.room,{type:'drop',version:2,drop:grant.drop});
   }
+  function chat(session,message){
+    try{
+      const room=session.room;
+      if(!room||room.ending)reject('CHAT_CLOSED','이 방의 채팅이 종료되었습니다.');
+      const requestId=identifier(message.requestId,'chat request ID');
+      if(!['all','team'].includes(message.channel)||message.channel==='team'&&room.mode!=='tdm')reject('BAD_CHAT_CHANNEL','팀 채팅은 팀전에서만 사용할 수 있습니다.');
+      if(typeof message.text!=='string'||message.text.length>200)reject('BAD_CHAT_TEXT','채팅은 1~200자로 입력해 주세요.');
+      const text=message.text.replace(/[\u0000-\u001f\u007f]/g,' ').trim();
+      if(!text)reject('BAD_CHAT_TEXT','채팅 내용을 입력해 주세요.');
+      session.chatSeen??=new Map();
+      const previous=session.chatSeen.get(requestId);
+      if(previous){
+        if(previous.text!==text||previous.channel!==message.channel)reject('CHAT_REPLAY','같은 채팅 요청의 내용이 다릅니다.');
+        write(session,previous);return;
+      }
+      const now=Date.now();session.chatTimes=(session.chatTimes||[]).filter(t=>now-t<5000);
+      if(session.chatTimes.length>=5)reject('CHAT_RATE_LIMIT','채팅을 너무 빠르게 보냈습니다. 잠시 후 다시 보내세요.');
+      session.chatTimes.push(now);
+      const item={type:'chat',version:2,id:crypto.randomUUID(),requestId,roomId:room.id,
+        senderId:session.playerId,name:session.account.name,team:session.team,channel:message.channel,text,time:now};
+      session.chatSeen.set(requestId,item);if(session.chatSeen.size>100)session.chatSeen.delete(session.chatSeen.keys().next().value);
+      for(const recipient of activeClients(room))if(item.channel==='all'||recipient.team===session.team)write(recipient,item);
+    }catch(problem){write(session,{type:'chat-denied',version:2,requestId:typeof message.requestId==='string'?message.requestId.slice(0,96):'',code:problem.code||'BAD_CHAT',message:problem.message});}
+  }
   function receive(session,message){
     acceptedMessages++;
     if(!plainObject(message))reject('BAD_MESSAGE','Expected an object');
@@ -566,6 +603,7 @@ export async function startKarmaServer({
     }
     if(message.type==='ping'){write(session,{type:'pong',version:2});return;}
     if(message.type==='leave'){session.socket.end();return;}
+    if(message.type==='chat-send'){chat(session,message);return;}
     if(message.type==='lobby-update'){lobbyUpdate(session,message);return;}
     if(message.type==='start-match'){
       const room=session.room;

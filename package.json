@@ -1,6 +1,6 @@
 {
   "name": "karma-lan-server",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "test": "node client-release.test.mjs && node progression.test.mjs && node auth.test.mjs && node server.test.mjs && node multiplayer.test.mjs && node dashboard.test.mjs && node lobby.test.mjs && node maps.test.mjs && node billing.test.mjs && node late-join.test.mjs && node exchange-client.test.mjs"
+    "test": "node client-release.test.mjs && node progression.test.mjs && node auth.test.mjs && node server.test.mjs && node multiplayer.test.mjs && node dashboard.test.mjs && node lobby.test.mjs && node maps.test.mjs && node billing.test.mjs && node late-join.test.mjs && node exchange-client.test.mjs && node room-limits.test.mjs && node chat.test.mjs"
   },
   "dependencies": {
     "nodemailer": "10.1.7"
