@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import {scenarioForWeapon} from './attack-scenarios.mjs';
 
 // Stable weapon IDs, independent of the character holding a looted weapon.
 export const TECHNIQUES = Object.freeze([
@@ -18,7 +19,7 @@ export const PROMOTIONS = Object.freeze([
   {minXp:6000,techniques:7,each:5,mobile:30,heavy:12,special:5},
   {minXp:10000,techniques:10,each:8,mobile:50,heavy:25,special:12},
 ].map(Object.freeze));
-export const FAMILY_NAMES = Object.freeze({precision:'정밀',mobile:'기동',heavy:'중화기',special:'특수·보조'});
+export const FAMILY_NAMES = Object.freeze({precision:'사회공학 · 저격',mobile:'네트워크 · 돌격',heavy:'시스템 · 중화기',special:'특수·보조'});
 export const techniqueForWeapon = weapon => TECHNIQUES.find(t=>t.weaponId===weapon);
 const count = n => {if(!Number.isSafeInteger(n)||n<0)throw Error('Invalid mastery counter');return n;};
 export function newMastery(legacyXp=0){
@@ -36,17 +37,26 @@ export function validateMastery(value){
       if(field==='qualified'&&n>(value.successes[key]??0))throw Error('Invalid qualified count');
     }
   }
+  if(value.scenarios!==undefined){
+    if(!value.scenarios||typeof value.scenarios!=='object'||Array.isArray(value.scenarios))throw Error('Invalid scenario counters');
+    for(const [key,v] of Object.entries(value.scenarios)){
+      if(!/^\d+:\d+$/.test(key))throw Error('Invalid scenario ID');
+      const [map,weapon]=key.split(':').map(Number);if(!scenarioForWeapon(map,weapon))throw Error('Unknown scenario');
+      count(v.successes);count(v.qualified);if(v.qualified>v.successes)throw Error('Invalid scenario count');
+    }
+  }
   return value;
 }
 export function recordMastery(profile,receipt){
   const m=validateMastery(profile.mastery??=newMastery(profile.xp));
   if(!receipt.verified||receipt.killerId!==profile.playerId||receipt.victimId===profile.playerId||!techniqueForWeapon(receipt.weapon))return;
-  const weapon=String(receipt.weapon);
+  const weapon=String(receipt.weapon),scenario=scenarioForWeapon(receipt.map,receipt.weapon);
+  let scenarioCount;if(scenario){m.scenarios??={};scenarioCount=m.scenarios[scenario.id]??={successes:0,qualified:0};scenarioCount.successes++;}
   m.successes[weapon]=count((m.successes[weapon]??0)+1);
   const key=crypto.createHash('sha256').update(JSON.stringify([receipt.matchId,receipt.victimId,receipt.weapon])).digest('hex');
   if((m.matchCounts[key]??0)<3){
     m.matchCounts[key]=(m.matchCounts[key]??0)+1;
-    m.qualified[weapon]=count((m.qualified[weapon]??0)+1);
+    m.qualified[weapon]=count((m.qualified[weapon]??0)+1);if(scenarioCount)scenarioCount.qualified++;
   }
 }
 export function masteryProgress(profile){
@@ -64,7 +74,7 @@ export function masteryProgress(profile){
     return {...rule,completedTechniques,passed};
   });
   const eligible=requirements.filter(r=>profile.xp>=r.minXp&&(r.passed||r.minXp<=m.legacyRankXp)).at(-1);
-  return {version:1,rankXp:eligible.minXp,legacyRankXp:m.legacyRankXp,families,techniques,
+  return {version:1,rankXp:eligible.minXp,legacyRankXp:m.legacyRankXp,families,techniques,scenarios:Object.entries(m.scenarios||{}).map(([id,counts])=>({...scenarioForWeapon(...id.split(':').map(Number)),...counts})),
     next:requirements.find(r=>r.minXp>eligible.minXp)??null,requirements};
 }
 export const rankXpForProfile = profile => masteryProgress(profile).rankXp;

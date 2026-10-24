@@ -92,9 +92,11 @@
         <div id="loadout-list" class="loadout-grid"></div>
         <div class="help-note"><span aria-hidden="true">ⓘ</span><p>시작 장비는 게임 실행기에서 선택합니다. 캐릭터별 허용 장비와 계급별 점수 한도는 서버가 확인하며, 전장에서 획득한 무기는 사망 시 초기 장비로 돌아갑니다.</p></div>
       </section>
-      <section id="leaderboard-view" class="view" hidden><article class="panel"><div class="panel-heading"><h2>전체 순위</h2><span class="tiny-label">서버에 저장된 전투 기록</span></div><div id="leaderboard-table" class="table-wrap"></div></article></section>
+      <section id="leaderboard-view" class="view" hidden><article class="panel"><div class="panel-heading"><h2>전체 순위</h2><span class="tiny-label">서버에 저장된 전투 기록</span></div><div id="leaderboard-table" class="table-wrap"></div></article><article class="panel"><h2>공격 카테고리별 순위</h2><p>누적 승급 인정 횟수 순 · 같은 횟수는 사용 무기 다양성 순입니다. 전체 성공 횟수에는 반복 상대 제한으로 승급에서 제외된 기록도 포함됩니다.</p><div id="category-rankings"></div></article></section>
       <section id="activity-view" class="view" hidden><article class="panel"><div class="panel-heading"><h2>활동 기록</h2><span class="tiny-label">최근 기록부터 표시</span></div><div id="activity-full" class="activity-list full"></div></article></section>
       <section id="admin-view" class="view" hidden>
+        <article class="panel"><h2>맵 공개 설정</h2><p>새 맵은 관리자 미리보기로 시작합니다. 원본 시작 위치를 사용하지만 실전 확인이 필요한 맵은 먼저 시험해 주세요. 공개하면 일반 사용자가 방을 만들고 참가할 수 있습니다. 닫아도 진행 중인 경기는 유지됩니다. 클라이언트의 ‘전적 새로고침’으로 공개 목록을 갱신합니다.</p><div id="map-access-table" class="table-wrap"></div></article>
+        <article class="panel"><h2>실적 작업 탐지 · 게임 이용 중지</h2><p>자동 탐지는 확정 판정이 아닙니다. 반복 처치·피해자 비활동·무기/경기 변경이 겹친 계정의 게임 참가를 일시 중지합니다. 근거를 확인한 뒤 해제하세요. 로그인과 기존 기록은 유지됩니다.</p><div id="fairplay-cases"></div></article>
         <p class="help-note">승급 기준은 종합 현황의 ‘전공 실습 · 승급 안내’에서 확인합니다. 아래 사용자별 기법 실적은 서버 확정 기록이며, XP 수정과 별도로 유지됩니다.</p>
         <p id="approval-summary" class="help-note" role="status">신규 가입자는 관리자 승인 후 이용할 수 있습니다.</p>
         <article class="panel"><div class="panel-heading"><div><div class="eyebrow">PERSONNEL MANAGEMENT</div><h2>사용자 관리</h2></div><label class="search-field"><span class="sr-only">사용자 검색</span><input id="user-search" type="search" placeholder="닉네임 · 이메일 검색" autocomplete="off"></label></div><div id="admin-users" class="table-wrap"></div></article>

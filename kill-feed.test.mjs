@@ -44,4 +44,4 @@ try{
  assert.equal(me.profile.mastery.techniques.find(t=>t.weaponId===9).qualified,3);
  assert(!outside.messages.some(m=>m.type==='death-confirmed'));
  console.log('PASS kill feed: verified name/weapon/death, head/body/pellet/projectile classification, forged headshot ignored, self/unverified labels, one event per life, both recipients, room isolation.');
-}finally{for(const c of clients)c.socket.destroy();await server.close();for(const file of ['auth.json','profiles.json']){const p=path.join(temp,file);if(fs.existsSync(p))fs.unlinkSync(p);}fs.rmdirSync(temp);}
+}finally{for(const c of clients)c.socket.destroy();await server.close();for(const file of ['auth.json','profiles.json','fairplay.json']){const p=path.join(temp,file);if(fs.existsSync(p))fs.unlinkSync(p);}fs.rmdirSync(temp);}

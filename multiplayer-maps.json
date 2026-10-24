@@ -155,163 +155,495 @@
           ],
           "yawDegrees": 90
         }
-      ]
+      ],
+      "releaseOrder": 0,
+      "sniperMap": false
     },
     {
-      "id": "NMP_Factory",
-      "name": "Factory",
-      "mapIndex": 7,
+      "id": "NMP_Drain",
+      "name": "Drain",
+      "mapIndex": 1,
       "age": 0,
       "nativeMode": 1,
-      "publicReady": true,
+      "publicReady": false,
       "dmSpawns": [
         {
-          "sectorName": "3",
+          "sectorName": "18",
           "position": [
-            1827,
-            600,
-            -3659
+            -11658.0,
+            0.0,
+            -3398.0
           ],
-          "yawDegrees": 90
+          "yawDegrees": 0.0
         },
         {
-          "sectorName": "9",
+          "sectorName": "21",
           "position": [
-            6372,
-            300,
-            -985
+            -1249.0,
+            0.0,
+            -6301.0
           ],
-          "yawDegrees": 90
+          "yawDegrees": 180.0
         },
         {
-          "sectorName": "6",
+          "sectorName": "16",
           "position": [
-            8206,
-            600,
-            -5573
+            -5172.0,
+            0.0,
+            2544.0
           ],
-          "yawDegrees": 180
+          "yawDegrees": 0.0
         },
         {
-          "sectorName": "7",
+          "sectorName": "14",
           "position": [
-            10181,
-            -149.999996,
-            -6954
+            -1178.0,
+            360.0,
+            5874.0
           ],
-          "yawDegrees": 180
+          "yawDegrees": 90.0
         },
         {
-          "sectorName": "2",
+          "sectorName": "11",
           "position": [
-            -660,
-            600,
-            -12150
+            -807.0,
+            -1000.0,
+            337.0
           ],
-          "yawDegrees": 270
+          "yawDegrees": 0.0
         },
         {
-          "sectorName": "5",
+          "sectorName": "12",
           "position": [
-            -149,
-            1600,
-            -10071
+            822.0,
+            -1000.0,
+            -5210.0
           ],
-          "yawDegrees": 0
-        },
-        {
-          "sectorName": "6",
-          "position": [
-            7758,
-            1600,
-            -9816
-          ],
-          "yawDegrees": 270
+          "yawDegrees": 270.0
         },
         {
           "sectorName": "5",
           "position": [
-            1619,
-            600,
-            -13959
+            7762.0,
+            0.0,
+            -5883.0
           ],
-          "yawDegrees": 0
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "8",
+          "position": [
+            4474.0,
+            0.0,
+            1827.0
+          ],
+          "yawDegrees": 270.0
         }
       ],
       "teamSpawns": [
         {
-          "sectorName": "5",
+          "sectorName": "1",
           "position": [
-            4340,
-            300,
-            -12778
+            11994.0,
+            0.0,
+            3766.0
           ],
-          "yawDegrees": 270
+          "yawDegrees": 180.0
         },
         {
-          "sectorName": "5",
+          "sectorName": "1",
           "position": [
-            3405,
-            300,
-            -12778
+            10034.0,
+            0.0,
+            3836.0
           ],
-          "yawDegrees": 270
+          "yawDegrees": 90.0
         },
         {
-          "sectorName": "5",
+          "sectorName": "1",
           "position": [
-            3381,
-            439.776282,
-            -13901
+            11968.0,
+            0.0,
+            2538.0
           ],
-          "yawDegrees": 270
+          "yawDegrees": 180.0
         },
         {
-          "sectorName": "5",
+          "sectorName": "1",
           "position": [
-            4507,
-            426.277109,
-            -13812
+            9473.0,
+            0.0,
+            2806.0
           ],
-          "yawDegrees": 270
+          "yawDegrees": 90.0
         },
         {
-          "sectorName": "9",
+          "sectorName": "18",
           "position": [
-            5910,
-            300,
-            -2101
+            -11726.0,
+            0.0,
+            -3308.0
           ],
-          "yawDegrees": 90
+          "yawDegrees": 0.0
         },
         {
-          "sectorName": "9",
+          "sectorName": "18",
           "position": [
-            5873,
-            398.079367,
-            -291
+            -9302.0,
+            0.0,
+            -1762.0
           ],
-          "yawDegrees": 90
+          "yawDegrees": 270.0
         },
         {
-          "sectorName": "9",
+          "sectorName": "18",
           "position": [
-            6837,
-            400.978233,
-            -272
+            -11875.0,
+            0.0,
+            -1712.0
           ],
-          "yawDegrees": 90
+          "yawDegrees": 0.0
         },
         {
-          "sectorName": "9",
+          "sectorName": "18",
           "position": [
-            6860,
-            300,
-            -1395
+            -10265.0,
+            0.0,
+            -3391.0
           ],
-          "yawDegrees": 90
+          "yawDegrees": 270.0
         }
-      ]
+      ],
+      "maxPlayers": 8,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 0,
+      "sniperMap": false
+    },
+    {
+      "id": "NMP_pastoraltown",
+      "name": "Pastoraltown",
+      "mapIndex": 2,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": false,
+      "dmSpawns": [
+        {
+          "sectorName": "9",
+          "position": [
+            7950.0,
+            0.0,
+            813.0
+          ],
+          "yawDegrees": 128.0
+        },
+        {
+          "sectorName": "8",
+          "position": [
+            4898.0,
+            332.0,
+            3343.0
+          ],
+          "yawDegrees": 125.0
+        },
+        {
+          "sectorName": "11",
+          "position": [
+            -1830.0,
+            0.0,
+            4603.0
+          ],
+          "yawDegrees": 355.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -4194.0,
+            639.0,
+            3192.0
+          ],
+          "yawDegrees": 215.0
+        },
+        {
+          "sectorName": "14",
+          "position": [
+            -1641.0,
+            40.0,
+            -4053.0
+          ],
+          "yawDegrees": 304.0
+        },
+        {
+          "sectorName": "13",
+          "position": [
+            -1192.0,
+            720.0,
+            -1024.0
+          ],
+          "yawDegrees": 232.0
+        },
+        {
+          "sectorName": "16",
+          "position": [
+            2119.0,
+            0.0,
+            -1279.0
+          ],
+          "yawDegrees": 311.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            3666.0,
+            0.0,
+            -6918.0
+          ],
+          "yawDegrees": 187.0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "10",
+          "position": [
+            8584.0,
+            0.0,
+            -4709.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "10",
+          "position": [
+            8575.0,
+            0.0,
+            -4192.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "10",
+          "position": [
+            8563.0,
+            0.0,
+            -3480.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "10",
+          "position": [
+            8471.0,
+            0.0,
+            -2923.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "12",
+          "position": [
+            -6670.0,
+            40.0,
+            6312.0
+          ],
+          "yawDegrees": 8.0
+        },
+        {
+          "sectorName": "12",
+          "position": [
+            -6849.0,
+            40.0,
+            6036.0
+          ],
+          "yawDegrees": 8.0
+        },
+        {
+          "sectorName": "12",
+          "position": [
+            -6725.0,
+            40.0,
+            5396.0
+          ],
+          "yawDegrees": 3.0
+        },
+        {
+          "sectorName": "12",
+          "position": [
+            -6125.0,
+            40.0,
+            5362.0
+          ],
+          "yawDegrees": 3.0
+        }
+      ],
+      "maxPlayers": 8,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 0,
+      "sniperMap": false
+    },
+    {
+      "id": "NMP_bunker",
+      "name": "Bunker",
+      "mapIndex": 3,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": false,
+      "dmSpawns": [
+        {
+          "sectorName": "19",
+          "position": [
+            -876.0,
+            -400.0,
+            -12119.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "19",
+          "position": [
+            -5239.0,
+            -400.0,
+            -7369.0
+          ],
+          "yawDegrees": 292.0
+        },
+        {
+          "sectorName": "19",
+          "position": [
+            -9248.0,
+            -400.0,
+            -4217.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "19",
+          "position": [
+            3932.0,
+            -400.0,
+            -10711.0
+          ],
+          "yawDegrees": 247.0
+        },
+        {
+          "sectorName": "19",
+          "position": [
+            5915.0,
+            -400.0,
+            -4446.0
+          ],
+          "yawDegrees": 255.0
+        },
+        {
+          "sectorName": "19",
+          "position": [
+            5498.0,
+            398.0,
+            6663.0
+          ],
+          "yawDegrees": 78.0
+        },
+        {
+          "sectorName": "2",
+          "position": [
+            518.0,
+            1039.0,
+            7479.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            -1453.0,
+            1039.0,
+            7426.0
+          ],
+          "yawDegrees": 90.0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "20",
+          "position": [
+            8337.0,
+            -399.0,
+            -10386.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "20",
+          "position": [
+            7604.0,
+            -399.0,
+            -10400.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "19",
+          "position": [
+            6949.0,
+            -400.0,
+            -10180.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "19",
+          "position": [
+            6416.0,
+            -400.0,
+            -10476.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "8",
+          "position": [
+            2776.0,
+            1039.0,
+            9972.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "8",
+          "position": [
+            1547.0,
+            1039.0,
+            9234.0
+          ],
+          "yawDegrees": 266.0
+        },
+        {
+          "sectorName": "8",
+          "position": [
+            473.0,
+            1039.0,
+            9256.0
+          ],
+          "yawDegrees": 276.0
+        },
+        {
+          "sectorName": "8",
+          "position": [
+            1281.0,
+            1039.0,
+            9995.0
+          ],
+          "yawDegrees": 180.0
+        }
+      ],
+      "maxPlayers": 8,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 0,
+      "sniperMap": false
     },
     {
       "id": "NMP_rescue",
@@ -467,7 +799,2399 @@
           ],
           "yawDegrees": 12
         }
-      ]
+      ],
+      "releaseOrder": 0,
+      "sniperMap": false
+    },
+    {
+      "id": "NMP_factory2",
+      "name": "Factory 2",
+      "mapIndex": 5,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": false,
+      "dmSpawns": [
+        {
+          "sectorName": "2",
+          "position": [
+            14473.0,
+            137.0,
+            7540.0
+          ],
+          "yawDegrees": 43.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            13295.0,
+            -989.0,
+            6842.0
+          ],
+          "yawDegrees": 82.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            12681.0,
+            -989.0,
+            -8026.0
+          ],
+          "yawDegrees": 263.0
+        },
+        {
+          "sectorName": "8",
+          "position": [
+            11600.0,
+            137.0,
+            -8733.0
+          ],
+          "yawDegrees": 235.0
+        },
+        {
+          "sectorName": "9",
+          "position": [
+            7903.0,
+            -989.0,
+            -961.0
+          ],
+          "yawDegrees": 345.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            17493.0,
+            -989.0,
+            285.0
+          ],
+          "yawDegrees": 173.0
+        },
+        {
+          "sectorName": "9",
+          "position": [
+            17542.0,
+            -1766.0,
+            -1141.0
+          ],
+          "yawDegrees": 135.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            8421.0,
+            -1766.0,
+            120.0
+          ],
+          "yawDegrees": 310.0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "7",
+          "position": [
+            11789.0,
+            -989.0,
+            -7683.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            10979.0,
+            -989.0,
+            -7713.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            10414.0,
+            -989.0,
+            -7587.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            11093.0,
+            -989.0,
+            -7120.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            15628.0,
+            -989.0,
+            6525.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            15063.0,
+            -989.0,
+            6540.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            14577.0,
+            -989.0,
+            6553.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            13985.0,
+            -989.0,
+            6568.0
+          ],
+          "yawDegrees": 90.0
+        }
+      ],
+      "maxPlayers": 8,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 0,
+      "sniperMap": false
+    },
+    {
+      "id": "NMP_alexander",
+      "name": "Alexander",
+      "mapIndex": 6,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": false,
+      "dmSpawns": [
+        {
+          "sectorName": "5",
+          "position": [
+            -1249.0,
+            1000.0,
+            -14034.0
+          ],
+          "yawDegrees": 269.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            -596.0,
+            1000.0,
+            -13536.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            9152.0,
+            1000.0,
+            -17069.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "4",
+          "position": [
+            2157.0,
+            1000.0,
+            -13320.0
+          ],
+          "yawDegrees": 257.0
+        },
+        {
+          "sectorName": "9",
+          "position": [
+            -6436.0,
+            1000.0,
+            -13886.0
+          ],
+          "yawDegrees": 271.0
+        },
+        {
+          "sectorName": "8",
+          "position": [
+            -11208.0,
+            1000.0,
+            -12588.0
+          ],
+          "yawDegrees": 306.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            -9308.0,
+            1000.0,
+            -17774.0
+          ],
+          "yawDegrees": 352.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            -2607.0,
+            1000.0,
+            -17186.0
+          ],
+          "yawDegrees": 330.0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "1",
+          "position": [
+            9355.0,
+            1000.0,
+            -15156.0
+          ],
+          "yawDegrees": 183.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            9312.0,
+            1000.0,
+            -15885.0
+          ],
+          "yawDegrees": 183.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            9348.0,
+            1000.0,
+            -16498.0
+          ],
+          "yawDegrees": 183.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            9308.0,
+            1000.0,
+            -17185.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "8",
+          "position": [
+            -11350.0,
+            1000.0,
+            -10267.0
+          ],
+          "yawDegrees": 357.0
+        },
+        {
+          "sectorName": "8",
+          "position": [
+            -11344.0,
+            1000.0,
+            -10870.0
+          ],
+          "yawDegrees": 357.0
+        },
+        {
+          "sectorName": "8",
+          "position": [
+            -11312.0,
+            1000.0,
+            -11533.0
+          ],
+          "yawDegrees": 357.0
+        },
+        {
+          "sectorName": "8",
+          "position": [
+            -11349.0,
+            1000.0,
+            -12224.0
+          ],
+          "yawDegrees": 311.0
+        }
+      ],
+      "maxPlayers": 8,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 0,
+      "sniperMap": false
+    },
+    {
+      "id": "NMP_Factory",
+      "name": "Factory",
+      "mapIndex": 7,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": true,
+      "dmSpawns": [
+        {
+          "sectorName": "3",
+          "position": [
+            1827,
+            600,
+            -3659
+          ],
+          "yawDegrees": 90
+        },
+        {
+          "sectorName": "9",
+          "position": [
+            6372,
+            300,
+            -985
+          ],
+          "yawDegrees": 90
+        },
+        {
+          "sectorName": "6",
+          "position": [
+            8206,
+            600,
+            -5573
+          ],
+          "yawDegrees": 180
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            10181,
+            -149.999996,
+            -6954
+          ],
+          "yawDegrees": 180
+        },
+        {
+          "sectorName": "2",
+          "position": [
+            -660,
+            600,
+            -12150
+          ],
+          "yawDegrees": 270
+        },
+        {
+          "sectorName": "5",
+          "position": [
+            -149,
+            1600,
+            -10071
+          ],
+          "yawDegrees": 0
+        },
+        {
+          "sectorName": "6",
+          "position": [
+            7758,
+            1600,
+            -9816
+          ],
+          "yawDegrees": 270
+        },
+        {
+          "sectorName": "5",
+          "position": [
+            1619,
+            600,
+            -13959
+          ],
+          "yawDegrees": 0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "5",
+          "position": [
+            4340,
+            300,
+            -12778
+          ],
+          "yawDegrees": 270
+        },
+        {
+          "sectorName": "5",
+          "position": [
+            3405,
+            300,
+            -12778
+          ],
+          "yawDegrees": 270
+        },
+        {
+          "sectorName": "5",
+          "position": [
+            3381,
+            439.776282,
+            -13901
+          ],
+          "yawDegrees": 270
+        },
+        {
+          "sectorName": "5",
+          "position": [
+            4507,
+            426.277109,
+            -13812
+          ],
+          "yawDegrees": 270
+        },
+        {
+          "sectorName": "9",
+          "position": [
+            5910,
+            300,
+            -2101
+          ],
+          "yawDegrees": 90
+        },
+        {
+          "sectorName": "9",
+          "position": [
+            5873,
+            398.079367,
+            -291
+          ],
+          "yawDegrees": 90
+        },
+        {
+          "sectorName": "9",
+          "position": [
+            6837,
+            400.978233,
+            -272
+          ],
+          "yawDegrees": 90
+        },
+        {
+          "sectorName": "9",
+          "position": [
+            6860,
+            300,
+            -1395
+          ],
+          "yawDegrees": 90
+        }
+      ],
+      "releaseOrder": 0,
+      "sniperMap": false
+    },
+    {
+      "id": "NMP_Castle",
+      "name": "Castle",
+      "mapIndex": 8,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": false,
+      "dmSpawns": [
+        {
+          "sectorName": "1",
+          "position": [
+            -3156.0,
+            357.0,
+            -8541.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "2",
+          "position": [
+            -3908.0,
+            908.0,
+            -5301.0
+          ],
+          "yawDegrees": 228.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            -5130.0,
+            351.0,
+            465.0
+          ],
+          "yawDegrees": 268.0
+        },
+        {
+          "sectorName": "5",
+          "position": [
+            -3658.0,
+            351.0,
+            2474.0
+          ],
+          "yawDegrees": 268.0
+        },
+        {
+          "sectorName": "8",
+          "position": [
+            1074.0,
+            351.0,
+            7494.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "9",
+          "position": [
+            4682.0,
+            1441.0,
+            -4818.0
+          ],
+          "yawDegrees": 269.0
+        },
+        {
+          "sectorName": "4",
+          "position": [
+            4443.0,
+            876.0,
+            3657.0
+          ],
+          "yawDegrees": 127.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            1431.0,
+            983.0,
+            -4572.0
+          ],
+          "yawDegrees": 179.0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "1",
+          "position": [
+            -2816.0,
+            351.0,
+            -10755.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -2422.0,
+            351.0,
+            -9800.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -2767.0,
+            351.0,
+            -9075.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -2427.0,
+            351.0,
+            -8503.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "9",
+          "position": [
+            4562.0,
+            1441.0,
+            -7795.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "9",
+          "position": [
+            4768.0,
+            1441.0,
+            -7092.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "9",
+          "position": [
+            4422.0,
+            1441.0,
+            -6256.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "9",
+          "position": [
+            4778.0,
+            1441.0,
+            -5483.0
+          ],
+          "yawDegrees": 270.0
+        }
+      ],
+      "maxPlayers": 8,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 6,
+      "sniperMap": false
+    },
+    {
+      "id": "NMP_park",
+      "name": "Village",
+      "mapIndex": 9,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": false,
+      "dmSpawns": [
+        {
+          "sectorName": "15",
+          "position": [
+            -3046.0,
+            893.0,
+            -3583.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "5",
+          "position": [
+            3981.0,
+            893.0,
+            -4542.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "15",
+          "position": [
+            -2742.0,
+            0.0,
+            -3980.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "4",
+          "position": [
+            -5527.0,
+            603.0,
+            2334.0
+          ],
+          "yawDegrees": 13.0
+        },
+        {
+          "sectorName": "9",
+          "position": [
+            -1742.0,
+            0.0,
+            4765.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "14",
+          "position": [
+            4548.0,
+            893.0,
+            -286.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "12",
+          "position": [
+            5652.0,
+            0.0,
+            -1467.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "14",
+          "position": [
+            4506.0,
+            0.0,
+            -1312.0
+          ],
+          "yawDegrees": 270.0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "4",
+          "position": [
+            -4924.0,
+            802.0,
+            2067.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "4",
+          "position": [
+            -4848.0,
+            827.0,
+            2654.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "4",
+          "position": [
+            -5183.0,
+            717.0,
+            2622.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "4",
+          "position": [
+            -5257.0,
+            692.0,
+            2185.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "5",
+          "position": [
+            331.0,
+            893.0,
+            -4466.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "5",
+          "position": [
+            341.0,
+            893.0,
+            -4909.0
+          ],
+          "yawDegrees": 340.0
+        },
+        {
+          "sectorName": "5",
+          "position": [
+            351.0,
+            893.0,
+            -5352.0
+          ],
+          "yawDegrees": 320.0
+        },
+        {
+          "sectorName": "5",
+          "position": [
+            -118.0,
+            893.0,
+            -4520.0
+          ],
+          "yawDegrees": 0.0
+        }
+      ],
+      "maxPlayers": 8,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 5,
+      "sniperMap": false
+    },
+    {
+      "id": "NMP_Baggage",
+      "name": "Baggage",
+      "mapIndex": 10,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": false,
+      "dmSpawns": [
+        {
+          "sectorName": "1",
+          "position": [
+            5342.0,
+            962.0,
+            5492.0
+          ],
+          "yawDegrees": 330.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            9710.0,
+            -2.0,
+            -1200.0
+          ],
+          "yawDegrees": 154.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            4057.0,
+            -2.0,
+            -7019.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            1252.0,
+            -2.0,
+            720.0
+          ],
+          "yawDegrees": 170.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -3219.0,
+            984.0,
+            5008.0
+          ],
+          "yawDegrees": 60.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -8913.0,
+            993.0,
+            3600.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "2",
+          "position": [
+            -8695.0,
+            184.0,
+            -6445.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "2",
+          "position": [
+            -2751.0,
+            1319.0,
+            -7383.0
+          ],
+          "yawDegrees": 180.0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "1",
+          "position": [
+            -10003.0,
+            -2.0,
+            -7176.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -10003.0,
+            -2.0,
+            -6418.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -10741.0,
+            -2.0,
+            -6308.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -10755.0,
+            -2.0,
+            -6750.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            9690.0,
+            1190.0,
+            6507.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            8485.0,
+            1181.0,
+            7046.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            8965.0,
+            1189.0,
+            5927.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            8002.0,
+            1181.0,
+            6529.0
+          ],
+          "yawDegrees": 0.0
+        }
+      ],
+      "maxPlayers": 8,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 10,
+      "sniperMap": false
+    },
+    {
+      "id": "NMP_Flowerbed",
+      "name": "Flowerbed",
+      "mapIndex": 11,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": false,
+      "dmSpawns": [
+        {
+          "sectorName": "1",
+          "position": [
+            4250.0,
+            0.0,
+            -5666.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "2",
+          "position": [
+            -3011.0,
+            0.0,
+            -3932.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "2",
+          "position": [
+            -2671.0,
+            0.0,
+            267.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "2",
+          "position": [
+            2827.0,
+            0.0,
+            2275.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            3414.0,
+            377.0,
+            4338.0
+          ],
+          "yawDegrees": 135.0
+        },
+        {
+          "sectorName": "2",
+          "position": [
+            -3667.0,
+            2.0,
+            6951.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "2",
+          "position": [
+            3943.0,
+            0.0,
+            6172.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            84.0,
+            1396.0,
+            6507.0
+          ],
+          "yawDegrees": 90.0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "1",
+          "position": [
+            28.0,
+            0.0,
+            -6726.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            888.0,
+            0.0,
+            -6716.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            1503.0,
+            0.0,
+            -6725.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            2242.0,
+            0.0,
+            -6717.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            -3660.0,
+            1396.0,
+            3624.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            -3656.0,
+            1396.0,
+            5401.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            3648.0,
+            1396.0,
+            5414.0
+          ],
+          "yawDegrees": 241.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            3662.0,
+            1396.0,
+            3586.0
+          ],
+          "yawDegrees": 180.0
+        }
+      ],
+      "maxPlayers": 8,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 2,
+      "sniperMap": false
+    },
+    {
+      "id": "NMP_training",
+      "name": "Training camp",
+      "mapIndex": 12,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": false,
+      "dmSpawns": [
+        {
+          "sectorName": "plane01",
+          "position": [
+            17.0,
+            -206.0,
+            3601.0
+          ],
+          "yawDegrees": 99.0
+        },
+        {
+          "sectorName": "plane01",
+          "position": [
+            -3005.0,
+            -245.0,
+            4136.0
+          ],
+          "yawDegrees": 35.0
+        },
+        {
+          "sectorName": "plane01",
+          "position": [
+            -6989.0,
+            0.0,
+            4308.0
+          ],
+          "yawDegrees": 18.0
+        },
+        {
+          "sectorName": "plane01",
+          "position": [
+            -8011.0,
+            0.0,
+            555.0
+          ],
+          "yawDegrees": 5.0
+        },
+        {
+          "sectorName": "plane01",
+          "position": [
+            5439.0,
+            0.0,
+            2075.0
+          ],
+          "yawDegrees": 178.0
+        },
+        {
+          "sectorName": "plane01",
+          "position": [
+            -5341.0,
+            0.0,
+            -3016.0
+          ],
+          "yawDegrees": 315.0
+        },
+        {
+          "sectorName": "plane01",
+          "position": [
+            37.0,
+            0.0,
+            -3714.0
+          ],
+          "yawDegrees": 274.0
+        },
+        {
+          "sectorName": "plane01",
+          "position": [
+            3154.0,
+            0.0,
+            -2429.0
+          ],
+          "yawDegrees": 228.0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "plane01",
+          "position": [
+            -7792.0,
+            0.0,
+            4075.0
+          ],
+          "yawDegrees": 55.0
+        },
+        {
+          "sectorName": "plane01",
+          "position": [
+            -6990.0,
+            0.0,
+            4427.0
+          ],
+          "yawDegrees": 29.0
+        },
+        {
+          "sectorName": "plane01",
+          "position": [
+            -8134.0,
+            0.0,
+            1576.0
+          ],
+          "yawDegrees": 355.0
+        },
+        {
+          "sectorName": "plane01",
+          "position": [
+            -8411.0,
+            0.0,
+            4102.0
+          ],
+          "yawDegrees": 358.0
+        },
+        {
+          "sectorName": "plane01",
+          "position": [
+            4594.0,
+            210.0,
+            4283.0
+          ],
+          "yawDegrees": 91.0
+        },
+        {
+          "sectorName": "plane01",
+          "position": [
+            5161.0,
+            210.0,
+            4273.0
+          ],
+          "yawDegrees": 91.0
+        },
+        {
+          "sectorName": "plane01",
+          "position": [
+            4289.0,
+            210.0,
+            4287.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "plane01",
+          "position": [
+            3979.0,
+            210.0,
+            4292.0
+          ],
+          "yawDegrees": 73.0
+        }
+      ],
+      "maxPlayers": 8,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 3,
+      "sniperMap": false
+    },
+    {
+      "id": "NMP_armedtrain",
+      "name": "Armed Train",
+      "mapIndex": 13,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": false,
+      "dmSpawns": [
+        {
+          "sectorName": "1",
+          "position": [
+            1841.0,
+            798.0,
+            6538.0
+          ],
+          "yawDegrees": 130.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -2968.0,
+            -1124.0,
+            74.0
+          ],
+          "yawDegrees": 153.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -10496.0,
+            -1868.0,
+            -952.0
+          ],
+          "yawDegrees": 170.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -19646.0,
+            -1773.0,
+            1955.0
+          ],
+          "yawDegrees": 227.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -20030.0,
+            798.0,
+            8657.0
+          ],
+          "yawDegrees": 108.0
+        },
+        {
+          "sectorName": "6",
+          "position": [
+            -15620.0,
+            798.0,
+            1195.0
+          ],
+          "yawDegrees": 45.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -9093.0,
+            798.0,
+            1075.0
+          ],
+          "yawDegrees": 337.0
+        },
+        {
+          "sectorName": "6",
+          "position": [
+            -13091.0,
+            798.0,
+            1760.0
+          ],
+          "yawDegrees": 1.0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "1",
+          "position": [
+            2797.0,
+            798.0,
+            15203.0
+          ],
+          "yawDegrees": 96.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            2074.0,
+            798.0,
+            14952.0
+          ],
+          "yawDegrees": 96.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            2007.0,
+            798.0,
+            14393.0
+          ],
+          "yawDegrees": 96.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            1836.0,
+            798.0,
+            13659.0
+          ],
+          "yawDegrees": 96.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -20345.0,
+            810.0,
+            11738.0
+          ],
+          "yawDegrees": 86.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -21008.0,
+            793.0,
+            11441.0
+          ],
+          "yawDegrees": 86.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -20986.0,
+            794.0,
+            11088.0
+          ],
+          "yawDegrees": 86.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -20406.0,
+            803.0,
+            10865.0
+          ],
+          "yawDegrees": 86.0
+        }
+      ],
+      "maxPlayers": 8,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 7,
+      "sniperMap": false
+    },
+    {
+      "id": "NMP_partisan",
+      "name": "Partisan",
+      "mapIndex": 14,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": false,
+      "dmSpawns": [
+        {
+          "sectorName": "1",
+          "position": [
+            -8921.0,
+            662.0,
+            12692.0
+          ],
+          "yawDegrees": 133.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -15911.0,
+            725.0,
+            9371.0
+          ],
+          "yawDegrees": 269.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -18570.0,
+            846.0,
+            10757.0
+          ],
+          "yawDegrees": 164.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -24538.0,
+            137.0,
+            9466.0
+          ],
+          "yawDegrees": 260.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -26753.0,
+            119.0,
+            16567.0
+          ],
+          "yawDegrees": 30.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -20190.0,
+            -463.0,
+            17184.0
+          ],
+          "yawDegrees": 147.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            -23826.0,
+            -867.0,
+            15834.0
+          ],
+          "yawDegrees": 79.0
+        },
+        {
+          "sectorName": "2",
+          "position": [
+            -24811.0,
+            -881.0,
+            17022.0
+          ],
+          "yawDegrees": 126.0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "1",
+          "position": [
+            -22041.0,
+            -462.0,
+            19289.0
+          ],
+          "yawDegrees": 128.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -21637.0,
+            -462.0,
+            18968.0
+          ],
+          "yawDegrees": 128.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -21136.0,
+            -463.0,
+            18148.0
+          ],
+          "yawDegrees": 128.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -21392.0,
+            -463.0,
+            17769.0
+          ],
+          "yawDegrees": 128.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -9071.0,
+            662.0,
+            11425.0
+          ],
+          "yawDegrees": 158.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -9375.0,
+            662.0,
+            11954.0
+          ],
+          "yawDegrees": 142.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -9915.0,
+            662.0,
+            12159.0
+          ],
+          "yawDegrees": 136.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -10140.0,
+            662.0,
+            10592.0
+          ],
+          "yawDegrees": 293.0
+        }
+      ],
+      "maxPlayers": 8,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 8,
+      "sniperMap": false
+    },
+    {
+      "id": "NMP_laboratory",
+      "name": "Laboratory",
+      "mapIndex": 15,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": false,
+      "dmSpawns": [
+        {
+          "sectorName": "7",
+          "position": [
+            -797.0,
+            0.0,
+            -8856.0
+          ],
+          "yawDegrees": 267.0
+        },
+        {
+          "sectorName": "5",
+          "position": [
+            1141.0,
+            -600.0,
+            -9973.0
+          ],
+          "yawDegrees": 320.0
+        },
+        {
+          "sectorName": "4",
+          "position": [
+            3949.0,
+            -600.0,
+            -6426.0
+          ],
+          "yawDegrees": 358.0
+        },
+        {
+          "sectorName": "2",
+          "position": [
+            8601.0,
+            0.0,
+            -1875.0
+          ],
+          "yawDegrees": 116.0
+        },
+        {
+          "sectorName": "3",
+          "position": [
+            2860.0,
+            0.0,
+            -825.0
+          ],
+          "yawDegrees": 156.0
+        },
+        {
+          "sectorName": "6",
+          "position": [
+            -2698.0,
+            -200.0,
+            -5098.0
+          ],
+          "yawDegrees": 2.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -1793.0,
+            0.0,
+            -3133.0
+          ],
+          "yawDegrees": 328.0
+        },
+        {
+          "sectorName": "4",
+          "position": [
+            9443.0,
+            -600.0,
+            -4516.0
+          ],
+          "yawDegrees": 176.0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "4",
+          "position": [
+            2617.0,
+            -600.0,
+            -7212.0
+          ],
+          "yawDegrees": 358.0
+        },
+        {
+          "sectorName": "4",
+          "position": [
+            2602.0,
+            -600.0,
+            -6667.0
+          ],
+          "yawDegrees": 358.0
+        },
+        {
+          "sectorName": "4",
+          "position": [
+            3157.0,
+            -600.0,
+            -6900.0
+          ],
+          "yawDegrees": 358.0
+        },
+        {
+          "sectorName": "4",
+          "position": [
+            3261.0,
+            -600.0,
+            -6405.0
+          ],
+          "yawDegrees": 358.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            -1718.0,
+            0.0,
+            -9361.0
+          ],
+          "yawDegrees": 294.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            -1173.0,
+            0.0,
+            -9375.0
+          ],
+          "yawDegrees": 294.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            -570.0,
+            0.0,
+            -9395.0
+          ],
+          "yawDegrees": 273.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            125.0,
+            0.0,
+            -9367.0
+          ],
+          "yawDegrees": 260.0
+        }
+      ],
+      "maxPlayers": 8,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 4,
+      "sniperMap": false
+    },
+    {
+      "id": "NMP_poland",
+      "name": "Poland",
+      "mapIndex": 16,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": false,
+      "dmSpawns": [
+        {
+          "sectorName": "1",
+          "position": [
+            2766.0,
+            -2.0,
+            -1186.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "4",
+          "position": [
+            3882.0,
+            49.0,
+            -6805.0
+          ],
+          "yawDegrees": 223.0
+        },
+        {
+          "sectorName": "4",
+          "position": [
+            4584.0,
+            747.0,
+            -5358.0
+          ],
+          "yawDegrees": 177.0
+        },
+        {
+          "sectorName": "4",
+          "position": [
+            6424.0,
+            -695.0,
+            -6695.0
+          ],
+          "yawDegrees": 230.0
+        },
+        {
+          "sectorName": "5",
+          "position": [
+            -4375.0,
+            49.0,
+            -4796.0
+          ],
+          "yawDegrees": 218.0
+        },
+        {
+          "sectorName": "2",
+          "position": [
+            -1021.0,
+            43.0,
+            4430.0
+          ],
+          "yawDegrees": 133.0
+        },
+        {
+          "sectorName": "8",
+          "position": [
+            1056.0,
+            -800.0,
+            5544.0
+          ],
+          "yawDegrees": 131.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            4333.0,
+            -695.0,
+            1018.0
+          ],
+          "yawDegrees": 134.0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "7",
+          "position": [
+            -5756.0,
+            7.0,
+            5053.0
+          ],
+          "yawDegrees": 15.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            -5630.0,
+            0.0,
+            4228.0
+          ],
+          "yawDegrees": 6.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            -5496.0,
+            7.0,
+            3315.0
+          ],
+          "yawDegrees": 357.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            -4958.0,
+            7.0,
+            5695.0
+          ],
+          "yawDegrees": 40.0
+        },
+        {
+          "sectorName": "6",
+          "position": [
+            9426.0,
+            0.0,
+            -6503.0
+          ],
+          "yawDegrees": 244.0
+        },
+        {
+          "sectorName": "6",
+          "position": [
+            8751.0,
+            0.0,
+            -6628.0
+          ],
+          "yawDegrees": 244.0
+        },
+        {
+          "sectorName": "6",
+          "position": [
+            9534.0,
+            0.0,
+            -5593.0
+          ],
+          "yawDegrees": 227.0
+        },
+        {
+          "sectorName": "6",
+          "position": [
+            9299.0,
+            0.0,
+            -4860.0
+          ],
+          "yawDegrees": 217.0
+        }
+      ],
+      "maxPlayers": 8,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 12,
+      "sniperMap": false
+    },
+    {
+      "id": "NMP_petersburg",
+      "name": "Petersburg",
+      "mapIndex": 17,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": false,
+      "dmSpawns": [
+        {
+          "sectorName": "16",
+          "position": [
+            -3452.0,
+            0.0,
+            -9419.0
+          ],
+          "yawDegrees": 276.0
+        },
+        {
+          "sectorName": "14",
+          "position": [
+            1279.0,
+            0.0,
+            -4257.0
+          ],
+          "yawDegrees": 182.0
+        },
+        {
+          "sectorName": "18",
+          "position": [
+            -7561.0,
+            0.0,
+            -7248.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "20",
+          "position": [
+            -9852.0,
+            0.0,
+            -120.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -3457.0,
+            156.0,
+            3719.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "6",
+          "position": [
+            6236.0,
+            0.0,
+            4912.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "4",
+          "position": [
+            -1313.0,
+            700.0,
+            -2253.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "2",
+          "position": [
+            5588.0,
+            600.0,
+            -4862.0
+          ],
+          "yawDegrees": 267.0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "18",
+          "position": [
+            -6990.0,
+            0.0,
+            -6585.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "18",
+          "position": [
+            -6979.0,
+            0.0,
+            -5703.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "18",
+          "position": [
+            -8054.0,
+            0.0,
+            -5655.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "18",
+          "position": [
+            -8059.0,
+            0.0,
+            -6484.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "6",
+          "position": [
+            6533.0,
+            0.0,
+            4636.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "6",
+          "position": [
+            5573.0,
+            0.0,
+            4567.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "6",
+          "position": [
+            6747.0,
+            0.0,
+            5578.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "6",
+          "position": [
+            5597.0,
+            0.0,
+            5638.0
+          ],
+          "yawDegrees": 90.0
+        }
+      ],
+      "maxPlayers": 8,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 11,
+      "sniperMap": false
+    },
+    {
+      "id": "NMP_sektor312",
+      "name": "Enemy at the gate",
+      "mapIndex": 18,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": false,
+      "dmSpawns": [
+        {
+          "sectorName": "1",
+          "position": [
+            1915.0,
+            1.0,
+            1706.0
+          ],
+          "yawDegrees": 138.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -3379.0,
+            0.0,
+            -1664.0
+          ],
+          "yawDegrees": 354.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -3396.0,
+            0.0,
+            1750.0
+          ],
+          "yawDegrees": 10.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            3110.0,
+            103.0,
+            -1827.0
+          ],
+          "yawDegrees": 219.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            2982.0,
+            27.0,
+            1361.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            2521.0,
+            27.0,
+            1060.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            -3171.0,
+            34.0,
+            994.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "6",
+          "position": [
+            -3145.0,
+            34.0,
+            4.0
+          ],
+          "yawDegrees": 0.0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "1",
+          "position": [
+            2982.0,
+            27.0,
+            1361.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            2521.0,
+            27.0,
+            1060.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            1915.0,
+            1.0,
+            1706.0
+          ],
+          "yawDegrees": 138.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            3110.0,
+            103.0,
+            -1827.0
+          ],
+          "yawDegrees": 219.0
+        },
+        {
+          "sectorName": "7",
+          "position": [
+            -3171.0,
+            34.0,
+            994.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "6",
+          "position": [
+            -3145.0,
+            34.0,
+            4.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "5",
+          "position": [
+            -3145.0,
+            34.0,
+            -995.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "4",
+          "position": [
+            -3145.0,
+            634.0,
+            1004.0
+          ],
+          "yawDegrees": 0.0
+        }
+      ],
+      "maxPlayers": 8,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 1,
+      "sniperMap": true
+    },
+    {
+      "id": "NMP_mirrorsniper",
+      "name": "Honor",
+      "mapIndex": 19,
+      "age": 0,
+      "nativeMode": 1,
+      "publicReady": false,
+      "dmSpawns": [
+        {
+          "sectorName": "1",
+          "position": [
+            17.0,
+            1798.0,
+            2925.0
+          ],
+          "yawDegrees": 270.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -26.0,
+            1798.0,
+            -2639.0
+          ],
+          "yawDegrees": 90.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -4886.0,
+            1798.0,
+            -511.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -4876.0,
+            1798.0,
+            658.0
+          ],
+          "yawDegrees": 0.0
+        }
+      ],
+      "teamSpawns": [
+        {
+          "sectorName": "1",
+          "position": [
+            -4886.0,
+            1798.0,
+            -511.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -4876.0,
+            1798.0,
+            658.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -4886.0,
+            1798.0,
+            -511.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            -4876.0,
+            1798.0,
+            658.0
+          ],
+          "yawDegrees": 0.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            4870.0,
+            1798.0,
+            609.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            4864.0,
+            1798.0,
+            -628.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            4870.0,
+            1798.0,
+            609.0
+          ],
+          "yawDegrees": 180.0
+        },
+        {
+          "sectorName": "1",
+          "position": [
+            4864.0,
+            1798.0,
+            -628.0
+          ],
+          "yawDegrees": 180.0
+        }
+      ],
+      "maxPlayers": 4,
+      "minClientBuild": "karma290-central6",
+      "spawnSource": "original-fsd",
+      "validation": "원본 스폰 구조 검사 · 실전 확인 필요",
+      "releaseOrder": 9,
+      "sniperMap": true
     }
   ]
 }

@@ -1,0 +1,83 @@
+// Display labels are independent of the stable weapon-family promotion counters.
+export const MAP_ATTACK_NAMES=Object.freeze({
+  "0": [
+    "악성 USB 연결",
+    "기본 비밀번호 대입",
+    "로그인 요청 재전송",
+    "세션 쿠키 탈취",
+    "DNS 응답 증폭",
+    "이메일 링크 피싱",
+    "메신저 링크 피싱",
+    "TCP 연결 강제 종료",
+    "이메일 첨부파일 피싱",
+    "ARP 스푸핑",
+    "파일 공유 인증 릴레이",
+    "DNS 응답 위조",
+    "중간자 가로채기",
+    "공통 비밀번호 대입",
+    "가짜 DHCP 서버",
+    "유출 비밀번호 재사용",
+    "TCP SYN Flood",
+    "HTTP GET Flood",
+    "예약 작업 악용",
+    "압축 폭탄",
+    "파일 삭제 공격",
+    "버퍼 오버플로",
+    "운영체제 취약점 악용"
+  ],
+  "7": [
+    "키보드 위장 USB",
+    "비밀번호 무차별 대입",
+    "인증 토큰 재사용",
+    "세션 고정",
+    "ICMP Flood",
+    "가짜 업데이트 피싱",
+    "고객 지원 사칭 피싱",
+    "TCP RST 주입",
+    "가짜 청구서 피싱",
+    "게이트웨이 위장",
+    "공유 폴더 비밀번호 대입",
+    "DNS 캐시 포이즈닝",
+    "평문 로그인 도청",
+    "계정 잠금 유발",
+    "DHCP 주소 고갈",
+    "웹 로그인 크리덴셜 스터핑",
+    "UDP Flood",
+    "HTTP POST Flood",
+    "시작 프로그램 등록 악용",
+    "대용량 파일 업로드",
+    "파일 암호화",
+    "명령어 주입",
+    "서비스 권한 설정 악용"
+  ],
+  "4": [
+    "자동 실행 파일 악용",
+    "기본 관리자 계정 악용",
+    "만료되지 않은 토큰 악용",
+    "URL 세션 ID 유출",
+    "HTTP 반복 요청",
+    "로그인 화면 위장 피싱",
+    "QR 코드 피싱",
+    "클라이언트 연결 고갈",
+    "공유 문서 초대 피싱",
+    "가짜 무선 접속점",
+    "숨김 공유 접근",
+    "hosts 파일 변조",
+    "가짜 프록시 서버",
+    "사용자 이름 열거",
+    "DNS 설정 변조",
+    "메일 계정 크리덴셜 스터핑",
+    "연결 요청 폭주",
+    "검색 요청 과부하",
+    "예약 실행 스크립트",
+    "재귀 압축 파일",
+    "백업 파일 삭제",
+    "경로 순회",
+    "과도한 파일 권한 악용"
+  ]
+});
+export function scenarioForWeapon(map,weapon){
+ if(!Number.isInteger(map)||map<0||map>19||!Number.isInteger(weapon)||weapon<0||weapon>22)return null;
+ const name=(MAP_ATTACK_NAMES[map]||MAP_ATTACK_NAMES[0])[weapon];
+ return {id:`${map}:${weapon}`,map,weaponId:weapon,name,mapped:!!MAP_ATTACK_NAMES[map]};
+}

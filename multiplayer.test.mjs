@@ -86,5 +86,5 @@ try{
  console.log('PASS: 8-player DM targeted hit/slot7 kill, survivor continuation, enforced respawn delay, individual winner; 4:4 friendly fire rejection, no mid-round respawn, team elimination, next-round lives and four match winners.');
 }finally{
  for(const c of clients)c.socket.destroy();await server.close();
- for(const name of ['profiles.json','auth.json']){const file=path.join(temp,name);if(fs.existsSync(file))fs.unlinkSync(file);}fs.rmdirSync(temp);
+ for(const name of ['profiles.json','auth.json','fairplay.json']){const file=path.join(temp,name);if(fs.existsSync(file))fs.unlinkSync(file);}fs.rmdirSync(temp);
 }

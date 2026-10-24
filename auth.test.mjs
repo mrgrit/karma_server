@@ -170,7 +170,7 @@ try{
 }finally{
   for(const socket of sockets)socket.destroy();
   if(server)await server.close();
-  for(const file of ['required.json','missing.json','auth.json','profiles.json']){
+  for(const file of ['required.json','missing.json','auth.json','profiles.json','fairplay.json']){
     const owned=path.join(temp,file);if(fs.existsSync(owned))fs.unlinkSync(owned);
   }
   fs.rmdirSync(temp);

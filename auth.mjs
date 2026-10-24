@@ -144,6 +144,11 @@ export class AuthService{
     requireApproved(account);
     return structuredClone(account);
   }
+  rename(authToken,name){
+    const data=this.read(),account=this.authenticate(authToken,data);
+    const current=data.accounts[account.email];current.name=nameValue(name);this.write(data);
+    return {...current,password:undefined};
+  }
   logout(authToken){
     const account=this.authenticate(authToken),data=this.read();
     delete data.sessions[hash(authToken)];this.write(data);

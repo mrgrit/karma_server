@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';import {MAP_ATTACK_NAMES,scenarioForWeapon} from './attack-scenarios.mjs';
+import {newMastery,recordMastery,validateMastery,masteryProgress} from './mastery.mjs';
+assert.equal(Object.values(MAP_ATTACK_NAMES).flat().length,69);assert.equal(new Set(Object.values(MAP_ATTACK_NAMES).flat()).size,69);
+for(const names of Object.values(MAP_ATTACK_NAMES))assert.equal(names.length,23);
+assert.equal(scenarioForWeapon(99,9),null);assert.notEqual(scenarioForWeapon(0,9).name,scenarioForWeapon(7,9).name);
+const profile={xp:0,mastery:newMastery(),playerId:'a'};
+for(const map of [0,7,4])for(let i=0;i<4;i++)recordMastery(profile,{map,weapon:9,verified:true,killerId:'a',victimId:'b',matchId:'m'+map});
+validateMastery(profile.mastery);const p=masteryProgress(profile);
+assert.equal(p.techniques.find(t=>t.weaponId===9).successes,12);assert.equal(p.techniques.find(t=>t.weaponId===9).qualified,9);
+assert.equal(p.scenarios.length,3);assert(p.scenarios.every(t=>t.successes===4&&t.qualified===3));
+assert.equal(p.families.mobile,9,'map changes preserve weapon-family promotion requirements');
+const old={...profile,mastery:newMastery(1000)};assert.deepEqual(masteryProgress(old).scenarios,[],'never fabricate historical map counts');
+recordMastery(profile,{map:18,weapon:5,verified:true,killerId:'a',victimId:'b',matchId:'new-map'});
+validateMastery(profile.mastery);
+assert.equal(masteryProgress(profile).scenarios.find(s=>s.map===18).successes,1,'new map records survive before custom labels are assigned');
+console.log('PASS scenarios: 69 distinct labels, unknown map fallback, per-map persisted counts, opponent cap and stable promotion aggregates');

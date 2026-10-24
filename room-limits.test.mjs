@@ -46,5 +46,5 @@ try{
  console.log('PASS room limits: bounds/types, host authority, per-room timer, time-limit draw/results, late join rules.');
 }finally{
  for(const c of clients)c.socket.destroy();await server.close();
- for(const file of ['auth.json','profiles.json']){const p=path.join(temp,file);if(fs.existsSync(p))fs.unlinkSync(p);}fs.rmdirSync(temp);
+ for(const file of ['auth.json','profiles.json','fairplay.json']){const p=path.join(temp,file);if(fs.existsSync(p))fs.unlinkSync(p);}fs.rmdirSync(temp);
 }

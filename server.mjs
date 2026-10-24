@@ -1,4 +1,7 @@
 import net from 'node:net';
+import {scenarioForWeapon} from './attack-scenarios.mjs';
+import {FairPlay} from './fairplay.mjs';
+import {MapAccess} from './map-access.mjs';
 import http from 'node:http';
 import https from 'node:https';
 import tls from 'node:tls';
@@ -133,11 +136,13 @@ export async function startKarmaServer({
   integer(maxRooms,'room limit',1,20);integer(maxPlayers,'player limit',2,8);
   const catalog=readJson(catalogFile),characters=readJson(characterFile);
   const multiplayerMaps=readJson(mapFile).maps;
+  const mapAccess=new MapAccess(path.join(path.resolve(dataDir),'map-access.json'),multiplayerMaps);
   const weaponById=new Map(catalog.weapons.map(item=>[item.weaponId??item.id,item]));
   const db=new ProfileDatabase(path.join(path.resolve(dataDir),'profiles.json'));
   const auth=authService||new AuthService({filename:path.join(path.resolve(dataDir),'auth.json')});
   const filterChat=createChatFilter(readJson(path.join(directory,'chat-policy.json')));
   const chatArchive=new ChatArchive(path.join(path.resolve(dataDir),'chat-logs'));
+  const fairplay=new FairPlay(path.join(path.resolve(dataDir),'fairplay.json'));
   const coinProfiles=new Map();
   async function refreshCoins(account){
     if(!exchange)return;
@@ -159,7 +164,7 @@ export async function startKarmaServer({
       wins:profile.wins||0,losses:profile.losses||0,draws:profile.draws||0,matches:profile.matches||0,
       ...(account?{email:account.email,role:account.role,isAdmin:account.role==='admin',emailVerified:!!account.emailVerified}:{}),
       ...(character?{inventoryCapacity:loadoutBudget({xp:rankXp,character,ranks:catalog.ranks})}:{}),
-      progressionVersion:3,rankXp,mastery,
+      progressionVersion:3,rankXp,mastery,maps:mapAccess.list(),
       unlockedCharacterIds:Object.keys(catalog.characters).filter(id=>characterUnlocked(catalog.characters[id],rankXp)),
       dualCannonUnlocked:rankXp>=(catalog.constraints?.dualCannon?.minXp??Number.MAX_SAFE_INTEGER),
       ...(exchange?{coins:coinProfiles.get(profile.playerId)??{available:null,gameFee:100,url:exchange.publicUrl,status:'unavailable'}}:{}),
@@ -174,7 +179,7 @@ export async function startKarmaServer({
     for(const client of room.clients)if(client!==except&&write(client,message))relayedMessages++;
   }
   function activeClients(room){return room.clients.filter(c=>!c.closed);}
-  function lateJoinEnabled(room){return room.mode==='dm'&&room.build==='karma290-central5';}
+  function lateJoinEnabled(room){return room.mode==='dm'&&['karma290-central5','karma290-central6'].includes(room.build);}
   function remainingSeconds(room){return room.started?Math.max(0,Math.ceil((room.startedAt+room.timeLimitSeconds*1000-Date.now())/1000)):room.timeLimitSeconds;}
   function roomInfo(room){return {roomId:room.id,code:room.code,roomName:room.name,maxPlayers:room.maxPlayers,mode:room.mode,map:room.map,mapName:multiplayerMaps.find(m=>m.mapIndex===room.map)?.name,
     manualStart:room.manualStart===true,hostId:room.clients[0]?.playerId,gameFee:exchange?100:0,exchangeUrl:exchange?.publicUrl,
@@ -184,7 +189,7 @@ export async function startKarmaServer({
     lateJoinEnabled:lateJoinEnabled(room),remainingSeconds:remainingSeconds(room)};}
   function roomDirectory(account){
     return [...rooms.values()].filter(room=>!room.ending&&activeClients(room).length&&
-      (account.role==='admin'||multiplayerMaps.find(m=>m.mapIndex===room.map)?.publicReady)).map(room=>{
+      (account.role==='admin'||mapAccess.isOpen(room.map))).map(room=>{
       const players=activeClients(room),full=players.length+room.pending.size>=room.maxPlayers;
       const joinable=!room.starting&&!full&&(!room.started||lateJoinEnabled(room));
         return {roomId:room.id,code:room.code,roomName:room.name,hostName:players[0].account.name,map:room.map,
@@ -214,8 +219,9 @@ export async function startKarmaServer({
   function normalizedConfig(value,profile,account){
     if(!plainObject(value)||Buffer.byteLength(JSON.stringify(value))>16384)reject('BAD_CONFIG','Invalid config');
     const battlefield=multiplayerMaps.find(m=>m.mapIndex===(value.map??0));
-    if((value.age??0)!==0||!battlefield||(!battlefield.publicReady&&account?.role!=='admin'))reject('BAD_CONFIG','멀티플레이 검증이 완료된 전장을 선택하세요.');
-    if(battlefield.mapIndex!==0&&!['karma290-central4','karma290-central5'].includes(value.settings?.build))reject('CLIENT_UPDATE_REQUIRED','새 전장을 사용하려면 클라이언트를 업데이트하세요.');
+    if((value.age??0)!==0||!battlefield||(!mapAccess.isOpen(battlefield.mapIndex)&&account?.role!=='admin'))reject('BAD_CONFIG','멀티플레이 검증이 완료된 전장을 선택하세요.');
+    if(battlefield.mapIndex!==0&&!['karma290-central4','karma290-central5','karma290-central6'].includes(value.settings?.build))reject('CLIENT_UPDATE_REQUIRED','새 전장을 사용하려면 클라이언트를 업데이트하세요.');
+    if(battlefield.minClientBuild&&value.settings?.build!==battlefield.minClientBuild)reject('CLIENT_UPDATE_REQUIRED','이 맵을 사용하려면 최신 클라이언트로 업데이트하세요.');
     const offered=value.character;
     if(!plainObject(offered))reject('BAD_CONFIG','Character is required');
     const original=characters.find(item=>item.age===0&&item.characterIndex===offered.index&&item.camp===offered.camp);
@@ -325,7 +331,7 @@ export async function startKarmaServer({
       room.starting=false;
     }
     room.started=true;room.startedAt=Date.now();room.phase='active';room.round=1;room.roundWins=[0,0];
-    for(const c of room.clients){c.alive=true;c.roundLife=1;c.deadAt=0;room.participants.set(c.playerId,{playerId:c.playerId,team:c.team,lastLife:1});room.paid.add(c.playerId);}
+    for(const c of room.clients){c.lifeActive=false;c.lifeStartedAt=Date.now();c.activityPos=null;c.activityShot=null;c.alive=true;c.roundLife=1;c.deadAt=0;room.participants.set(c.playerId,{playerId:c.playerId,team:c.team,lastLife:1});room.paid.add(c.playerId);}
     room.kills=new Map(room.clients.map(client=>[client.playerId,0]));
     room.deaths=new Map(room.clients.map(client=>[client.playerId,0]));
     room.points=new Map(room.clients.map(client=>[client.playerId,0]));
@@ -351,6 +357,7 @@ export async function startKarmaServer({
         profile:publicProfile(identity.profile,undefined,account),room:null});
       session.socket.end();return;
     }
+    if(fairplay.hold(account.playerId))reject('FAIRPLAY_HOLD','반복 실적 작업 의심으로 게임 이용이 일시 중지되었습니다. 관리자에게 확인을 요청해 주세요.');
     const capability=integer(message.clientMaxPlayers??2,'client capability',2,maxPlayers);
     const playerId=identity.profile.playerId;
     if(online.has(playerId)||pendingPlayers.has(playerId))reject('ALREADY_CONNECTED','This player is already connected');
@@ -359,6 +366,7 @@ export async function startKarmaServer({
     if(message.op==='create'){
       if(rooms.size>=maxRooms)reject('ROOM_LIMIT','The server has reached its room limit');
       const capacity=integer(message.maxPlayers??2,'room capacity',2,maxPlayers);
+      if(capacity>(multiplayerMaps.find(m=>m.mapIndex===offered.config.map)?.maxPlayers||8))reject('MAP_CAPACITY','이 맵의 시작 위치 수를 초과했습니다. 맵별 최대 인원을 확인하세요.');
       if(capacity>capability)reject('CLIENT_LIMIT','This client cannot enter a room of that size');
       let code=message.code;
       if(code!==undefined&&(!/^\d{6}$/.test(code)||rooms.has(code)))reject('BAD_CODE','Room code is invalid or in use');
@@ -367,7 +375,7 @@ export async function startKarmaServer({
       if(!['duel','dm','tdm'].includes(mode)||(mode==='duel'&&capacity!==2)||(mode==='tdm'&&capacity%2!==0))
         reject('BAD_MODE','Choose duel (2), deathmatch (2–8), or even-sized team deathmatch');
       room={id:crypto.randomUUID(),code,name:roomDisplayName(message.roomName,account.name+'의 방'),maxPlayers:capacity,mode,map:offered.config.map,build:offered.config.settings.build,lobbyRevision:0,
-        manualStart:message.manualStart===true,
+        manualStart:message.manualStart===true,returnLobby:message.returnLobby===true,
         killLimit:message.killLimit===undefined?Math.min(30,matchKills):integer(message.killLimit,'kill limit (1–30)',1,30),
         roundWinLimit:message.roundWinLimit===undefined?Math.min(10,roundWinLimit):integer(message.roundWinLimit,'round win limit (1–10)',1,10),
         timeLimitSeconds:message.timeLimitSeconds===undefined?Math.min(1800,matchSeconds):integer(message.timeLimitSeconds,'match seconds (60–1800)',60,1800),clients:[],
@@ -384,7 +392,7 @@ export async function startKarmaServer({
       if(room.maxPlayers>capability)reject('CLIENT_LIMIT','Update the client to enter this room size');
       if(room.build!==offered.config.settings.build)reject('BUILD_MISMATCH','Both clients must use the same build');
       const hostMap=multiplayerMaps.find(m=>m.mapIndex===room.map);
-      if(!hostMap?.publicReady&&account.role!=='admin')reject('MAP_NOT_RELEASED','이 전장은 아직 관리자 검증 중입니다.');
+      if(!mapAccess.isOpen(room.map)&&account.role!=='admin')reject('MAP_NOT_RELEASED','이 전장은 아직 관리자 검증 중입니다.');
       offered.config.map=room.map;
     }
     // Rich results include names and four ID-keyed score tables. Bound history
@@ -399,6 +407,7 @@ export async function startKarmaServer({
     const checkAdmission=()=>{
       if(closing||session.closed||session.socket.destroyed||session.socket.writableEnded)reject('JOIN_CANCELLED','참가가 취소되었습니다.');
       if(rooms.get(room.code)!==room||room.ending||room.started&&!lateJoinEnabled(room))reject('ROOM_ENDED','대전이 종료되었습니다. 방 목록을 새로 고쳐 주세요.');
+      if(!mapAccess.isOpen(room.map)&&account.role!=='admin')reject('MAP_NOT_RELEASED','이 전장은 아직 관리자 검증 중입니다.');
       return auth.authenticate(message.authToken);
     };
     try{
@@ -515,15 +524,21 @@ export async function startKarmaServer({
       const living=new Set(room.clients.filter(c=>!c.closed&&c.alive).map(c=>c.team));
       if(living.size<2)endRound(room,'team-eliminated');
     });
-    const receipt=result.receipt;
+    const receipt=result.receipt;receipt.map=room.map;
     const feed={id:receipt.id,kind:receipt.verified?'kill':receipt.killer==='self'?'self':'death',
       killerId:receipt.verified||receipt.killer==='self'?receipt.killerId:null,victimId:receipt.victimId,
       killerName:receipt.verified?(db.data.profiles[receipt.killerId]?.name||'플레이어'):'',
-      victimName:session.account.name,techniqueName:receipt.verified?(techniqueForWeapon(receipt.weapon)?.name||''): '',weapon:receipt.weapon,weaponName:weaponById.get(receipt.weapon)?.name||'무기',
+      victimName:session.account.name,techniqueName:receipt.verified?(scenarioForWeapon(room.map,receipt.weapon)?.name||techniqueForWeapon(receipt.weapon)?.name||''): '',weapon:receipt.weapon,weaponName:weaponById.get(receipt.weapon)?.name||'무기',
       headshot:receipt.verified&&receipt.damage?.hitKind==='bullet'&&receipt.damage.hitRegion===0,time:Date.now()};
     broadcast(room,{type:'death-confirmed',version:2,receipt,feed});
     const previousXp=new Map([result.receipt.victimId,result.receipt.killerId].map(id=>[id,db.data.profiles[id]?.xp||0]));
     const changed=db.award(result.receipt);
+    const review=fairplay.observe(receipt,{map:room.map,passive:session.lifeActive===false&&Date.now()-(session.lifeStartedAt||Date.now())>=8000});
+    if(review)queueMicrotask(()=>{
+      const suspect=online.get(review.playerId);
+      if(suspect)error(suspect,'FAIRPLAY_HOLD','반복 실적 작업 의심으로 게임 이용이 일시 중지되었습니다. 관리자 확인 후 재개할 수 있습니다.');
+      db.activity('fairplay-hold',{targetId:review.playerId,caseId:review.id});
+    });
     for(const profile of changed){
       room.points.set(profile.playerId,(room.points.get(profile.playerId)||0)+profile.xp-previousXp.get(profile.playerId));
       const client=online.get(profile.playerId);
@@ -651,6 +666,10 @@ export async function startKarmaServer({
     if(session.room.mode==='tdm'&&['hit','state','respawn','death'].includes(game.type)&&
       (game.life!==session.roundLife||!session.alive&&game.type!=='death'))return;
     if(game.type==='state'||game.type==='respawn'){
+      if(session.activityLife!==game.life){session.activityLife=game.life;session.lifeActive=false;session.lifeStartedAt=Date.now();session.activityPos=null;session.activityShot=null;}
+      if(session.activityPos&&game.pos.some((v,i)=>Math.abs(v-session.activityPos[i])>40))session.lifeActive=true;
+      if(game.shot&&game.shot.id!==session.activityShot){session.lifeActive=true;session.activityShot=game.shot.id;}
+      session.activityPos??=[...game.pos];
       if(game.type==='respawn'&&game.life>session.state.life){
         session.inventory=[...session.config.inventory];
         session.state.ammo={};
@@ -710,10 +729,18 @@ export async function startKarmaServer({
       }
     }
     const result=db.finishMatch(room,reason,winnerIds);
+    let returnLobby;
+    if(room.returnLobby&&!closing&&room.clients.some(c=>!c.closed)){
+      const next={id:crypto.randomUUID(),code:room.code,name:room.name,maxPlayers:room.maxPlayers,mode:room.mode,map:room.map,build:room.build,
+        lobbyRevision:0,manualStart:true,returnLobby:true,killLimit:room.killLimit,roundWinLimit:room.roundWinLimit,timeLimitSeconds:room.timeLimitSeconds,
+        clients:[],pending:new Map(),participants:new Map(),paid:new Set(),started:false,ending:false};
+      rooms.set(next.code,next);returnLobby=roomInfo(next);
+      const expiry=setTimeout(()=>{if(rooms.get(next.code)===next&&!next.started&&!next.clients.length&&!next.pending.size)rooms.delete(next.code);},600000);expiry.unref();
+    }
     for(const client of room.clients){
       const profile=db.data.profiles[client.playerId];
       write(client,{type:'profile',version:2,profile:publicProfile(profile,client.character,client.account)});
-      write(client,{type:'match-ended',version:2,result});
+      write(client,{type:'match-ended',version:2,result,...(returnLobby?{returnLobby}:{})});
       client.socket.end();const timer=setTimeout(()=>client.socket.destroy(),500);timer.unref();
     }
     log('match-ended',{reason,players:room.clients.length,draw:result.draw});
@@ -798,6 +825,11 @@ export async function startKarmaServer({
       }
       if(route.startsWith('/api/')){
         const account=auth.authenticate(bearer(request));
+        if(request.method==='POST'&&route==='/api/name'){
+          if(online.has(account.playerId)||pendingPlayers.has(account.playerId))authError(409,'PLAYER_BUSY','방을 나온 뒤 게임 이름을 변경해 주세요.');
+          const input=await body(request),updated=auth.rename(bearer(request),input.name);
+          const profile=db.ensure(updated);reply(response,200,{ok:true,profile:publicProfile(profile,undefined,updated)});return;
+        }
         if(request.method==='GET'&&route==='/api/rooms'){
           reply(response,200,{rooms:roomDirectory(account),serverTime:Date.now()});return;
         }
@@ -816,7 +848,14 @@ export async function startKarmaServer({
             .slice(0,200).map(item=>{
               const {loadouts,...entry}=publicProfile(item);return entry;
             });
-          reply(response,200,{players});return;
+          const categoryRankings=Object.fromEntries(Object.keys(FAMILY_NAMES).map(family=>[family,
+            Object.values(db.data.profiles).filter(item=>!disabled.has(item.playerId)).map(item=>{
+              const mastery=masteryProgress(item);
+              const techniques=mastery.techniques.filter(t=>t.family===family);
+              return {playerId:item.playerId,name:item.name,qualified:techniques.reduce((sum,t)=>sum+t.qualified,0),successes:techniques.reduce((sum,t)=>sum+t.successes,0),diversity:techniques.filter(t=>t.qualified>0).length};
+            }).filter(item=>item.qualified>0).sort((a,b)=>b.qualified-a.qualified||b.diversity-a.diversity||a.playerId.localeCompare(b.playerId)).slice(0,200)
+          ]));
+          reply(response,200,{players,categoryRankings});return;
         }
         if(request.method==='GET'&&route==='/api/dashboard'){
           const roomList=[...rooms.values()].map(room=>({...roomInfo(room),started:room.started,
@@ -827,6 +866,19 @@ export async function startKarmaServer({
         }
         if(route.startsWith('/api/admin/')){
           if(account.role!=='admin')authError(403,'ADMIN_REQUIRED','관리자 권한이 필요합니다.');
+          if(request.method==='GET'&&route==='/api/admin/maps'){reply(response,200,{maps:mapAccess.list(),audit:mapAccess.data.audit.slice(-50).reverse()});return;}
+          if(request.method==='POST'&&route==='/api/admin/maps'){
+            const input=await body(request);let map;try{map=mapAccess.set(input.mapIndex,input.open,account.playerId);}catch(error){authError(400,'BAD_MAP_ACCESS',error.message);}
+            reply(response,200,{ok:true,map});return;
+          }
+          if(request.method==='GET'&&route==='/api/admin/fairplay'){
+            reply(response,200,{cases:fairplay.data.cases.slice().reverse().map(c=>({...c,name:db.data.profiles[c.playerId]?.name||c.playerId,otherName:db.data.profiles[c.otherPlayerId]?.name||c.otherPlayerId}))});return;
+          }
+          if(request.method==='POST'&&route==='/api/admin/fairplay/release'){
+            const input=await body(request),item=fairplay.release(input.id,account.playerId,input.note);
+            if(!item)authError(404,'CASE_NOT_FOUND','탐지 기록을 찾을 수 없습니다.');
+            db.activity('fairplay-released',{targetId:item.playerId,caseId:item.id,actorId:account.playerId});reply(response,200,{ok:true});return;
+          }
           if(request.method==='GET'&&route==='/api/admin/chat-logs'){
             reply(response,200,chatArchive.read({day:url.searchParams.get('day')||undefined,cursor:url.searchParams.get('cursor')??undefined,
               limit:url.searchParams.has('limit')?Number(url.searchParams.get('limit')):100,channel:url.searchParams.get('channel')||'',

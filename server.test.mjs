@@ -195,7 +195,7 @@ try{
 }finally{
   for(const client of clients)client.socket.destroy();
   if(server)await server.close();
-  for(const filename of ['profiles.json','auth.json']){
+  for(const filename of ['profiles.json','auth.json','fairplay.json']){
     const owned=path.join(temp,filename);if(fs.existsSync(owned))fs.unlinkSync(owned);
   }
   fs.rmdirSync(temp);

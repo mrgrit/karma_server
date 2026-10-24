@@ -128,9 +128,9 @@ function masterySummary(profile){
  return `${rankName(rank)}: XP ${format(profile.xp)}/${format(n.minXp)} · 기법 ${n.completedTechniques}/${n.techniques}종 (각 ${n.each}회) · 기동 ${m.families.mobile}/${n.mobile} · 중화기 ${m.families.heavy}/${n.heavy} · 특수·보조 ${m.families.special}/${n.special}`;
 }
 function masteryDetails(profile){
- const box=node('details'),summary=node('summary','기법별 누적 성과');box.append(summary);
+ const box=node('details'),summary=node('summary','무기별 누적 숙련');box.append(summary);
  const table=node('table'),head=node('tr');
- ['무기 / 공격 기법','계열','전체 성공','승급 인정'].forEach(x=>head.append(node('th',x)));table.append(head);
+ ['무기 / 대표 기법 (모든 맵 합산)','계열','전체 성공','승급 인정'].forEach(x=>head.append(node('th',x)));table.append(head);
  for(const t of profile.mastery?.techniques||[]){
   const weapon=state.catalog.weapons?.find(w=>w.id===t.weaponId||w.weaponId===t.weaponId);
   const row=node('tr');row.append(node('td',`${weapon?.name||t.weaponId} · ${t.name}`),node('td',state.catalog.mastery?.families?.[t.family]||t.family),node('td',format(t.successes)),node('td',format(t.qualified)));table.append(row);
@@ -148,7 +148,11 @@ function renderMastery(){
  }
  rules.append(table);
  const own=$('mastery-progress');own.replaceChildren(node('p',state.me?masterySummary(state.me):'로그인하면 승급 진행 상황을 확인할 수 있습니다.'));
- if(state.me)own.append(masteryDetails(state.me));
+ if(state.me){own.append(masteryDetails(state.me));
+   const entries=state.me.mastery?.scenarios||[];
+   if(entries.length){const detail=node('details');detail.append(node('summary','맵별 공격 기법 실적'));
+     for(const e of entries)detail.append(node('p',`맵 ${e.map} · ${e.name}: 전체 ${e.successes}회 / 승급 인정 ${e.qualified}회`));own.append(detail);}
+ }
 }
 function savedLoadouts(){
  const value=state.me?.loadouts;
@@ -288,8 +292,36 @@ function renderDashboard(){
  setText('kill-limit',count(d?.rules?.killLimit||10));setText('time-limit',Math.round(number(d?.rules?.timeLimitSeconds||600)/60));
  renderLeaderboard($('leaderboard-preview'),state.players.slice(0,5));
  renderLeaderboard($('leaderboard-table'),state.players);
+ const categories=$('category-rankings');categories.replaceChildren();
+ for(const [family,label] of Object.entries(state.catalog.mastery?.families||{})){
+  categories.append(node('h3',label));const table=node('table'),head=node('tr');
+  ['순위','게임 이름','승급 인정','전체 성공','사용 무기'].forEach(h=>head.append(node('th',h)));table.append(head);
+  const rows=state.categoryRankings?.[family]||[];
+  rows.forEach((p,i)=>{const row=node('tr');[i+1,p.name,format(p.qualified),format(p.successes),`${p.diversity}종`].forEach(v=>row.append(node('td',String(v))));table.append(row);});
+  const wrap=node('div',null,'table-wrap');wrap.append(table);categories.append(wrap);if(!rows.length)categories.append(node('p','아직 인정된 실적이 없습니다.'));
+ }
  const activity=state.activity.length?state.activity:state.meActivity||[];
  renderActivity($('activity-preview'),activity.slice(0,4));renderActivity($('activity-full'),activity.slice(0,60));
+}
+function renderMapAccess(maps){
+ const box=$('map-access-table');if(!box)return;const table=node('table'),head=node('tr');
+ for(const h of ['공개 순서','맵','인원','준비 상태','공개 설정'])head.append(node('th',h));table.append(head);
+ for(const m of maps){const row=node('tr'),cell=node('td'),button=node('button',m.open?'공개 중 · 닫기':'비공개 · 공개하기','button secondary');button.type='button';
+  button.addEventListener('click',async()=>{button.disabled=true;try{await api('/api/admin/maps',{method:'POST',body:{mapIndex:m.mapIndex,open:!m.open}});await refresh();}catch(error){message('page-notice',error.message);button.disabled=false;}});
+  cell.append(button);row.append(node('td',m.releaseOrder?String(m.releaseOrder):'기존/미정'),node('td',m.name+(m.sniperMap?' · 저격맵':'')),node('td',`최대 ${m.maxPlayers}명`),node('td',m.validation),cell);table.append(row);
+ }box.replaceChildren(table);
+}
+function renderFairplay(cases){
+ const box=$('fairplay-cases');if(!box)return;box.replaceChildren();
+ if(!cases.length){box.append(node('p','탐지된 기록이 없습니다.'));return;}
+ for(const c of cases){
+  const row=node('div'),e=c.evidence;
+  row.append(node('h3',`${c.name} · ${c.releasedAt?'해제됨':'게임 이용 중지'}`));
+  row.append(node('p',`${c.reason} / 상대: ${c.otherName}`));
+  row.append(node('p',`최근 ${e.windowMinutes}분: 처치 ${e.kills}, 비활동 피해 ${e.passiveDeaths}, 역방향 처치 ${e.reverseKills}, 무기 ${e.weapons}종, 경기 ${e.matches}회 · ${e.durationSeconds}초`));
+  if(!c.releasedAt){const button=node('button','관리자 확인 · 이용 중지 해제','button secondary');button.type='button';button.addEventListener('click',async()=>{button.disabled=true;try{await api('/api/admin/fairplay/release',{method:'POST',body:{id:c.id}});await refresh();}catch(error){message('page-notice',error.message);button.disabled=false;}});row.append(button);}
+  box.append(row);
+ }
 }
 function renderUsers(){
  if(!isAdmin()){empty($('admin-users'),'관리자 권한이 필요합니다.');return;}
@@ -329,21 +361,24 @@ async function refresh(){
  try{
   const jobs=[['auth',()=>api('/api/auth-config',{anonymous:true})],['leaderboard',()=>api('/api/leaderboard')],['dashboard',()=>api('/api/dashboard')]];
   if(state.token)jobs.push(['me',()=>api('/api/me')]);
+
   const results=await Promise.allSettled(jobs.map(([,fn])=>fn()));
   let connected=false,failure=null;
   results.forEach((result,index)=>{
    const key=jobs[index][0];
    if(result.status==='rejected'){if(result.reason.status!==401)failure=result.reason;return;}
    connected=true;const data=result.value;
+   if(key==='fairplay')renderFairplay(data.cases||[]);
    if(key==='auth'){state.authConfig=data;$('register-tab').hidden=data.registrationAvailable===false;}
-   if(key==='leaderboard')state.players=Array.isArray(data.players)?data.players:[];
+   if(key==='leaderboard'){state.players=Array.isArray(data.players)?data.players:[];state.categoryRankings=data.categoryRankings||{};}
    if(key==='dashboard'){state.dashboard=data;state.activity=Array.isArray(data.activity)?data.activity:[];}
    if(key==='me'){state.me=data.profile;state.meActivity=data.activity||[];state.catalog=data.catalog||{};}
   });
   setConnection(connected);
   if(failure)message('page-notice',errorText(failure));
   if(isAdmin()){
-   try{const data=await api('/api/admin/users');state.users=Array.isArray(data.users)?data.users:[];}
+   try{const [data,reviews,mapData]=await Promise.all([api('/api/admin/users'),api('/api/admin/fairplay'),api('/api/admin/maps')]);renderMapAccess(mapData.maps||[]);state.users=Array.isArray(data.users)?data.users:[];renderFairplay(reviews.cases||[]);
+     const held=reviews.cases.filter(c=>!c.releasedAt).length;if(held)message('page-notice',`실적 작업 의심 ${held}건: 사용자 관리에서 게임 이용 중지 사유를 확인하세요.`);}
    catch(error){message('page-notice',errorText(error));}
   }
   renderProfile();renderDashboard();renderUsers();
