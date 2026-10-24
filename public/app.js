@@ -115,10 +115,40 @@ function renderIdentity(){
 }
 function rankProgress(profile){
  const ranks=Array.isArray(state.catalog.ranks)?[...state.catalog.ranks].sort((a,b)=>number(a.minXp)-number(b.minXp)):[];
- const xp=count(profile.xp),current=ranks.filter(r=>xp>=number(r.minXp)).at(-1)||profile.rank||{};
- const next=ranks.find(r=>number(r.minXp)>xp);
+ const xp=count(profile.xp),rankXp=count(profile.rankXp??profile.xp),current=profile.rank||ranks.filter(r=>rankXp>=number(r.minXp)).at(-1)||{};
+ const next=ranks.find(r=>number(r.minXp)>rankXp);
  const range=next?number(next.minXp)-number(current.minXp):0;
  return {xp,current,next,percent:next&&range>0?Math.max(0,Math.min(100,(xp-number(current.minXp))/range*100)):ranks.length?100:0};
+}
+function masterySummary(profile){
+ const m=profile.mastery,n=m?.next;
+ if(!m)return '아직 기법 실적이 없습니다.';
+ if(!n)return '최고 계급 · 기법 실적은 계속 누적됩니다.';
+ const rank=state.catalog.ranks?.find(r=>number(r.minXp)===n.minXp);
+ return `${rankName(rank)}: XP ${format(profile.xp)}/${format(n.minXp)} · 기법 ${n.completedTechniques}/${n.techniques}종 (각 ${n.each}회) · 기동 ${m.families.mobile}/${n.mobile} · 중화기 ${m.families.heavy}/${n.heavy} · 특수·보조 ${m.families.special}/${n.special}`;
+}
+function masteryDetails(profile){
+ const box=node('details'),summary=node('summary','기법별 누적 성과');box.append(summary);
+ const table=node('table'),head=node('tr');
+ ['무기 / 공격 기법','계열','전체 성공','승급 인정'].forEach(x=>head.append(node('th',x)));table.append(head);
+ for(const t of profile.mastery?.techniques||[]){
+  const weapon=state.catalog.weapons?.find(w=>w.id===t.weaponId||w.weaponId===t.weaponId);
+  const row=node('tr');row.append(node('td',`${weapon?.name||t.weaponId} · ${t.name}`),node('td',state.catalog.mastery?.families?.[t.family]||t.family),node('td',format(t.successes)),node('td',format(t.qualified)));table.append(row);
+ }
+ const wrap=node('div',null,'table-wrap');wrap.append(table);box.append(wrap);return box;
+}
+function renderMastery(){
+ const rules=$('promotion-rules');rules.replaceChildren();
+ const table=node('table'),head=node('tr');
+ ['승급','누적 XP','기법 다양성','기동','중화기','특수·보조'].forEach(x=>head.append(node('th',x)));table.append(head);
+ for(const rule of state.catalog.mastery?.promotions||[]){
+  if(!rule.minXp)continue;
+  const row=node('tr'),rank=state.catalog.ranks?.find(r=>number(r.minXp)===rule.minXp);
+  [rankName(rank),format(rule.minXp),`${rule.techniques}종 × 각 ${rule.each}회`,`${rule.mobile}회`,`${rule.heavy}회`,`${rule.special}회`].forEach(x=>row.append(node('td',x)));table.append(row);
+ }
+ rules.append(table);
+ const own=$('mastery-progress');own.replaceChildren(node('p',state.me?masterySummary(state.me):'로그인하면 승급 진행 상황을 확인할 수 있습니다.'));
+ if(state.me)own.append(masteryDetails(state.me));
 }
 function savedLoadouts(){
  const value=state.me?.loadouts;
@@ -143,7 +173,7 @@ function loadoutNumbers(entry){
  return {cost,budget,character:c};
 }
 function renderProfile(){
- renderIdentity();
+ renderIdentity();renderMastery();
  const p=state.me;
  if(!p){
   setText('profile-id','—');setText('profile-name','전투 기록을 연결하세요');setText('profile-rank','로그인이 필요합니다');
@@ -159,7 +189,7 @@ function renderProfile(){
  setText('xp-label',`${format(p.xp)} XP`);setText('next-rank-label',progress.next?`${rankName(progress.next)} · ${format(progress.next.minXp)} XP`:'현재 계급');
  $('rank-progress').firstElementChild.style.width=progress.percent.toFixed(1)+'%';
  $('rank-progress').setAttribute('aria-valuenow',String(Math.round(progress.percent)));
- setText('rank-progress-detail',progress.next?`다음 계급까지 ${format(number(progress.next.minXp)-progress.xp)} XP`:'서버에 저장된 계급과 경험치입니다.');
+ setText('rank-progress-detail',p.mastery?masterySummary(p):progress.next?`다음 계급까지 ${format(Math.max(0,number(progress.next.minXp)-progress.xp))} XP`:'서버에 저장된 계급과 경험치입니다.');
  $('stat-kd').replaceChildren(document.createTextNode(format(p.kills)+' '),node('small','/ '+format(p.deaths)));
  setText('stat-kd-ratio','K/D '+kd(p));
  $('stat-winrate').replaceChildren(document.createTextNode(matches?(count(p.wins)/matches*100).toFixed(1):'0'),node('small','%'));
@@ -288,6 +318,7 @@ function renderUsers(){
    node('td',`${format(u.wins)} / ${format(u.losses)} / ${format(u.draws)}`),
    node('td',u.disabled?'비활성':u.approvalStatus==='pending'?'승인 대기':u.role==='admin'?'관리자':'승인됨',u.disabled?'disabled-tag':'table-muted'),action);
   body.append(tr);
+  const detailRow=node('tr'),detailCell=node('td');detailCell.colSpan=8;detailCell.append(node('p',masterySummary(u)),masteryDetails(u));detailRow.append(detailCell);body.append(detailRow);
  });
  table.append(head,body);$('admin-users').replaceChildren(table);
 }

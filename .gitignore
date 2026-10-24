@@ -12,3 +12,8 @@ operator.key
 owner.key
 deployment-pending.json
 client-release/
+
+# Private release signing keys must never be committed
+release-signing/
+*.private.pem
+release-*.pem

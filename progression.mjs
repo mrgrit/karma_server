@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
+import {newMastery,validateMastery,recordMastery} from './mastery.mjs';
 
 export const DEFAULT_RANKS=Object.freeze([
   {id:'recruit',minXp:0,budgetBonus:0},
@@ -210,7 +211,7 @@ function validateDeathReceipt(receipt){
 }
 
 export function newProgressProfile(playerId=crypto.randomUUID()){
-  return {version:1,playerId:id(playerId,'player ID'),xp:0,kills:0,deaths:0,seenLives:{}};
+  return {version:1,playerId:id(playerId,'player ID'),xp:0,kills:0,deaths:0,seenLives:{},mastery:newMastery()};
 }
 function profileValue(profile){
   if(profile?.version!==1)fail('Unsupported progress profile');
@@ -220,6 +221,7 @@ function profileValue(profile){
     if(!/^[0-9a-f]{64}$/.test(entry))fail('Invalid processed life key');
     int(life,'processed life',1);
   }
+  if(profile.mastery)validateMastery(profile.mastery);
   return clone(profile);
 }
 /** Storage-independent reducer. Future central service can use the same rules. */
@@ -231,7 +233,7 @@ export function applyDeathToProfile(profile,receipt){
   next.seenLives[lifeKey]=receipt.victimLife;
   let xpGained=0;
   if(next.playerId===receipt.victimId){next.deaths++;if(receipt.verified)xpGained=5;}
-  else if(receipt.verified){next.kills++;xpGained=25;}
+  else if(receipt.verified){next.kills++;xpGained=25;recordMastery(next,receipt);}
   next.xp+=xpGained;int(next.xp,'XP');
   return {changed:true,xpGained,profile:next};
 }

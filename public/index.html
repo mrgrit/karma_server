@@ -64,6 +64,18 @@
             <div class="rules"><span><b id="kill-limit">10</b>킬 선승</span><span><b id="time-limit">10</b>분 제한</span><span>동점 시 무승부</span></div>
           </article>
         </div>
+        <article class="panel mastery-panel">
+          <div class="panel-heading"><h2>전공 실습 · 승급 안내</h2></div>
+          <p>XP, 기법 다양성, 계열별 조건을 모두 충족하면 승급합니다. 서로 다른 무기마다 고정된 공격 기법을 익힙니다.</p>
+          <div id="mastery-progress"></div>
+          <details><summary>전체 승급 조건과 집계 기준</summary>
+            <div id="promotion-rules" class="table-wrap"></div>
+            <p>모든 조건은 누적입니다. 승급·재접속·서버 재시작 후에도 실적은 유지됩니다. 서버가 확인한 상대 플레이어 처치만 인정하며, 헤드샷 추가 가산은 없습니다. 자살·환경사·AI·로컬 연습은 제외합니다.</p>
+            <p>전체 성공은 모두 기록하되, 한 경기에서 같은 상대를 같은 기법으로 처치한 승급 실적은 최대 3회입니다. XP와 경기 점수는 기존대로 쌓입니다. XP를 충족해도 숙련이 부족하면 승급을 기다리며, 캐릭터·장비 예산·쌍포 해금은 실제 계급을 따릅니다.</p>
+            <p>도입 전 계급은 보존합니다. 과거 무기별 실적은 추정해서 만들지 않으며 적용 이후부터 집계합니다. 관리자 XP 수정만으로 기법 숙련 조건을 우회할 수 없습니다.</p>
+            <p>정밀: 저격총 2종 · 기동: 일반 소총·기관단총·돌격소총 · 중화기: 기관총·화염방사기·로켓 · 특수·보조: 권총·칼·석궁·유탄·수류탄. 무기를 주워도 계열과 기법은 그대로입니다.</p>
+          </details>
+        </article>
         <div class="stats-grid">
           <article class="stat-card"><span>킬 / 데스</span><strong id="stat-kd">— <small>/ —</small></strong><div id="stat-kd-ratio">K/D —</div></article>
           <article class="stat-card"><span>승률</span><strong id="stat-winrate">—<small>%</small></strong><div id="stat-matches">아직 기록이 없습니다</div></article>
@@ -83,6 +95,7 @@
       <section id="leaderboard-view" class="view" hidden><article class="panel"><div class="panel-heading"><h2>전체 순위</h2><span class="tiny-label">서버에 저장된 전투 기록</span></div><div id="leaderboard-table" class="table-wrap"></div></article></section>
       <section id="activity-view" class="view" hidden><article class="panel"><div class="panel-heading"><h2>활동 기록</h2><span class="tiny-label">최근 기록부터 표시</span></div><div id="activity-full" class="activity-list full"></div></article></section>
       <section id="admin-view" class="view" hidden>
+        <p class="help-note">승급 기준은 종합 현황의 ‘전공 실습 · 승급 안내’에서 확인합니다. 아래 사용자별 기법 실적은 서버 확정 기록이며, XP 수정과 별도로 유지됩니다.</p>
         <p id="approval-summary" class="help-note" role="status">신규 가입자는 관리자 승인 후 이용할 수 있습니다.</p>
         <article class="panel"><div class="panel-heading"><div><div class="eyebrow">PERSONNEL MANAGEMENT</div><h2>사용자 관리</h2></div><label class="search-field"><span class="sr-only">사용자 검색</span><input id="user-search" type="search" placeholder="닉네임 · 이메일 검색" autocomplete="off"></label></div><div id="admin-users" class="table-wrap"></div></article>
       </section>

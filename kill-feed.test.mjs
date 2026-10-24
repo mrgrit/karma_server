@@ -31,7 +31,7 @@ try{
   const event=await wait(()=>a.messages.find(m=>m.type==='death-confirmed'&&m.receipt.victimLife===index));
   await wait(()=>b.messages.some(m=>m.feed?.id===event.feed.id));
   assert.equal(event.feed.kind,'kill');assert.equal(event.feed.headshot,headshot);assert.equal(event.feed.killerName,a.name);assert.equal(event.feed.victimName,b.name);
-  assert.equal(event.feed.weaponName,'MP38');assert.equal(event.feed.killerId,a.id);assert(event.receipt.verified);
+  assert.equal(event.feed.techniqueName,'ARP 스푸핑');assert.equal(event.feed.weaponName,'MP38');assert.equal(event.feed.killerId,a.id);assert(event.receipt.verified);
   assert.equal(event.receipt.damage.hitRegion,kind==='bullet'?region:null);
   b.send({type:'game',message:death});await delay(30);assert.equal(a.messages.filter(m=>m.feed?.id===event.feed.id).length,1);
  }
@@ -39,6 +39,9 @@ try{
  assert.equal((await wait(()=>a.messages.find(m=>m.receipt?.victimLife===5))).feed.kind,'self');
  b.send({type:'game',message:state(6)});b.send({type:'game',message:{type:'death',version:1,life:6,seq:2,killer:'remote',weapon:9,hpAfter:0}});
  const unknown=await wait(()=>a.messages.find(m=>m.receipt?.victimLife===6));assert.equal(unknown.feed.kind,'death');assert.equal(unknown.feed.killerId,null);assert.equal(unknown.feed.headshot,false);
+ const me=await fetch(`http://127.0.0.1:${server.healthPort}/api/me`,{headers:{Authorization:'Bearer '+server.auth.issueSession(server.auth.list().find(x=>x.playerId===a.id)).authToken}}).then(r=>r.json());
+ assert.equal(me.profile.mastery.techniques.find(t=>t.weaponId===9).successes,4);
+ assert.equal(me.profile.mastery.techniques.find(t=>t.weaponId===9).qualified,3);
  assert(!outside.messages.some(m=>m.type==='death-confirmed'));
  console.log('PASS kill feed: verified name/weapon/death, head/body/pellet/projectile classification, forged headshot ignored, self/unverified labels, one event per life, both recipients, room isolation.');
 }finally{for(const c of clients)c.socket.destroy();await server.close();for(const file of ['auth.json','profiles.json']){const p=path.join(temp,file);if(fs.existsSync(p))fs.unlinkSync(p);}fs.rmdirSync(temp);}

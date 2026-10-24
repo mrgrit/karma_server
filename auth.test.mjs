@@ -82,7 +82,7 @@ try{
   signup=await request('/auth/login',{method:'POST',body:{email:'user@example.test',password}});
   assert.equal(signup.value.profile.emailVerified,false);assert.equal(signup.value.profile.isAdmin,false);
   assert.equal(signup.value.profile.email,'user@example.test');
-  assert.equal(signup.value.profile.progressionVersion,2);
+  assert.equal(signup.value.profile.progressionVersion,3);
   assert.equal(signup.value.profile.unlockedCharacterIds.length,6);
   assert.equal(signup.value.profile.dualCannonUnlocked,false);
   const user=signup.value;
@@ -98,7 +98,7 @@ try{
   assert.equal(patch.value.profile.rank.id,'recruit','Existing XP keeps its value under the higher promotion requirements');
   patch=await request('/api/admin/users/'+user.profile.playerId,{...headers,method:'PATCH',body:{xp:1000,kills:2,deaths:1,wins:1,losses:0,draws:1}});
   assert.equal(patch.status,200);assert.equal(patch.value.profile.matches,2);
-  assert.equal((await request('/api/me',{token:user.authToken})).value.profile.rank.id,'private');
+  assert.equal((await request('/api/me',{token:user.authToken})).value.profile.rank.id,'recruit');
   assert.equal((await request('/api/me',{token:user.authToken})).value.profile.email,'user@example.test');
   // Invalid combined admin writes must not leak XP or unlocks into live state.
   patch=await request('/api/admin/users/'+user.profile.playerId,{...headers,method:'PATCH',body:{xp:6000,
@@ -107,8 +107,13 @@ try{
   assert.equal((await request('/api/me',{token:user.authToken})).value.profile.xp,1000);
   patch=await request('/api/admin/users/'+user.profile.playerId,{...headers,method:'PATCH',body:{xp:6000,
     loadouts:{cpom_020:{inventory:[50,9,21,22,255,255,255],selectedWeapon:21}}}});
-  assert.equal(patch.status,200);assert.equal(patch.value.profile.dualCannonUnlocked,true);
-  assert.deepEqual(patch.value.profile.loadouts.cpom_020.inventory,[50,9,21,22,255,255,255]);
+  assert.equal(patch.status,400,'XP alone cannot unlock dual cannon');
+  patch=await request('/api/admin/users/'+user.profile.playerId,{...headers,method:'PATCH',body:{xp:6000}});
+  assert.equal(patch.status,200);assert.equal(patch.value.profile.dualCannonUnlocked,false);
+  assert.equal(patch.value.profile.rankXp,0);
+  assert.equal(patch.value.profile.mastery.next.minXp,1000);
+  const forged=await request('/api/admin/users/'+user.profile.playerId,{...headers,method:'PATCH',body:{mastery:{legacyRankXp:10000}}});
+  assert.equal(forged.status,400,'mastery is not writable through the admin XP editor');
   patch=await request('/api/admin/users/'+user.profile.playerId,{...headers,method:'PATCH',body:{xp:100}});
   assert.equal(patch.status,200);assert.deepEqual(patch.value.profile.loadouts,{});
   assert.equal(patch.value.profile.dualCannonUnlocked,false,'XP downgrade invalidates the saved dual build');

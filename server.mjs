@@ -11,6 +11,7 @@ import {AuthService,authError} from './auth.mjs';
 import {createExchangeClient} from './exchange-client.mjs';
 import {serveClientRelease} from './client-release.mjs';
 import {createChatFilter,ChatArchive} from './chat-policy.mjs';
+import {newMastery,validateMastery,masteryProgress,rankXpForProfile,TECHNIQUES,PROMOTIONS,FAMILY_NAMES,techniqueForWeapon} from './mastery.mjs';
 import {
   CombatLedger,DropLedger,validateLoadout,rankForXp,loadoutBudget,characterUnlocked,
   newProgressProfile,applyDeathToProfile,atomicWriteJson,
@@ -57,6 +58,7 @@ class ProfileDatabase{
     this.filename=filename;
     this.data=fs.existsSync(filename)?readJson(filename):{version:1,profiles:{},matches:{},activity:[]};
     if(this.data.version!==1||!plainObject(this.data.profiles))throw Error('Invalid profiles database; preserving file');
+    let migrated=false;
     for(const entry of Object.values(this.data.profiles)){
       // The pure reducer's profile checks also reject invalid XP/counters.
       integer(entry.xp,'stored XP',0,Number.MAX_SAFE_INTEGER);
@@ -64,8 +66,15 @@ class ProfileDatabase{
       integer(entry.deaths,'stored deaths',0,Number.MAX_SAFE_INTEGER);
       identifier(entry.playerId,'stored player ID');
       if(!plainObject(entry.seenLives))throw Error('Invalid stored profile history');
+      if(entry.mastery===undefined){entry.mastery=newMastery(entry.xp);migrated=true;}
+      validateMastery(entry.mastery);
     }
     this.data.matches??={};this.data.activity??=[];
+    if(migrated){
+      // Preserve the complete pre-migration database before the first durable rewrite.
+      fs.copyFileSync(filename,filename+'.pre-mastery-'+Date.now()+'.bak',fs.constants.COPYFILE_EXCL);
+      this.flush();
+    }
   }
   ensure(account){
     const playerId=identifier(account.playerId,'player ID'),existing=this.data.profiles[playerId];
@@ -144,14 +153,15 @@ export async function startKarmaServer({
   let closing=false,acceptedMessages=0,relayedMessages=0;
   const log=(event,details={})=>{try{logger(event,details);}catch{}};
   function publicProfile(profile,character,account){
+    const mastery=masteryProgress(profile),rankXp=mastery.rankXp;
     return {version:1,playerId:profile.playerId,name:profile.name,xp:profile.xp,
-      kills:profile.kills,deaths:profile.deaths,rank:rankForXp(profile.xp,catalog.ranks),
+      kills:profile.kills,deaths:profile.deaths,rank:rankForXp(rankXp,catalog.ranks),
       wins:profile.wins||0,losses:profile.losses||0,draws:profile.draws||0,matches:profile.matches||0,
       ...(account?{email:account.email,role:account.role,isAdmin:account.role==='admin',emailVerified:!!account.emailVerified}:{}),
-      ...(character?{inventoryCapacity:loadoutBudget({xp:profile.xp,character,ranks:catalog.ranks})}:{}),
-      progressionVersion:catalog.progressionVersion??1,
-      unlockedCharacterIds:Object.keys(catalog.characters).filter(id=>characterUnlocked(catalog.characters[id],profile.xp)),
-      dualCannonUnlocked:profile.xp>=(catalog.constraints?.dualCannon?.minXp??Number.MAX_SAFE_INTEGER),
+      ...(character?{inventoryCapacity:loadoutBudget({xp:rankXp,character,ranks:catalog.ranks})}:{}),
+      progressionVersion:3,rankXp,mastery,
+      unlockedCharacterIds:Object.keys(catalog.characters).filter(id=>characterUnlocked(catalog.characters[id],rankXp)),
+      dualCannonUnlocked:rankXp>=(catalog.constraints?.dualCannon?.minXp??Number.MAX_SAFE_INTEGER),
       ...(exchange?{coins:coinProfiles.get(profile.playerId)??{available:null,gameFee:100,url:exchange.publicUrl,status:'unavailable'}}:{}),
       loadouts:clone(profile.loadouts||{})};
   }
@@ -214,14 +224,14 @@ export async function startKarmaServer({
     const equipment=validateLoadout({
       inventory:value.inventory??character.defaultInventory??catalog.defaultInventory,
       selectedWeapon:value.selectedWeapon??character.defaultSelectedWeapon??catalog.defaultSelectedWeapon,
-      xp:profile.xp,character,weapons:catalog.weapons,ranks:catalog.ranks,
+      xp:rankXpForProfile(profile),character,weapons:catalog.weapons,ranks:catalog.ranks,
       slotRules:catalog.slots,constraints:catalog.constraints,
     });
     const build=value.settings?.build??'karma290-lan1';
     if(typeof build!=='string'||!/^[A-Za-z0-9_.-]{1,96}$/.test(build))reject('BAD_CONFIG','Invalid build');
     const config={map:battlefield.mapIndex,age:0,character:{index:original.characterIndex,camp:original.camp,
       model:path.basename(original.model.replaceAll('\\','/')).toLowerCase(),name:profile.name},
-      inventory:equipment.inventory,selectedWeapon:equipment.selectedWeapon,rank:rankForXp(profile.xp,catalog.ranks),
+      inventory:equipment.inventory,selectedWeapon:equipment.selectedWeapon,rank:rankForXp(rankXpForProfile(profile),catalog.ranks),
       settings:{build,mode:1}};
     return {config,character,characterId:original.id};
   }
@@ -509,7 +519,7 @@ export async function startKarmaServer({
     const feed={id:receipt.id,kind:receipt.verified?'kill':receipt.killer==='self'?'self':'death',
       killerId:receipt.verified||receipt.killer==='self'?receipt.killerId:null,victimId:receipt.victimId,
       killerName:receipt.verified?(db.data.profiles[receipt.killerId]?.name||'플레이어'):'',
-      victimName:session.account.name,weapon:receipt.weapon,weaponName:weaponById.get(receipt.weapon)?.name||'무기',
+      victimName:session.account.name,techniqueName:receipt.verified?(techniqueForWeapon(receipt.weapon)?.name||''): '',weapon:receipt.weapon,weaponName:weaponById.get(receipt.weapon)?.name||'무기',
       headshot:receipt.verified&&receipt.damage?.hitKind==='bullet'&&receipt.damage.hitRegion===0,time:Date.now()};
     broadcast(room,{type:'death-confirmed',version:2,receipt,feed});
     const previousXp=new Map([result.receipt.victimId,result.receipt.killerId].map(id=>[id,db.data.profiles[id]?.xp||0]));
@@ -545,7 +555,7 @@ export async function startKarmaServer({
     if(!session.hasState){write(session,{type:'pickup-denied',requestId:message.requestId,dropId:message.dropId,reason:'no-player-state'});return;}
     const profile=db.data.profiles[session.playerId];
     const result=session.room.drops.claimDrop(session.playerId,message,{
-      state:session.state,character:session.character,xp:profile.xp,
+      state:session.state,character:session.character,xp:rankXpForProfile(profile),
       weapons:catalog.weapons,ranks:catalog.ranks,constraints:catalog.constraints,
     });
     if(!result.granted){write(session,{type:'pickup-denied',version:2,requestId:message.requestId,dropId:message.dropId,reason:result.reason});return;}
@@ -796,7 +806,8 @@ export async function startKarmaServer({
           reply(response,200,{profile:accountProfile(account),activity:db.data.activity.filter(item=>
             item.playerIds?.includes(account.playerId)||item.targetId===account.playerId).slice(-30).reverse(),
             catalog:{characters:catalog.characters,weapons:catalog.weapons,ranks:catalog.ranks,slots:catalog.slots,
-              classes:catalog.classes,constraints:catalog.constraints,progressionVersion:catalog.progressionVersion}});return;
+              classes:catalog.classes,constraints:catalog.constraints,progressionVersion:3,
+              mastery:{techniques:TECHNIQUES,promotions:PROMOTIONS,families:FAMILY_NAMES,perOpponentMatchCap:3}}});return;
         }
         if(request.method==='GET'&&route==='/api/leaderboard'){
           const disabled=new Set(auth.list().filter(item=>item.disabled||item.approvalStatus!=='approved').map(item=>item.playerId));
@@ -857,7 +868,7 @@ export async function startKarmaServer({
                 const character=catalog.characters[characterId];
                 try{
                   if(!character||!plainObject(selection))authError(400,'BAD_LOADOUT','캐릭터 장비 설정을 확인해 주세요.');
-                  const valid=validateLoadout({...selection,xp:profile.xp,character,weapons:catalog.weapons,ranks:catalog.ranks,
+                  const valid=validateLoadout({...selection,xp:rankXpForProfile(profile),character,weapons:catalog.weapons,ranks:catalog.ranks,
                     slotRules:catalog.slots,constraints:catalog.constraints});
                   loadouts[characterId]={inventory:valid.inventory,selectedWeapon:valid.selectedWeapon};
                 }catch(problem){
