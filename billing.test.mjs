@@ -29,6 +29,9 @@ async function join(code,host=false){
 try{
  const a=await join('931001',true),b=await join('931001');await delay(100);assert.equal(charges,0,'lobby entrance is free');
  let resume;pause=new Promise(r=>resume=r);a.start();await wait('charge pending',()=>charges===1);a.start();a.start();await delay(100);assert.equal(charges,1,'double click cannot debit twice');assert(!a.latest('peer-ready'));
+ a.send({type:'lobby-update',requestId:'room-edit-during-charge',roomId:a.latest('welcome').room.roomId,roomRevision:0,roomSettings:{map:0,mode:'dm',maxPlayers:8,roomName:'race',killLimit:20,roundWinLimit:5,timeLimitSeconds:600}});
+ await wait('room edit rejected while charging',()=>a.messages.some(m=>m.requestId==='room-edit-during-charge'&&m.code==='ROOM_BUSY'));
+ assert.equal(a.latest('waiting').roomSettingsEditable,false);assert.equal(charges,1);
  resume();pause=null;await wait('ready',()=>b.latest('peer-ready'));assert.equal(b.latest('peer-ready').profile.coins.available,200);assert.equal(balances.get(a.id),200);assert.equal(payments.size,0);
  const c=await join('931002',true),d=await join('931002');fail=true;c.start();await wait('insufficient funds denial',()=>c.latest('start-denied'));assert.match(c.latest('start-denied').message,/코인 부족/);assert(!d.latest('peer-ready'));assert(!c.socket.destroyed);
  fail=false;c.start();await wait('retry funded start',()=>d.latest('peer-ready'));assert.equal(balances.get(c.id),200);

@@ -281,12 +281,35 @@ export async function startKarmaServer({
   }
   function lobbyInfo(room){return {type:'waiting',version:2,...roomInfo(room),players:room.clients.length,
     canStart:startReason(room)==='',startReason:startReason(room),
+    roomRevision:room.settingsRevision||0,roomSettingsEditable:!room.started&&!room.starting&&!room.ending&&room.pending.size===0,
+    availableMaps:multiplayerMaps.filter(m=>room.clients.every(c=>mapAccess.isOpen(m.mapIndex)||c.account.role==='admin')&&(!m.minClientBuild||m.minClientBuild===room.build)).map(m=>({map:m.mapIndex,name:m.name,maxPlayers:m.maxPlayers||8})),
     members:room.clients.map(c=>({playerId:c.playerId,name:c.account.name,slot:c.slot,team:c.team,ready:c.ready===true}))};}
+  function changeRoomSettings(session,message){
+    const room=session.room,value=message.roomSettings;
+    if(room.clients[0]!==session)reject('HOST_ONLY','방장만 방 설정을 변경할 수 있습니다.');
+    if(room.started||room.starting||room.ending||room.pending.size)reject('ROOM_BUSY','시작·입장 처리 중이거나 진행 중인 방은 변경할 수 없습니다.');
+    if(message.roomId!==room.id||message.roomRevision!==(room.settingsRevision||0))reject('ROOM_CHANGED','방 설정이 변경되었습니다. 창을 다시 열어 주세요.');
+    if(!plainObject(value)||message.ready!==undefined||message.config!==undefined)reject('BAD_ROOM_SETTINGS','방 설정만 별도로 요청해 주세요.');
+    const map=integer(value.map,'map',0,19),capacity=integer(value.maxPlayers,'room capacity',2,maxPlayers),mode=value.mode;
+    const battlefield=multiplayerMaps.find(m=>m.mapIndex===map);
+    if(!battlefield||capacity>(battlefield.maxPlayers||8))reject('MAP_CAPACITY','선택한 맵의 최대 인원을 초과했습니다.');
+    if(!['duel','dm','tdm'].includes(mode)||(mode==='duel'&&capacity!==2)||(mode==='tdm'&&capacity%2!==0))reject('BAD_MODE','1:1은 2명, 팀전 정원은 짝수로 설정해 주세요.');
+    if(capacity<room.clients.length||room.clients.some(c=>capacity>(c.capability||8)))reject('ROOM_CAPACITY','현재 참가자 수 또는 참가자의 지원 인원에 맞지 않습니다.');
+    const name=roomDisplayName(value.roomName,session.account.name+'의 방');
+    const kills=integer(value.killLimit,'kill limit',1,30),rounds=integer(value.roundWinLimit,'round win limit',1,10),seconds=integer(value.timeLimitSeconds,'match seconds',60,1800);
+    // Validate every participant before any mutation, including map access.
+    const configurations=room.clients.map(c=>normalizedConfig({...c.config,map},db.data.profiles[c.playerId],auth.authenticate(c.authToken)).config);
+    Object.assign(room,{name,map,maxPlayers:capacity,mode,killLimit:kills,roundWinLimit:rounds,timeLimitSeconds:seconds,settingsRevision:(room.settingsRevision||0)+1});room.lobbyRevision++;
+    room.clients.forEach((c,index)=>{c.config=configurations[index];c.ready=false;c.slot=index;c.team=index%2;});
+    write(session,{type:'lobby-updated',version:2,requestId:message.requestId,roomId:room.id,ready:false,config:clone(session.config)});
+    broadcast(room,lobbyInfo(room));
+  }
   function lobbyUpdate(session,message){
     const room=session.room,requestId=message.requestId;
     try{
       if(room.started||room.ending)reject('MATCH_STARTED','이미 시작한 대전에서는 대기실 장비나 준비 상태를 변경할 수 없습니다.');
       if(requestId!==undefined)identifier(requestId,'request ID');
+      if(message.roomSettings!==undefined){changeRoomSettings(session,message);return;}
       if(message.ready===undefined&&message.config===undefined)reject('BAD_LOBBY_UPDATE','준비 상태나 장비 설정을 선택해 주세요.');
       if(message.ready!==undefined&&typeof message.ready!=='boolean')reject('BAD_LOBBY_UPDATE','준비 상태가 올바르지 않습니다.');
       if(message.config!==undefined){
@@ -423,7 +446,7 @@ export async function startKarmaServer({
       db.save(currentProfile);
       if(room.started){room.combat.addParticipant(playerId);room.drops.addParticipant(playerId);}
       session.playerId=playerId;session.character=offered.character;
-      session.config=offered.config;session.room=room;session.slot=slot;session.team=slot%2;
+      session.config=offered.config;session.capability=capability;session.room=room;session.slot=slot;session.team=slot%2;
       session.inventory=[...offered.config.inventory];
       session.state={life:initialLife,hp:100,pos:[0,0,0],inventory:[...session.inventory],
         selectedWeapon:offered.config.selectedWeapon,ammo:{},seq:-1};
