@@ -1,5 +1,5 @@
 import net from 'node:net';
-import {scenarioForWeapon} from './attack-scenarios.mjs';
+import {scenarioForWeapon,ATTACK_CURRICULUM} from './attack-scenarios.mjs';
 import {FairPlay} from './fairplay.mjs';
 import {MapAccess} from './map-access.mjs';
 import http from 'node:http';
@@ -839,7 +839,7 @@ export async function startKarmaServer({
             item.playerIds?.includes(account.playerId)||item.targetId===account.playerId).slice(-30).reverse(),
             catalog:{characters:catalog.characters,weapons:catalog.weapons,ranks:catalog.ranks,slots:catalog.slots,
               classes:catalog.classes,constraints:catalog.constraints,progressionVersion:3,
-              mastery:{techniques:TECHNIQUES,promotions:PROMOTIONS,families:FAMILY_NAMES,perOpponentMatchCap:3}}});return;
+              mastery:{curriculum:ATTACK_CURRICULUM,techniques:TECHNIQUES,promotions:PROMOTIONS,families:FAMILY_NAMES,perOpponentMatchCap:3}}});return;
         }
         if(request.method==='GET'&&route==='/api/leaderboard'){
           const disabled=new Set(auth.list().filter(item=>item.disabled||item.approvalStatus!=='approved').map(item=>item.playerId));

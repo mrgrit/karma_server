@@ -3,6 +3,7 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import {fileURLToPath} from 'node:url';
 import {newMastery,masteryProgress,PROMOTIONS,TECHNIQUES,FAMILY_NAMES} from './mastery.mjs';
+const curriculum=JSON.parse(fs.readFileSync(new URL('./attack-curriculum.json',import.meta.url),'utf8'));
 const root=fileURLToPath(new URL('./',import.meta.url));
 const html=fs.readFileSync(root+'public/index.html','utf8');
 const js=fs.readFileSync(root+'public/app.js','utf8');
@@ -26,10 +27,11 @@ assert(!/@import|url\(["']?https?:/i.test(css),'Local dashboard should not depen
 assert(!/\blocalStorage\b/.test(js),'Session token must not persist across browser sessions');
 class Element{
  constructor(tag){this.tagName=tag;this.children=[];this.attributes={};this.dataset={};}
- set textContent(value){this.value=String(value);this.children=[];}
- get textContent(){return(this.value||'')+this.children.map(x=>x.textContent).join('');}
+ setAttribute(name,value){this.attributes[name]=String(value);}
+ set textContent(value){this.text=String(value);this.children=[];}
+ get textContent(){return(this.text||'')+this.children.map(x=>x.textContent).join('');}
  append(...nodes){this.children.push(...nodes);}
- replaceChildren(...nodes){this.value='';this.children=[...nodes];}
+ replaceChildren(...nodes){this.text='';this.children=[...nodes];}
 }
 const context={sessionStorage:{getItem:()=>null},
  document:{createElement:t=>new Element(t),createTextNode:text=>({textContent:String(text)}),getElementById:()=>null},
@@ -38,7 +40,7 @@ vm.createContext(context);
 const prefix=js.slice(0,js.indexOf("$('auth-form').addEventListener"));
 const validate=js.slice(js.indexOf('function validateLoadouts(value)'),js.indexOf("$('edit-form').addEventListener"));
 vm.runInContext(prefix+validate+
- '\nglobalThis.test={state,rankProgress,rankName,kd,totalMatches,loadoutNumbers,characterById,validateLoadouts,renderLeaderboard,activityText,masterySummary,masteryDetails};})();',context);
+ '\nglobalThis.test={state,rankProgress,rankName,kd,totalMatches,loadoutNumbers,characterById,validateLoadouts,renderLeaderboard,activityText,masterySummary,masteryDetails,renderAttackMapping};})();',context);
 const t=context.test;
 t.state.catalog=catalog;
 const characterId=Object.keys(catalog.characters)[0],character=catalog.characters[characterId];
@@ -73,3 +75,10 @@ function tags(node){return[node.tagName,...(node.children||[]).flatMap(tags)];}
 assert(!tags(container).includes('img'),'Untrusted name cannot create an image element');
 assert(t.activityText({event:'admin-user-update'})[0].includes('관리자'));
 console.log('PASS: DOM IDs/forms/navigation; server API contract; object catalog; exact equipment budget; rank/KD/match calculations; loadout validation; safe text rendering; leaderboard email privacy; no remote asset dependency.');
+
+const mapping=new Element('div');context.document.getElementById=id=>id==='attack-mapping'?mapping:null;
+t.state.catalog.mastery.curriculum=curriculum;t.renderAttackMapping();
+assert(mapping.textContent.includes('345개 조합'));assert(mapping.textContent.includes('기초 공통'));assert(mapping.textContent.includes('Mass of Winter'));
+const select=mapping.children.find(e=>e.tagName==='select');select.value='16';select.onchange();
+assert(mapping.textContent.includes('BYOVD 커널 권한 상승'));assert(mapping.textContent.includes('바주카포'));
+assert(!mapping.textContent.includes('악성 USB 연결'),'changing map replaces the old table');

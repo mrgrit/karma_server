@@ -147,12 +147,30 @@ function renderMastery(){
   [rankName(rank),format(rule.minXp),`${rule.techniques}종 × 각 ${rule.each}회`,`${rule.mobile}회`,`${rule.heavy}회`,`${rule.special}회`].forEach(x=>row.append(node('td',x)));table.append(row);
  }
  rules.append(table);
+ renderAttackMapping();
  const own=$('mastery-progress');own.replaceChildren(node('p',state.me?masterySummary(state.me):'로그인하면 승급 진행 상황을 확인할 수 있습니다.'));
  if(state.me){own.append(masteryDetails(state.me));
    const entries=state.me.mastery?.scenarios||[];
    if(entries.length){const detail=node('details');detail.append(node('summary','맵별 공격 기법 실적'));
-     for(const e of entries)detail.append(node('p',`맵 ${e.map} · ${e.name}: 전체 ${e.successes}회 / 승급 인정 ${e.qualified}회`));own.append(detail);}
+     for(const e of entries)detail.append(node('p',`${state.catalog.mastery?.curriculum?.maps.find(m=>m.map===e.map)?.name||'맵 '+e.map} · ${e.name}: 전체 ${e.successes}회 / 승급 인정 ${e.qualified}회`));own.append(detail);}
  }
+}
+function renderAttackMapping(){
+ const target=$('attack-mapping');if(!target)return;
+ const curriculum=state.catalog.mastery?.curriculum;const previous=target.querySelector?.('select')?.value;
+ target.replaceChildren();if(!curriculum){target.append(node('p','로그인하면 전체 매핑표가 표시됩니다.'));return;}
+ target.append(node('p',curriculum.difficultyNote));
+ const select=node('select');select.setAttribute('aria-label','공격명 매핑을 볼 맵');
+ for(const map of curriculum.maps){const option=node('option',`${map.level===0?'기초':'추가 공개 '+map.level+'단계'} · ${map.name} · ${map.topic}`);option.value=String(map.map);select.append(option);}
+ if(curriculum.maps.some(m=>String(m.map)===previous))select.value=previous;
+ const content=node('div');content.className='table-wrap';
+ const draw=()=>{const map=curriculum.maps.find(m=>String(m.map)===select.value)||curriculum.maps[0];content.replaceChildren(node('p','선행 지식: '+map.prerequisite));
+  const table=node('table'),head=node('tr');['무기','공격명','무기와 연결한 개념'].forEach(x=>head.append(node('th',x)));table.append(head);
+  map.names.forEach((name,id)=>{const row=node('tr'),weapon=(state.catalog.weapons||[]).find(w=>Number(w.weaponId??w.id)===id);[weapon?.name||'무기 '+id,name,curriculum.weaponThemes[id]].forEach(x=>row.append(node('td',x)));table.append(row);});content.append(table);
+ };
+ select.onchange=draw;target.append(select,content);draw();
+ target.append(node('p','345개 조합: 기존 3개 맵 69개 + 공개 순서가 정해진 추가 12개 맵 276개. 순서 미정 5개 맵은 기초 공통 명칭을 사용합니다. 과거 실적의 맵·무기 ID와 횟수는 유지되며 해당 조합의 표시명만 갱신됩니다.'));
+ const links=node('p');for(const source of curriculum.sources){const a=node('a',source.title+' · ');a.href=source.url;a.target='_blank';a.rel='noopener noreferrer';links.append(a);}target.append(links);
 }
 function savedLoadouts(){
  const value=state.me?.loadouts;
