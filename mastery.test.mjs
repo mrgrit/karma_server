@@ -36,7 +36,11 @@ try{
  for(const rule of PROMOTIONS.slice(1)){
   const q=newProgressProfile('threshold');q.xp=rule.minXp;
   // Include three families, satisfying each cumulative threshold exactly or above.
-  const ids=[9,14,16,1,3,7,10,17,18,21].slice(0,rule.techniques);
+  const ids=[9,14,16,1,3,7,10,17,18,21,...TECHNIQUES.map(t=>t.weaponId).filter(id=>![9,14,16,1,3,7,10,17,18,21].includes(id))].slice(0,rule.techniques);
+  q.promotionExperience={matches:rule.matches,activeSeconds:rule.activeMinutes*60,
+   opponents:Object.fromEntries(Array.from({length:rule.opponents},(_,i)=>['p'+i,true])),
+   maps:Object.fromEntries(Array.from({length:rule.maps},(_,i)=>[i,true])),
+   days:Object.fromEntries(Array.from({length:rule.activeDays},(_,i)=>['day'+i,true]))};
   for(const id of ids)q.mastery.successes[id]=q.mastery.qualified[id]=rule.each;
   for(const [id,family] of [[9,'mobile'],[16,'heavy'],[1,'special']]){
    const total=masteryProgress(q).families[family];

@@ -35,7 +35,7 @@ function kd(profile){
  return deaths?(kills/deaths).toFixed(2):kills?`${format(kills)} · 무사망`:'0.00';
 }
 function dateText(value){
- const d=new Date(value);return Number.isNaN(d.getTime())?'시간 미상':d.toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+ const d=new Date(value);return Number.isNaN(d.getTime())?'시간 미상':d.toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
 }
 function relativeTime(value){
  const d=new Date(value),delta=Date.now()-d.getTime();
@@ -118,16 +118,20 @@ function renderIdentity(){
 function rankProgress(profile){
  const ranks=Array.isArray(state.catalog.ranks)?[...state.catalog.ranks].sort((a,b)=>number(a.minXp)-number(b.minXp)):[];
  const xp=count(profile.xp),rankXp=count(profile.rankXp??profile.xp),current=profile.rank||ranks.filter(r=>rankXp>=number(r.minXp)).at(-1)||{};
- const next=ranks.find(r=>number(r.minXp)>rankXp);
- const range=next?number(next.minXp)-number(current.minXp):0;
- return {xp,current,next,percent:next&&range>0?Math.max(0,Math.min(100,(xp-number(current.minXp))/range*100)):ranks.length?100:0};
+ const rankNext=ranks.find(r=>number(r.minXp)>rankXp),required=profile.mastery?.next;
+ const next=rankNext?{...rankNext,minXp:required?.requiredXp??rankNext.minXp}:null;
+ const start=state.catalog.mastery?.promotions?.find(r=>r.minXp===current.minXp)?.requiredXp??current.minXp;
+ const range=next?number(next.minXp)-number(start):0;
+ return {xp,current,next,percent:next&&range>0?Math.max(0,Math.min(100,(xp-number(start))/range*100)):ranks.length?100:0};
 }
 function masterySummary(profile){
  const m=profile.mastery,n=m?.next;
  if(!m)return '아직 기법 실적이 없습니다.';
  if(!n)return '최고 계급 · 기법 실적은 계속 누적됩니다.';
  const rank=state.catalog.ranks?.find(r=>number(r.minXp)===n.minXp);
- return `${rankName(rank)}: XP ${format(profile.xp)}/${format(n.minXp)} · 기법 ${n.completedTechniques}/${n.techniques}종 (각 ${n.each}회) · 기동 ${m.families.mobile}/${n.mobile} · 중화기 ${m.families.heavy}/${n.heavy} · 특수·보조 ${m.families.special}/${n.special}`;
+ const e=m.experience||{};
+ return `${rankName(rank)}: XP ${format(profile.xp)}/${format(n.requiredXp??n.minXp)} · 기법 ${n.completedTechniques}/${n.techniques}종 (각 ${n.each}회) · 기동 ${m.families.mobile}/${n.mobile} · 중화기 ${m.families.heavy}/${n.heavy} · 특수·보조 ${m.families.special}/${n.special}`+
+  (n.adaptive?` · 검증 경기 ${format(e.matches)}/${n.matches}판 · 활동 ${format(e.activeMinutes)}/${n.activeMinutes}분 · 상대 ${format(e.opponents)}/${n.opponents}명 · 맵 ${format(e.maps)}/${n.maps}개 · 활동일 ${format(e.activeDays)}/${n.activeDays}일`:'');
 }
 function masteryDetails(profile){
  const box=node('details'),summary=node('summary','무기별 누적 숙련');box.append(summary);
@@ -142,13 +146,27 @@ function masteryDetails(profile){
 function renderMastery(){
  const rules=$('promotion-rules');rules.replaceChildren();
  const table=node('table'),head=node('tr');
- ['승급','누적 XP','기법 다양성','기동','중화기','특수·보조'].forEach(x=>head.append(node('th',x)));table.append(head);
+ ['승급','누적 XP','기법 다양성','기동','중화기','특수·보조','검증 실전 경험'].forEach(x=>head.append(node('th',x)));table.append(head);
  for(const rule of state.catalog.mastery?.promotions||[]){
   if(!rule.minXp)continue;
   const row=node('tr'),rank=state.catalog.ranks?.find(r=>number(r.minXp)===rule.minXp);
-  [rankName(rank),format(rule.minXp),`${rule.techniques}종 × 각 ${rule.each}회`,`${rule.mobile}회`,`${rule.heavy}회`,`${rule.special}회`].forEach(x=>row.append(node('td',x)));table.append(row);
+  [rankName(rank),format(rule.requiredXp??rule.minXp),`${rule.techniques}종 × 각 ${rule.each}회`,`${rule.mobile}회`,`${rule.heavy}회`,`${rule.special}회`,rule.adaptive?`${rule.matches}판 · ${rule.activeMinutes}분 · 상대 ${rule.opponents}명 · 맵 ${rule.maps}개 · ${rule.activeDays}일`:'—'].forEach(x=>row.append(node('td',x)));table.append(row);
  }
  rules.append(table);
+ const policy=state.catalog.mastery?.policy;
+ if(policy){
+  rules.append(node('p',`승급 정책 v${policy.version} · 자동 조정 ${policy.enabled?'사용':'중지'} · ${policy.explanation}`));
+  const o=policy.observation,l=policy.limits;
+  rules.append(node('p',`관찰 ${o.observedDays}/${l.minimumDays}일 · 참가자 ${o.players}/${l.players}명 · 검증 경기 ${o.matches}/${l.matches}판. 각 계급에서도 ${l.rankPlayers}명 이상의 표본이 필요하며 부족하면 현재 기준을 유지합니다.`));
+  rules.append(node('p','관리자 참여·중도 종료·제재 대상 경기는 표본에서 제외합니다. 비활동 시간은 세지 않으며 개인별 하루 표본을 제한합니다. 실전 경험은 이 기능 도입 이후부터 누적합니다. 장교 계급의 장비 점수 보너스는 소위와 같습니다.'));
+  if(policy.pending){
+   const pending=node('details');pending.append(node('summary',`변경 예고 · ${dateText(policy.pending.effectiveAt)} (한국시간) 적용`));
+   for(const r of policy.pending.rules.filter(r=>r.adaptive)){const rank=policy.ranks.find(k=>k.minXp===r.minXp);pending.append(node('p',`${rank.name}: XP ${format(r.requiredXp)} · 기법 ${r.techniques}종 × ${r.each}회 · 기동 ${r.mobile} / 중화기 ${r.heavy} / 특수 ${r.special}`));}rules.append(pending);
+  }
+  const history=node('details');history.append(node('summary','최근 자동 평가 이력'));
+  for(const h of policy.history)history.append(node('p',`${dateText(h.at)} · ${{insufficient:'표본 부족 · 기준 유지',proposed:'변경 예고',applied:'새 기준 적용',unchanged:'기준 유지',enabled:'자동 조정 사용',disabled:'자동 조정 중지'}[h.type]||h.type}${h.players!==undefined?' · '+h.players+'명 / '+h.matches+'판':''}`));rules.append(history);
+  if(isAdmin()){const toggle=node('button',policy.enabled?'자동 조정 중지':'자동 조정 사용','button');toggle.type='button';toggle.onclick=async()=>{try{await api('/api/admin/promotion-policy',{method:'PATCH',body:{enabled:!policy.enabled}});await refresh();}catch(e){toast(errorText(e));}};rules.append(toggle);}
+ }
  renderAttackMapping();
  const own=$('mastery-progress');own.replaceChildren(node('p',state.me?masterySummary(state.me):'로그인하면 승급 진행 상황을 확인할 수 있습니다.'));
  if(state.me){own.append(masteryDetails(state.me));

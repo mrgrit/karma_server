@@ -3,6 +3,8 @@ import {GAME_RULES,RULES_HASH,rulesAccepted} from './rules.mjs';
 import net from 'node:net';
 import {scenarioForWeapon,ATTACK_CURRICULUM} from './attack-scenarios.mjs';
 import {FairPlay} from './fairplay.mjs';
+import {AdaptivePromotions} from './adaptive-promotion.mjs';
+import {RANKS} from './rank-policy.mjs';
 import {MapAccess} from './map-access.mjs';
 import http from 'node:http';
 import https from 'node:https';
@@ -16,7 +18,7 @@ import {AuthService,authError} from './auth.mjs';
 import {createExchangeClient} from './exchange-client.mjs';
 import {serveClientRelease} from './client-release.mjs';
 import {createChatFilter,ChatArchive} from './chat-policy.mjs';
-import {newMastery,validateMastery,masteryProgress,rankXpForProfile,TECHNIQUES,PROMOTIONS,FAMILY_NAMES,techniqueForWeapon} from './mastery.mjs';
+import {newMastery,validateMastery,TECHNIQUES,FAMILY_NAMES,techniqueForWeapon} from './mastery.mjs';
 import {
   CombatLedger,DropLedger,validateLoadout,rankForXp,loadoutBudget,characterUnlocked,
   newProgressProfile,applyDeathToProfile,atomicWriteJson,
@@ -88,7 +90,7 @@ class ProfileDatabase{
     if(!existing||existing.name!==account.name)this.save(profile);
     return profile;
   }
-  save(profile){this.data.profiles[profile.playerId]=clone(profile);this.flush();}
+  save(profile){this.onProfile?.(profile);this.data.profiles[profile.playerId]=clone(profile);this.flush();}
   flush(){atomicWriteJson(this.filename,this.data);}
   activity(event,details={}){
     this.data.activity.push({time:new Date().toISOString(),event,...details});
@@ -100,7 +102,7 @@ class ProfileDatabase{
       const previous=this.data.profiles[playerId];
       if(!previous)continue;
       const result=applyDeathToProfile(previous,receipt);
-      if(result.changed){this.data.profiles[playerId]=result.profile;updated.push(result.profile);}
+      if(result.changed){this.onProfile?.(result.profile);this.data.profiles[playerId]=result.profile;updated.push(result.profile);}
     }
     if(updated.length)this.flush();
     return updated;
@@ -122,6 +124,7 @@ class ProfileDatabase{
       profile[counter]=(profile[counter]||0)+1;profile.matches=(profile.matches||0)+1;
     }
     this.data.matches[room.id]=result;
+    this.onMatch?.(result,room);
     this.activity('match-ended',{matchId:room.id,playerIds:players,reason,winnerIds,draw});
     this.flush();return result;
   }
@@ -137,6 +140,7 @@ export async function startKarmaServer({
 }={}){
   integer(maxRooms,'room limit',1,20);integer(maxPlayers,'player limit',2,8);
   const catalog=readJson(catalogFile),characters=readJson(characterFile);
+  catalog.ranks=clone(RANKS);
   const multiplayerMaps=readJson(mapFile).maps;
   const mapAccess=new MapAccess(path.join(path.resolve(dataDir),'map-access.json'),multiplayerMaps);
   const weaponById=new Map(catalog.weapons.map(item=>[item.weaponId??item.id,item]));
@@ -146,6 +150,15 @@ export async function startKarmaServer({
   const chatArchive=new ChatArchive(path.join(path.resolve(dataDir),'chat-logs'));
   const conduct=new Conduct(path.join(path.resolve(dataDir),'conduct.json'));
   const fairplay=new FairPlay(path.join(path.resolve(dataDir),'fairplay.json'));
+  const unrestricted=id=>!fairplay.hold(id)&&!conduct.summary(id).active;
+  if(!db.data.promotionPolicy&&fs.existsSync(db.filename))fs.copyFileSync(db.filename,db.filename+'.pre-officer-policy-'+Date.now()+'.bak',fs.constants.COPYFILE_EXCL);
+  const promotions=new AdaptivePromotions(db.data,{
+    eligible:id=>{const a=auth.list().find(a=>a.playerId===id);return !!a&&a.role!=='admin'&&!a.disabled&&a.approvalStatus==='approved'&&unrestricted(id);},
+    canPromote:id=>{const a=auth.list().find(a=>a.playerId===id);return !!a&&!a.disabled&&a.approvalStatus==='approved'&&unrestricted(id);},
+  });
+  const masteryProgress=profile=>promotions.progress(profile),rankXpForProfile=profile=>masteryProgress(profile).rankXp;
+  db.onProfile=profile=>promotions.remember(profile);db.onMatch=(result,room)=>promotions.observe(result,room);
+  promotions.review();db.flush();
   const coinProfiles=new Map();
   function coinIdentity(account){
     const profile=db.ensure(account),rankXp=rankXpForProfile(profile);
@@ -362,6 +375,7 @@ export async function startKarmaServer({
     }
     room.started=true;room.startedAt=Date.now();room.phase='active';room.round=1;room.roundWins=[0,0];
     for(const c of room.clients){c.lifeActive=false;c.lifeStartedAt=Date.now();c.activityPos=null;c.activityShot=null;c.alive=true;c.roundLife=1;c.deadAt=0;room.participants.set(c.playerId,{playerId:c.playerId,team:c.team,lastLife:1});room.paid.add(c.playerId);}
+    for(const c of room.clients)promotions.start(room,c);
     room.kills=new Map(room.clients.map(client=>[client.playerId,0]));
     room.deaths=new Map(room.clients.map(client=>[client.playerId,0]));
     room.points=new Map(room.clients.map(client=>[client.playerId,0]));
@@ -466,6 +480,7 @@ export async function startKarmaServer({
         role:room.clients[0]===session?'host':'join',slot:session.slot,team:session.team});
       if(room.started){
         room.participants.set(playerId,{playerId,team:session.team,lastLife:initialLife});room.paid.add(playerId);
+        promotions.start(room,session);
         if(!room.kills.has(playerId))room.kills.set(playerId,0);
         if(!room.deaths.has(playerId))room.deaths.set(playerId,0);
         if(!room.points.has(playerId))room.points.set(playerId,0);
@@ -564,8 +579,9 @@ export async function startKarmaServer({
       headshot:receipt.verified&&receipt.damage?.hitKind==='bullet'&&receipt.damage.hitRegion===0,time:Date.now()};
     broadcast(room,{type:'death-confirmed',version:2,receipt,feed});
     const previousXp=new Map([result.receipt.victimId,result.receipt.killerId].map(id=>[id,db.data.profiles[id]?.xp||0]));
-    const changed=db.award(result.receipt);
     const review=fairplay.observe(receipt,{map:room.map,passive:session.lifeActive===false&&Date.now()-(session.lifeStartedAt||Date.now())>=8000});
+    if(review)promotions.exclude(review.playerId,'fairplay-hold');
+    const changed=db.award(result.receipt);
     if(review)queueMicrotask(()=>{
       const suspect=online.get(review.playerId);
       if(suspect)error(suspect,'FAIRPLAY_HOLD','반복 실적 작업 의심으로 게임 이용이 일시 중지되었습니다. 관리자 확인 후 재개할 수 있습니다.');
@@ -707,6 +723,7 @@ export async function startKarmaServer({
         session.state.ammo={};
       }
       if(!updateState(session,game))return;
+      promotions.track(session.room,session,game);
     }
     let target=null;
     if(message.targetId!==undefined){
@@ -875,7 +892,7 @@ export async function startKarmaServer({
             item.playerIds?.includes(account.playerId)||item.targetId===account.playerId).slice(-30).reverse(),
             catalog:{characters:catalog.characters,weapons:catalog.weapons,ranks:catalog.ranks,slots:catalog.slots,
               classes:catalog.classes,constraints:catalog.constraints,progressionVersion:3,
-              mastery:{curriculum:ATTACK_CURRICULUM,techniques:TECHNIQUES,promotions:PROMOTIONS,families:FAMILY_NAMES,perOpponentMatchCap:3}}});return;
+              mastery:{curriculum:ATTACK_CURRICULUM,techniques:TECHNIQUES,promotions:promotions.rules,policy:promotions.status(),families:FAMILY_NAMES,perOpponentMatchCap:3}}});return;
         }
         if(request.method==='GET'&&route==='/api/leaderboard'){
           const disabled=new Set(auth.list().filter(item=>item.disabled||item.approvalStatus!=='approved').map(item=>item.playerId));
@@ -898,10 +915,16 @@ export async function startKarmaServer({
             elapsedSeconds:room.started?Math.floor((Date.now()-room.startedAt)/1000):0,
             players:room.clients.filter(c=>!c.closed).map(client=>({playerId:client.playerId,name:client.account.name,team:client.team,kills:room.kills?.get(client.playerId)||0}))}));
           reply(response,200,{summary:{registeredUsers:auth.list().length,onlinePlayers:online.size,rooms:rooms.size,totalMatches:Object.keys(db.data.matches).length},
-            rooms:roomList,activity:db.data.activity.slice(-50).reverse()});return;
+            rooms:roomList,activity:db.data.activity.slice(-50).reverse(),promotionPolicy:promotions.status()});return;
         }
         if(route.startsWith('/api/admin/')){
           if(account.role!=='admin')authError(403,'ADMIN_REQUIRED','관리자 권한이 필요합니다.');
+          if(request.method==='GET'&&route==='/api/admin/promotion-policy'){reply(response,200,promotions.status());return;}
+          if(request.method==='PATCH'&&route==='/api/admin/promotion-policy'){
+            const input=await body(request);
+            if(Object.keys(input).length!==1||typeof input.enabled!=='boolean')authError(400,'BAD_UPDATE','자동 조정 여부만 변경할 수 있습니다.');
+            promotions.setEnabled(input.enabled,account.playerId);db.flush();reply(response,200,promotions.status());return;
+          }
           if(request.method==='GET'&&route==='/api/admin/conduct'){reply(response,200,{cases:conduct.data.cases.slice().reverse(),rules:GAME_RULES});return;}
           if(request.method==='POST'&&route==='/api/admin/conduct'){
             if(!exchange)authError(503,'EXCHANGE_UNAVAILABLE','거래소 연결이 필요합니다.');
@@ -1002,7 +1025,8 @@ export async function startKarmaServer({
               auth.setDisabled(playerId,update.disabled);
               if(update.disabled)online.get(playerId)?.socket.destroy();
             }
-            db.data.profiles[playerId]=profile;
+            if(['xp','kills','deaths','wins','losses','draws','matches'].some(k=>update[k]!==undefined))promotions.exclude(playerId);
+            promotions.remember(profile);db.data.profiles[playerId]=profile;
             db.activity('admin-user-update',{actorId:account.playerId,targetId:playerId,fields:Object.keys(update)});db.flush();
             reply(response,200,{ok:true,profile:publicProfile(profile,undefined,target)});return;
           }
@@ -1065,11 +1089,12 @@ export async function startKarmaServer({
     }catch{for(const client of online.values())client.socket.destroy();}
   },5000);authTimer.unref();
   const conductTimer=setInterval(()=>{if(exchange)for(const c of conduct.data.cases.filter(c=>['pending','revoking'].includes(c.state)))conduct.settle(c.id,exchange.request).catch(()=>log('conduct-settlement-pending',{caseId:c.id}));},10000);conductTimer.unref();
+  const promotionTimer=setInterval(()=>{try{if(promotions.review())db.flush();}catch(e){log('promotion-review-error',{message:e.message});}},60000);promotionTimer.unref();
   return {
     port:server.address().port,healthPort:health.address().port,auth,
     stats:()=>({rooms:rooms.size,players:online.size,acceptedMessages,relayedMessages}),
     async close(){
-      if(closing)return;closing=true;clearInterval(authTimer);clearInterval(conductTimer);
+      if(closing)return;closing=true;clearInterval(authTimer);clearInterval(conductTimer);clearInterval(promotionTimer);
       for(const room of rooms.values()){clearTimeout(room.matchTimer);clearTimeout(room.roundTimer);}
       for(const socket of sockets)socket.destroy();
       await Promise.allSettled([...admissions]);

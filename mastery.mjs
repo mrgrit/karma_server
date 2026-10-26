@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import {scenarioForWeapon} from './attack-scenarios.mjs';
+import {PROMOTION_BASELINES} from './rank-policy.mjs';
 
 // Stable weapon IDs, independent of the character holding a looted weapon.
 export const TECHNIQUES = Object.freeze([
@@ -12,22 +13,17 @@ export const TECHNIQUES = Object.freeze([
   [18,'special','논리 폭탄'],[19,'special','압축 폭탄'],[20,'heavy','와이퍼 공격'],
   [21,'heavy','버퍼 오버플로 악용'],[22,'heavy','커널 취약점 악용'],
 ].map(([weaponId,family,name])=>Object.freeze({weaponId,family,name})));
-export const PROMOTIONS = Object.freeze([
-  {minXp:0,techniques:0,each:0,mobile:0,heavy:0,special:0},
-  {minXp:1000,techniques:3,each:2,mobile:5,heavy:0,special:0},
-  {minXp:3000,techniques:5,each:3,mobile:15,heavy:5,special:0},
-  {minXp:6000,techniques:7,each:5,mobile:30,heavy:12,special:5},
-  {minXp:10000,techniques:10,each:8,mobile:50,heavy:25,special:12},
-].map(Object.freeze));
+export const PROMOTIONS = PROMOTION_BASELINES;
 export const FAMILY_NAMES = Object.freeze({precision:'사회공학 · 저격',mobile:'네트워크 · 돌격',heavy:'시스템 · 중화기',special:'특수·보조'});
 export const techniqueForWeapon = weapon => TECHNIQUES.find(t=>t.weaponId===weapon);
 const count = n => {if(!Number.isSafeInteger(n)||n<0)throw Error('Invalid mastery counter');return n;};
 export function newMastery(legacyXp=0){
-  return {version:1,legacyRankXp:PROMOTIONS.filter(r=>r.minXp<=legacyXp).at(-1).minXp,
+  return {version:1,legacyRankXp:PROMOTIONS.filter(r=>r.minXp<=Math.min(legacyXp,10000)).at(-1).minXp,
     successes:{},qualified:{},matchCounts:{}};
 }
 export function validateMastery(value){
   if(!value||value.version!==1||!PROMOTIONS.some(r=>r.minXp===value.legacyRankXp))throw Error('Invalid mastery version/rank');
+  if(value.legacyRankXp>10000||value.earnedRankXp!==undefined&&!PROMOTIONS.some(r=>r.minXp===value.earnedRankXp))throw Error('Invalid protected rank');
   for(const field of ['successes','qualified','matchCounts']){
     const entries=value[field];
     if(!entries||typeof entries!=='object'||Array.isArray(entries))throw Error('Invalid mastery counters');
@@ -59,7 +55,7 @@ export function recordMastery(profile,receipt){
     m.qualified[weapon]=count((m.qualified[weapon]??0)+1);if(scenarioCount)scenarioCount.qualified++;
   }
 }
-export function masteryProgress(profile){
+export function masteryProgress(profile,rules=PROMOTIONS){
   const m=validateMastery(profile.mastery??newMastery(profile.xp));
   const families={precision:0,mobile:0,heavy:0,special:0};
   const techniques=TECHNIQUES.map(t=>{
@@ -67,14 +63,18 @@ export function masteryProgress(profile){
     families[t.family]+=qualified;
     return {...t,successes:m.successes[t.weaponId]??0,qualified};
   });
-  const requirements=PROMOTIONS.map(rule=>{
+  const e=profile.promotionExperience||{};
+  const experience={matches:e.matches||0,activeMinutes:Math.floor((e.activeSeconds||0)/60),opponents:Object.keys(e.opponents||{}).length,maps:Object.keys(e.maps||{}).length,activeDays:Object.keys(e.days||{}).length};
+  const requirements=rules.map(rule=>{
     const completedTechniques=techniques.filter(t=>t.qualified>=rule.each).length;
-    const passed=profile.xp>=rule.minXp&&completedTechniques>=rule.techniques&&
-      ['mobile','heavy','special'].every(f=>families[f]>=rule[f]);
+    const passed=profile.xp>=(rule.requiredXp??rule.minXp)&&completedTechniques>=rule.techniques&&
+      ['mobile','heavy','special'].every(f=>families[f]>=rule[f])&&
+      Object.keys(experience).every(f=>experience[f]>=(rule[f]||0));
     return {...rule,completedTechniques,passed};
   });
-  const eligible=requirements.filter(r=>profile.xp>=r.minXp&&(r.passed||r.minXp<=m.legacyRankXp)).at(-1);
-  return {version:1,rankXp:eligible.minXp,legacyRankXp:m.legacyRankXp,families,techniques,scenarios:Object.entries(m.scenarios||{}).map(([id,counts])=>({...scenarioForWeapon(...id.split(':').map(Number)),...counts})),
+  const protectedRank=Math.max(m.legacyRankXp,m.earnedRankXp||0);
+  const eligible=requirements.filter(r=>r.passed||r.minXp<=protectedRank).at(-1);
+  return {version:1,rankXp:eligible.minXp,legacyRankXp:m.legacyRankXp,earnedRankXp:m.earnedRankXp||0,experience,families,techniques,scenarios:Object.entries(m.scenarios||{}).map(([id,counts])=>({...scenarioForWeapon(...id.split(':').map(Number)),...counts})),
     next:requirements.find(r=>r.minXp>eligible.minXp)??null,requirements};
 }
 export const rankXpForProfile = profile => masteryProgress(profile).rankXp;

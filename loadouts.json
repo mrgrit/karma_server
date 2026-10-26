@@ -2797,6 +2797,60 @@
       "name": "소위",
       "minXp": 10000,
       "budgetBonus": 400
+    },
+    {
+      "id": "first_lieutenant",
+      "name": "중위",
+      "minXp": 18000,
+      "budgetBonus": 400
+    },
+    {
+      "id": "captain",
+      "name": "대위",
+      "minXp": 30000,
+      "budgetBonus": 400
+    },
+    {
+      "id": "major",
+      "name": "소령",
+      "minXp": 50000,
+      "budgetBonus": 400
+    },
+    {
+      "id": "lieutenant_colonel",
+      "name": "중령",
+      "minXp": 80000,
+      "budgetBonus": 400
+    },
+    {
+      "id": "colonel",
+      "name": "대령",
+      "minXp": 120000,
+      "budgetBonus": 400
+    },
+    {
+      "id": "brigadier_general",
+      "name": "준장",
+      "minXp": 180000,
+      "budgetBonus": 400
+    },
+    {
+      "id": "major_general",
+      "name": "소장",
+      "minXp": 260000,
+      "budgetBonus": 400
+    },
+    {
+      "id": "lieutenant_general",
+      "name": "중장",
+      "minXp": 360000,
+      "budgetBonus": 400
+    },
+    {
+      "id": "general",
+      "name": "대장",
+      "minXp": 500000,
+      "budgetBonus": 400
     }
   ],
   "rankSource": "local-design-proposal",

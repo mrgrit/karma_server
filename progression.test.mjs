@@ -9,9 +9,9 @@ const dual=[50,9,21,22,255,255,255];
 const validate=(character,inventory,xp=0,selectedWeapon=inventory.find(x=>x!==50&&x!==255))=>
  validateLoadout({...options,character,inventory,selectedWeapon,xp});
 
-const thresholds=[0,1000,3000,6000,10000],bonuses=[0,100,200,300,400];
+const thresholds=[0,1000,3000,6000,10000,18000,30000,50000,80000,120000,180000,260000,360000,500000],bonuses=[0,100,200,300,...Array(10).fill(400)];
 for(const ranks of [catalog.ranks,DEFAULT_RANKS]){
- assert.deepEqual(ranks.map(r=>r.minXp),thresholds,'Rank requirements are ten times the original local thresholds');
+ assert.deepEqual(ranks.map(r=>r.minXp),thresholds,'Existing rank markers remain stable; nine officer ranks are appended');
  assert.deepEqual(ranks.map(r=>r.budgetBonus),bonuses,'Equipment budget bonuses remain unchanged');
  for(let i=0;i<ranks.length;i++){
   assert.equal(rankForXp(thresholds[i],ranks).id,ranks[i].id,'Exact threshold promotes');

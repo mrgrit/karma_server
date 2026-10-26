@@ -4,14 +4,9 @@ import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
 import {newMastery,validateMastery,recordMastery} from './mastery.mjs';
+import {RANKS} from './rank-policy.mjs';
 
-export const DEFAULT_RANKS=Object.freeze([
-  {id:'recruit',minXp:0,budgetBonus:0},
-  {id:'private',minXp:1000,budgetBonus:100},
-  {id:'corporal',minXp:3000,budgetBonus:200},
-  {id:'sergeant',minXp:6000,budgetBonus:300},
-  {id:'lieutenant',minXp:10000,budgetBonus:400},
-].map(Object.freeze));
+export const DEFAULT_RANKS=RANKS;
 export const EMPTY_SLOT=255;
 const clone=value=>structuredClone(value);
 const fail=message=>{throw new TypeError(message);};
