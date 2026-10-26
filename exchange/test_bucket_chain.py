@@ -36,6 +36,8 @@ class BucketChain(unittest.TestCase):
             with self.assertRaises(OSError):coins()
             ledger=ChainLedger(path,backend);ledger.now=lambda:clock
             self.assertEqual(coins()['daily'],1000);self.assertEqual(coins()['bonus'],0)
+            self.assertEqual(coins()['dailyRefilled'],100)
+            self.assertEqual(coins()['dailyRefillRemaining'],900)
             ledger.reward(admin['playerId'],key(),dict(recipients=[a['playerId']],amount=500,reason='Verified activity bonus'))
             ledger.transfer(a['playerId'],key(),dict(asset='KARMA',to=b['playerId'],amount=200))
             self.assertEqual(coins()['bonus'],300)

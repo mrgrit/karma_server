@@ -22,7 +22,7 @@ window.createKarmaPolicy=({state,api,toast,refresh})=>{
    $('policy-notice').hidden=!me?.rulesRequired;
    $('rules-agreement').hidden=!me?.rulesRequired;$('conduct-admin').hidden=!admin;
    $('coin-parts').textContent=c?.available==null?'로그인하면 코인 구분이 표시됩니다.':`총 ${money(c.available)} · 일당 ${money(c.daily)} / ${money(c.dailyCap)} · 보너스 ${money(c.bonus)} · 기본 ${money(c.base)} KARMA`;
-   $('coin-refill').textContent=c?.available==null?'':`일당은 한국시간 자정에 한도까지 충전 · 사용분은 접속 여부와 관계없이 30분마다 1개 회복 · 양도·장터·거래는 보너스만 사용${c.penaltyDebt?' · 제재 미납 '+money(c.penaltyDebt)+' KARMA':''}`;
+   $('coin-refill').textContent=c?.available==null?'':`일당은 한국시간 자정에 한도까지 충전 · 사용분은 접속 여부와 관계없이 30분마다 1개 회복 (전 계급 하루 합계 10개) · 오늘 추가 충전 ${money(c.dailyRefilled)} / ${money(c.dailyRefillLimit)}개 · 양도·장터·거래는 보너스만 사용${c.penaltyDebt?' · 제재 미납 '+money(c.penaltyDebt)+' KARMA':''}`;
    if(admin){for(const id of ['conduct-user','reset-user']){const prev=$(id).value;$(id).replaceChildren(option('','대상자 선택'),...state.users.filter(u=>u.playerId!==me.playerId).map(u=>option(u.playerId,u.name+' · '+u.email)));$(id).value=prev;}}
    if(rules&&!$('conduct-violation').options.length){$('conduct-violation').replaceChildren(...rules.violations.map(v=>option(v.id,v.name)));$('conduct-level').replaceChildren(...rules.levels.map(l=>option(l.level,`${l.level}단계 · ${l.name} · ${l.permanent?'영구 정지':l.coins+'코인 / '+l.days+'일'}`)));}
  }

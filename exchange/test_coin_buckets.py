@@ -79,6 +79,53 @@ class Coins(unittest.TestCase):
         for invalid in [[],[self.a,self.a],[self.a]*9]:
             with self.assertRaises(Problem):self.db.game('reserve',dict(matchId=self.key(),players=invalid))
         self.db.audit()
+    def test_ten_refills_per_kst_day_persist_across_restart_rank_and_reset(self):
+        for _ in range(10):
+            self.game();self.clock+=HALF_HOUR
+            self.assertEqual(self.coins()['daily'],1000)
+        c=self.coins();self.assertEqual((c['dailyRefilled'],c['dailyRefillRemaining'],c['dailyRefillLimit']),(1000,0,1000))
+        self.game();self.clock+=HALF_HOUR
+        self.db=Ledger(self.path);self.db.now=lambda:self.clock
+        self.a['rankIndex']=5;self.db.ensure(self.a)
+        c=self.coins();self.assertEqual((c['daily'],c['dailyCap'],c['dailyRefillRemaining']),(900,2000,0))
+        self.assertIsNone(c['nextRefillAt']);self.assertFalse(c['dailyPending'])
+        self.db.reset_coins(self.admin['playerId'],self.key(),dict(playerId=self.a['playerId'],reason='Authorized reset'))
+        self.game();self.clock+=HALF_HOUR
+        self.assertEqual((self.coins()['daily'],self.coins()['dailyRefillRemaining']),(1900,0))
+        self.clock=(self.clock+KST)//DAY*DAY-KST+DAY
+        c=self.coins();self.assertEqual((c['daily'],c['dailyRefilled'],c['dailyRefillRemaining']),(2000,0,1000))
+        self.game();self.clock+=HALF_HOUR;self.assertEqual(self.coins()['dailyRefilled'],100);self.db.audit()
+
+    def test_offline_high_rank_refill_is_still_ten_and_no_multi_day_bank(self):
+        self.a['rankIndex']=10;self.db.ensure(self.a)
+        self.clock=(self.clock+KST)//DAY*DAY-KST+DAY
+        self.assertEqual(self.coins()['daily'],3000)
+        for _ in range(25):self.game()
+        self.clock+=12*3600000
+        with concurrent.futures.ThreadPoolExecutor(4) as pool:values=list(pool.map(lambda _:self.coins(),range(8)))
+        self.assertTrue(all((c['daily'],c['dailyRefilled'])==(1500,1000) for c in values))
+        self.clock+=3*DAY
+        self.assertEqual((self.coins()['daily'],self.coins()['dailyRefilled']),(3000,0));self.db.audit()
+
+    def test_existing_policy_refills_count_toward_new_quota(self):
+        for _ in range(4):self.game();self.clock+=HALF_HOUR;self.coins()
+        with self.db.transaction() as db:db.execute('DELETE FROM coin_daily_limits')
+        self.db=Ledger(self.path);self.db.now=lambda:self.clock
+        c=self.coins();self.assertEqual((c['dailyRefilled'],c['dailyRefillRemaining']),(400,600))
+        for _ in range(8):self.game();self.clock+=HALF_HOUR;self.coins()
+        self.assertEqual((self.coins()['daily'],self.coins()['dailyRefilled']),(800,1000));self.db.audit()
+
+    def test_partial_midnight_budget_cannot_regrant_spent_allowance(self):
+        for _ in range(10):self.game()
+        with self.db.transaction() as db:
+            self.db.treasury_spend(db,self.key(),self.admin['playerId'],self.db.treasury_available(db),'Drain test budget',self.admin['playerId'])
+        self.clock=(self.clock+KST)//DAY*DAY-KST+DAY
+        self.assertTrue(self.coins()['dailyPending'])
+        def fund(n):self.db.treasury_fund(self.admin['playerId'],self.key(),dict(amount=n,reason='Partial test budget'))
+        fund(500);self.assertEqual(self.coins()['daily'],500)
+        with self.db.transaction() as db:self.db.move(db,self.key(),'KARMA',self.a['playerId'],'@test-spent',200,'Test spending',self.a['playerId'],debit='game')
+        fund(500);c=self.coins();self.assertEqual((c['daily'],c['dailyRefilled'],c['dailyPending']),(800,0,False))
+        fund(500);self.clock+=HALF_HOUR;c=self.coins();self.assertEqual((c['daily'],c['dailyRefilled']),(900,100));self.db.audit()
     def test_reset_authority_replay_and_penalty_debt(self):
         uid=self.a['playerId'];self.reward(350)
         with self.assertRaises(Problem):self.db.reset_coins(uid,self.key(),dict(playerId=uid,reason='No permission'))

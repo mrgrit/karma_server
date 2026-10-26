@@ -10,6 +10,7 @@ from common import COIN, require, integer, user_id, clean_text
 DAY = 86400000
 HALF_HOUR = 1800000
 KST = 9*3600000
+DAILY_REFILL_LIMIT = 1000  # 10 KARMA, separate from the rank-dependent balance cap.
 BUCKETS = ('daily', 'bonus', 'base')
 
 
@@ -23,6 +24,9 @@ class CoinBuckets:
           CREATE TABLE IF NOT EXISTS game_coin_parts(game TEXT NOT NULL,uid TEXT NOT NULL,parts TEXT NOT NULL,PRIMARY KEY(game,uid));
           CREATE TABLE IF NOT EXISTS coin_penalties(id TEXT PRIMARY KEY,uid TEXT NOT NULL,amount INTEGER NOT NULL,
             paid INTEGER NOT NULL DEFAULT 0,state TEXT NOT NULL,reason TEXT NOT NULL,created INTEGER NOT NULL);
+          CREATE TABLE IF NOT EXISTS coin_daily_limits(uid TEXT NOT NULL REFERENCES users(id),day INTEGER NOT NULL,
+            refilled INTEGER NOT NULL DEFAULT 0 CHECK(refilled>=0 AND refilled<=1000),
+            reset_remaining INTEGER NOT NULL DEFAULT 0 CHECK(reset_remaining>=0),PRIMARY KEY(uid,day));
         ''')
 
     def coin_account(self, db, uid):
@@ -59,6 +63,17 @@ class CoinBuckets:
             db.execute('UPDATE coin_accounts SET '+credit+'='+credit+'+? WHERE uid=?', (amount, destination))
         return parts
 
+    def daily_limit(self, db, uid, day):
+        row = db.execute('SELECT * FROM coin_daily_limits WHERE uid=? AND day=?', (uid, day)).fetchone()
+        if row is None:
+            # Upgrades must count refills already received today under the old policy.
+            start = day*DAY-KST
+            used = db.execute("SELECT COALESCE(SUM(amount),0) FROM journal WHERE destination=? AND asset=? AND reason='일당 30분 회복' AND at>=? AND at<?",
+                              (uid, COIN, start, start+DAY)).fetchone()[0]
+            db.execute('INSERT INTO coin_daily_limits(uid,day,refilled) VALUES(?,?,?)', (uid, day, min(used, DAILY_REFILL_LIMIT)))
+            row = db.execute('SELECT * FROM coin_daily_limits WHERE uid=? AND day=?', (uid, day)).fetchone()
+        return row
+
     def refresh_daily(self, db, uid):
         row = self.coin_account(db, uid)
         now = self.now()
@@ -71,17 +86,29 @@ class CoinBuckets:
                       '계급별 일당 한도 조정', '@department', debit='daily-return')
             row = self.coin_account(db, uid)
         full = day > row['day'] or row['refilled_at'] == 0
+        limit = self.daily_limit(db, uid, day)
+        if full:
+            # Remember a fixed unpaid entitlement: spending while treasury funding is
+            # partial must never cause the same midnight allowance to be granted twice.
+            db.execute('UPDATE coin_daily_limits SET reset_remaining=? WHERE uid=? AND day=?',
+                       (max(0, cap-row['daily']), uid, day))
+            db.execute('UPDATE coin_accounts SET day=?,refilled_at=? WHERE uid=?', (day, now, uid))
+            limit = self.daily_limit(db, uid, day)
+        reset = full or limit['reset_remaining'] > 0
         ticks = max(0, (now-row['refilled_at'])//HALF_HOUR)
-        wanted = max(0, cap-row['daily']) if full else min(max(0, cap-row['daily']), ticks*100)
+        wanted = min(max(0, cap-row['daily']), limit['reset_remaining']) if reset else min(
+            max(0, cap-row['daily']), ticks*100, DAILY_REFILL_LIMIT-limit['refilled'])
         funded = min(wanted, self.treasury_available(db)//100*100)
         if funded:
             tx = str(uuid.uuid4())
-            self.treasury_spend(db, tx, uid, funded, '일당 자정 충전' if full else '일당 30분 회복', '@department', credit='daily')
+            self.treasury_spend(db, tx, uid, funded, '일당 자정 충전' if reset else '일당 30분 회복', '@department', credit='daily')
             self.event(db, 'dailyGrant', funded, '@department', uid, str(day), tx)
         # Do not lose an unfunded entitlement; a later funded request retries it.
-        if full and funded == wanted:
-            db.execute('UPDATE coin_accounts SET day=?,refilled_at=? WHERE uid=?', (day, now, uid))
-        elif not full and funded:
+        if reset:
+            db.execute('UPDATE coin_daily_limits SET reset_remaining=? WHERE uid=? AND day=?', (wanted-funded, uid, day))
+            db.execute('UPDATE coin_accounts SET refilled_at=? WHERE uid=?', (now, uid))
+        elif funded:
+            db.execute('UPDATE coin_daily_limits SET refilled=refilled+? WHERE uid=? AND day=?', (funded, uid, day))
             anchor = now if row['daily']+funded >= cap else row['refilled_at']+funded//100*HALF_HOUR
             db.execute('UPDATE coin_accounts SET refilled_at=? WHERE uid=?', (anchor, uid))
         self.collect_penalties(db, uid)
@@ -103,10 +130,14 @@ class CoinBuckets:
         debt = db.execute("SELECT COALESCE(SUM(amount-paid),0) FROM coin_penalties WHERE uid=? AND state='active'", (uid,)).fetchone()[0]
         cap = (10+2*row['rank_index'])*100
         midnight = ((self.now()+KST)//DAY+1)*DAY-KST
+        limit = self.daily_limit(db, uid, (self.now()+KST)//DAY)
+        remaining = DAILY_REFILL_LIMIT-limit['refilled']
+        pending = limit['reset_remaining'] > 0 or row['refilled_at'] == 0 or row['day'] < (self.now()+KST)//DAY
         return {b: row[b] for b in BUCKETS} | {'dailyCap': cap, 'rankIndex': row['rank_index'],
+            'dailyRefillLimit': DAILY_REFILL_LIMIT, 'dailyRefilled': limit['refilled'], 'dailyRefillRemaining': remaining,
             'total': sum(row[b] for b in BUCKETS), 'transferable': row['bonus'], 'penaltyDebt': debt,
-            'dailyPending': not row['frozen'] and row['daily'] < cap and (row['refilled_at'] == 0 or row['day'] < (self.now()+KST)//DAY or row['refilled_at']+HALF_HOUR <= self.now()),
-            'frozen': bool(row['frozen']), 'nextRefillAt': None if row['daily'] >= cap or row['frozen'] else min(row['refilled_at']+HALF_HOUR, midnight),
+            'dailyPending': not row['frozen'] and row['daily'] < cap and (pending or (remaining > 0 and row['refilled_at']+HALF_HOUR <= self.now())),
+            'frozen': bool(row['frozen']), 'nextRefillAt': None if row['daily'] >= cap or row['frozen'] or not remaining or pending else min(row['refilled_at']+HALF_HOUR, midnight),
             'nextResetAt': midnight, 'refillSeconds': 1800, 'timezone': 'Asia/Seoul', 'spendOrder': list(BUCKETS)}
 
     def refund_game_coins(self, db, gid, uid, source, fee):
