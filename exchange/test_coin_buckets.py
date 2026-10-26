@@ -70,6 +70,15 @@ class Coins(unittest.TestCase):
         gid=self.key();req=dict(matchId=gid,players=[self.a,self.b])
         with concurrent.futures.ThreadPoolExecutor(4) as pool:list(pool.map(lambda _:self.db.game('reserve',req),range(8)))
         self.assertEqual(self.coins()['daily'],900);self.db.audit()
+
+    def test_single_player_start_or_late_join_payment(self):
+        gid=self.key();req=dict(matchId=gid,players=[self.a])
+        self.db.game('reserve',req);self.db.game('reserve',req)
+        self.db.game('commit',req);self.db.game('finalize',req)
+        self.assertEqual(self.coins()['daily'],900);self.assertEqual(self.coins(self.b)['daily'],1000)
+        for invalid in [[],[self.a,self.a],[self.a]*9]:
+            with self.assertRaises(Problem):self.db.game('reserve',dict(matchId=self.key(),players=invalid))
+        self.db.audit()
     def test_reset_authority_replay_and_penalty_debt(self):
         uid=self.a['playerId'];self.reward(350)
         with self.assertRaises(Problem):self.db.reset_coins(uid,self.key(),dict(playerId=uid,reason='No permission'))

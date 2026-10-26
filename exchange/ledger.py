@@ -252,7 +252,7 @@ class Ledger(CoinBuckets, CommunityEconomy):
                 if payload.get('expiresAt') is not None:
                     require(integer(payload['expiresAt'], 1, 2**53-1) > self.now(), '대전 시작 요청이 만료됐습니다.', 'RESERVATION_EXPIRED', 409)
                 profiles = payload.get('players')
-                require(isinstance(profiles, list) and 2 <= len(profiles) <= 8, '대전 참가자를 확인하세요.')
+                require(isinstance(profiles, list) and 1 <= len(profiles) <= 8, '대전 참가자를 확인하세요.')
                 ids = sorted(user_id(p['playerId']) for p in profiles)
                 require(len(set(ids)) == len(ids), '동일 계정 중복 참가입니다.')
                 if game:
