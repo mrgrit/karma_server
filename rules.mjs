@@ -7,4 +7,3 @@ export function validateRules({rulesAccepted,rulesVersion}={},now=Date.now()){
   return {version:GAME_RULES.version,hash:RULES_HASH,acceptedAt:now};
 }
 export const rulesAccepted=account=>account?.rulesAcceptance?.version===GAME_RULES.version&&account?.rulesAcceptance?.hash===RULES_HASH;
-
