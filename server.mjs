@@ -1,3 +1,5 @@
+import {Conduct} from './conduct.mjs';
+import {GAME_RULES,RULES_HASH,rulesAccepted} from './rules.mjs';
 import net from 'node:net';
 import {scenarioForWeapon,ATTACK_CURRICULUM} from './attack-scenarios.mjs';
 import {FairPlay} from './fairplay.mjs';
@@ -142,11 +144,16 @@ export async function startKarmaServer({
   const auth=authService||new AuthService({filename:path.join(path.resolve(dataDir),'auth.json')});
   const filterChat=createChatFilter(readJson(path.join(directory,'chat-policy.json')));
   const chatArchive=new ChatArchive(path.join(path.resolve(dataDir),'chat-logs'));
+  const conduct=new Conduct(path.join(path.resolve(dataDir),'conduct.json'));
   const fairplay=new FairPlay(path.join(path.resolve(dataDir),'fairplay.json'));
   const coinProfiles=new Map();
+  function coinIdentity(account){
+    const profile=db.ensure(account),rankXp=rankXpForProfile(profile);
+    return {...account,rankIndex:Math.max(0,catalog.ranks.findIndex(r=>r.minXp===rankForXp(rankXp,catalog.ranks).minXp)),sanctions:{active:conduct.summary(account.playerId).active}};
+  }
   async function refreshCoins(account){
     if(!exchange)return;
-    try{const wallet=await exchange.wallet(account);coinProfiles.set(account.playerId,{available:wallet.balances.find(b=>b.symbol==='KARMA')?.available??0,locked:wallet.locked.KARMA||0,gameFee:100,url:exchange.publicUrl,status:'online'});}
+    try{const wallet=await exchange.wallet(coinIdentity(account));coinProfiles.set(account.playerId,{...(wallet.coins||{}),available:wallet.balances.find(b=>b.symbol==='KARMA')?.available??0,locked:wallet.locked.KARMA||0,gameFee:100,url:exchange.publicUrl,status:'online'});}
     catch{coinProfiles.set(account.playerId,{available:null,gameFee:100,url:exchange.publicUrl,status:'unavailable'});}
   }
   if(!!tlsCert!==!!tlsKey)throw Error('TLS_CERT and TLS_KEY must be configured together');
@@ -160,14 +167,14 @@ export async function startKarmaServer({
   function publicProfile(profile,character,account){
     const mastery=masteryProgress(profile),rankXp=mastery.rankXp;
     return {version:1,playerId:profile.playerId,name:profile.name,xp:profile.xp,
-      kills:profile.kills,deaths:profile.deaths,rank:rankForXp(rankXp,catalog.ranks),
+      kills:profile.kills,deaths:profile.deaths,rank:rankForXp(rankXp,catalog.ranks),rankIndex:Math.max(0,catalog.ranks.findIndex(r=>r.minXp===rankForXp(rankXp,catalog.ranks).minXp)),
       wins:profile.wins||0,losses:profile.losses||0,draws:profile.draws||0,matches:profile.matches||0,
-      ...(account?{email:account.email,role:account.role,isAdmin:account.role==='admin',emailVerified:!!account.emailVerified}:{}),
+      ...(account?{email:account.email,role:account.role,isAdmin:account.role==='admin',emailVerified:!!account.emailVerified,rulesRequired:!rulesAccepted(account),rulesVersion:GAME_RULES.version,sanctions:conduct.summary(account.playerId)}:{}),
       ...(character?{inventoryCapacity:loadoutBudget({xp:rankXp,character,ranks:catalog.ranks})}:{}),
       progressionVersion:3,rankXp,mastery,maps:mapAccess.list(),
       unlockedCharacterIds:Object.keys(catalog.characters).filter(id=>characterUnlocked(catalog.characters[id],rankXp)),
       dualCannonUnlocked:rankXp>=(catalog.constraints?.dualCannon?.minXp??Number.MAX_SAFE_INTEGER),
-      ...(exchange?{coins:coinProfiles.get(profile.playerId)??{available:null,gameFee:100,url:exchange.publicUrl,status:'unavailable'}}:{}),
+      ...(exchange&&account?{coins:coinProfiles.get(profile.playerId)??{available:null,gameFee:100,url:exchange.publicUrl,status:'unavailable'}}:{}),
       loadouts:clone(profile.loadouts||{})};
   }
   function write(session,message){
@@ -339,7 +346,7 @@ export async function startKarmaServer({
       room.starting=true;const participants=[...room.clients],revision=room.lobbyRevision,paymentId=crypto.randomUUID();
       broadcast(room,lobbyInfo(room));
       try{
-        payment=await exchange.charge(paymentId,participants.map(c=>c.account));
+        payment=await exchange.charge(paymentId,participants.map(c=>coinIdentity(c.account)));
         if(closing||rooms.get(room.code)!==room||room.lobbyRevision!==revision||participants.length!==room.clients.length||participants.some((c,i)=>c.closed||!c.ready||room.clients[i]!==c))throw Error('참가자나 준비 상태가 변경됐습니다. 다시 시작해 주세요.');
         for(const client of participants)auth.authenticate(client.authToken);
         await Promise.all(participants.map(c=>refreshCoins(c.account)));
@@ -380,6 +387,8 @@ export async function startKarmaServer({
         profile:publicProfile(identity.profile,undefined,account),room:null});
       session.socket.end();return;
     }
+    if(!rulesAccepted(account))reject('RULES_REQUIRED','게임 대시보드 https://192.168.12.100:29021/#rules 에서 운영 규정에 먼저 동의해 주세요.');
+    if(conduct.summary(account.playerId).active)reject('ACCOUNT_RESTRICTED','규정 위반 제재로 대전 이용이 제한됩니다. 대시보드에서 사유와 소명을 확인하세요.');
     if(fairplay.hold(account.playerId))reject('FAIRPLAY_HOLD','반복 실적 작업 의심으로 게임 이용이 일시 중지되었습니다. 관리자에게 확인을 요청해 주세요.');
     const capability=integer(message.clientMaxPlayers??2,'client capability',2,maxPlayers);
     const playerId=identity.profile.playerId;
@@ -435,7 +444,7 @@ export async function startKarmaServer({
     };
     try{
       if(room.started&&exchange&&!room.paid.has(playerId)){
-        paymentId=crypto.randomUUID();payment=await exchange.charge(paymentId,[account]);checkAdmission();
+        paymentId=crypto.randomUUID();payment=await exchange.charge(paymentId,[coinIdentity(account)]);checkAdmission();
         await refreshCoins(account);checkAdmission();
       }
       session.account=checkAdmission();
@@ -831,6 +840,7 @@ export async function startKarmaServer({
         reply(response,200,{ok:true,protocol:2,rooms:rooms.size,players:online.size,maxRooms,maxPlayersPerRoom:maxPlayers,
           nativeClientMaxPlayers:8,acceptedMessages,relayedMessages,uptimeSeconds:Math.floor(process.uptime())});return;
       }
+      if(request.method==='GET'&&route==='/api/game-rules'){reply(response,200,{...GAME_RULES,hash:RULES_HASH});return;}
       if(request.method==='GET'&&route==='/api/auth-config'){
         reply(response,200,{emailVerificationRequired:auth.verificationRequired,registrationApprovalRequired:true,
           registrationAvailable:!auth.verificationRequired||auth.mailer.configured});return;
@@ -840,6 +850,7 @@ export async function startKarmaServer({
         if(route==='/auth/register/request'){reply(response,200,await authResult(await auth.registerRequest(await body(request),ip)));return;}
         if(route==='/auth/register/verify'){reply(response,200,await authResult(await auth.registerVerify(await body(request),ip)));return;}
         if(route==='/auth/login'){reply(response,200,await authResult(await auth.login(await body(request),ip)));return;}
+        if(route==='/auth/rules'){const updated=auth.acceptRules(bearer(request),await body(request));reply(response,200,{ok:true,profile:accountProfile(updated)});return;}
         if(route==='/auth/logout'){
           const token=bearer(request),account=auth.logout(token),client=online.get(account.playerId);
           if(client?.authToken===token)client.socket.destroy();
@@ -848,6 +859,8 @@ export async function startKarmaServer({
       }
       if(route.startsWith('/api/')){
         const account=auth.authenticate(bearer(request));
+        if(request.method==='GET'&&route==='/api/conduct'){reply(response,200,conduct.summary(account.playerId));return;}
+        if(request.method==='POST'&&route==='/api/conduct/appeal'){const input=await body(request);reply(response,200,conduct.appeal(input.id,account.playerId,input.text));return;}
         if(request.method==='POST'&&route==='/api/name'){
           if(online.has(account.playerId)||pendingPlayers.has(account.playerId))authError(409,'PLAYER_BUSY','방을 나온 뒤 게임 이름을 변경해 주세요.');
           const input=await body(request),updated=auth.rename(bearer(request),input.name);
@@ -889,6 +902,35 @@ export async function startKarmaServer({
         }
         if(route.startsWith('/api/admin/')){
           if(account.role!=='admin')authError(403,'ADMIN_REQUIRED','관리자 권한이 필요합니다.');
+          if(request.method==='GET'&&route==='/api/admin/conduct'){reply(response,200,{cases:conduct.data.cases.slice().reverse(),rules:GAME_RULES});return;}
+          if(request.method==='POST'&&route==='/api/admin/conduct'){
+            if(!exchange)authError(503,'EXCHANGE_UNAVAILABLE','거래소 연결이 필요합니다.');
+            const input=await body(request),target=auth.list().find(a=>a.playerId===input.playerId);
+            if(!target)authError(404,'USER_NOT_FOUND','사용자를 찾을 수 없습니다.');
+            if(!rulesAccepted(target))authError(409,'RULES_REQUIRED','대상자가 규정에 동의한 뒤 발생한 사건에 적용해 주세요.');
+            if(!Number.isSafeInteger(input.occurredAt)||input.occurredAt<target.rulesAcceptance.acceptedAt)authError(400,'RULES_NOT_EFFECTIVE','현 규정에 동의한 이후의 위반 발생 시간을 입력해 주세요.');
+            await exchange.wallet(coinIdentity(account));await exchange.wallet(coinIdentity(target));
+            const item=conduct.create(account.playerId,input);online.get(target.playerId)?.socket.destroy();
+            const result=await conduct.settle(item.id,exchange.request);await refreshCoins(target);
+            db.activity('conduct-applied',{actorId:account.playerId,targetId:target.playerId,caseId:item.id});reply(response,200,{ok:true,case:result});return;
+          }
+          if(request.method==='POST'&&route==='/api/admin/conduct/revoke'){
+            if(!exchange)authError(503,'EXCHANGE_UNAVAILABLE','거래소 연결이 필요합니다.');
+            const input=await body(request),existing=conduct.data.cases.find(c=>c.id===input.id);
+            if(existing?.playerId===account.playerId)authError(403,'CONFLICT_OF_INTEREST','본인 제재의 취소는 다른 관리자가 처리해야 합니다.');
+            const item=conduct.revoke(input.id,account.playerId,input.reason);
+            const result=await conduct.settle(item.id,exchange.request);reply(response,200,{ok:true,case:result});return;
+          }
+          if(request.method==='POST'&&route==='/api/admin/coins/reset'){
+            if(!exchange)authError(503,'EXCHANGE_UNAVAILABLE','거래소 연결이 필요합니다.');
+            const input=await body(request),target=auth.list().find(a=>a.playerId===input.playerId);
+            if(!target)authError(404,'USER_NOT_FOUND','사용자를 찾을 수 없습니다.');
+            if(online.has(target.playerId)||pendingPlayers.has(target.playerId))authError(409,'PLAYER_ACTIVE','방을 나온 뒤 코인을 리셋해 주세요.');
+            if(conduct.summary(target.playerId).active)authError(409,'ACCOUNT_RESTRICTED','제재 중에는 리셋할 수 없습니다.');
+            await exchange.wallet(coinIdentity(account));await exchange.wallet(coinIdentity(target));
+            const result=await exchange.request('reset',{actor:account.playerId,key:input.key,payload:{playerId:target.playerId,reason:input.reason}});
+            await refreshCoins(target);reply(response,200,result);return;
+          }
           if(request.method==='GET'&&route==='/api/admin/maps'){reply(response,200,{maps:mapAccess.list(),audit:mapAccess.data.audit.slice(-50).reverse()});return;}
           if(request.method==='POST'&&route==='/api/admin/maps'){
             const input=await body(request);let map;try{map=mapAccess.set(input.mapIndex,input.open,account.playerId);}catch(error){authError(400,'BAD_MAP_ACCESS',error.message);}
@@ -968,7 +1010,7 @@ export async function startKarmaServer({
         authError(404,'NOT_FOUND','요청한 API를 찾을 수 없습니다.');
       }
       if(request.method==='GET'){
-        const files={'/':'index.html','/index.html':'index.html','/app.js':'app.js','/style.css':'style.css'};
+        const files={'/':'index.html','/index.html':'index.html','/app.js':'app.js','/policy.js':'policy.js','/style.css':'style.css'};
         const filename=files[route]&&path.join(directory,'public',files[route]);
         if(filename&&fs.existsSync(filename)){
           const contentType=filename.endsWith('.js')?'text/javascript':filename.endsWith('.css')?'text/css':'text/html';
@@ -1019,14 +1061,15 @@ export async function startKarmaServer({
   const authTimer=setInterval(()=>{
     try{
       const data=auth.read();
-      for(const client of online.values())try{auth.authenticate(client.authToken,data);}catch{client.socket.destroy();}
+      for(const client of online.values())try{auth.authenticate(client.authToken,data);if(conduct.summary(client.playerId).active)client.socket.destroy();}catch{client.socket.destroy();}
     }catch{for(const client of online.values())client.socket.destroy();}
   },5000);authTimer.unref();
+  const conductTimer=setInterval(()=>{if(exchange)for(const c of conduct.data.cases.filter(c=>['pending','revoking'].includes(c.state)))conduct.settle(c.id,exchange.request).catch(()=>log('conduct-settlement-pending',{caseId:c.id}));},10000);conductTimer.unref();
   return {
     port:server.address().port,healthPort:health.address().port,auth,
     stats:()=>({rooms:rooms.size,players:online.size,acceptedMessages,relayedMessages}),
     async close(){
-      if(closing)return;closing=true;clearInterval(authTimer);
+      if(closing)return;closing=true;clearInterval(authTimer);clearInterval(conductTimer);
       for(const room of rooms.values()){clearTimeout(room.matchTimer);clearTimeout(room.roundTimer);}
       for(const socket of sockets)socket.destroy();
       await Promise.allSettled([...admissions]);

@@ -1,3 +1,4 @@
+import {validateRules,GAME_RULES} from './rules.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -15,7 +16,7 @@ const clients=[];
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 async function wait(label,predicate){for(let i=0;i<250;i++){const v=predicate();if(v)return v;await delay(20);}throw Error('Timeout: '+label);}
 async function client(i,mode,code){
- const account=await server.auth.createAccount({email:`${mode}-${i}@test.invalid`,password:crypto.randomUUID(),name:`Player ${i}`});
+ const account=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:`${mode}-${i}@test.invalid`,password:crypto.randomUUID(),name:`Player ${i}`});
  const socket=net.createConnection({host:'127.0.0.1',port:server.port}),c={socket,id:account.playerId,messages:[],seq:0,life:1};let buffer='';
  socket.setEncoding('utf8');socket.on('error',()=>{});socket.on('data',chunk=>{
   buffer+=chunk;let end;while((end=buffer.indexOf('\n'))>=0){c.messages.push(JSON.parse(buffer.slice(0,end)));buffer=buffer.slice(end+1);}

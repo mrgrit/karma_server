@@ -1,3 +1,4 @@
+import {validateRules,GAME_RULES} from './rules.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -17,7 +18,7 @@ const server=await startKarmaServer({host:'127.0.0.1',port:0,healthPort:0,dataDi
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 async function wait(label,fn){for(let i=0;i<300;i++){const r=fn();if(r)return r;await delay(20);}throw Error('Timeout '+label);}
 async function join(code,host=false){
- const account=await server.auth.createAccount({email:crypto.randomUUID()+'@test.invalid',password:crypto.randomUUID(),name:'Student'});
+ const account=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:crypto.randomUUID()+'@test.invalid',password:crypto.randomUUID(),name:'Student'});
  const socket=net.createConnection({host:'127.0.0.1',port:server.port}),c={socket,id:account.playerId,messages:[]};clients.push(c);let buffer='';
  socket.setEncoding('utf8');socket.on('error',()=>{});socket.on('data',chunk=>{buffer+=chunk;let i;while((i=buffer.indexOf('\n'))>=0){c.messages.push(JSON.parse(buffer.slice(0,i)));buffer=buffer.slice(i+1);}});
  c.latest=type=>c.messages.filter(m=>m.type===type).at(-1);c.send=m=>socket.write(JSON.stringify(m)+'\n');

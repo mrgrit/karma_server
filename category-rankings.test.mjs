@@ -1,3 +1,4 @@
+import {validateRules,GAME_RULES} from './rules.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import crypto from 'node:crypto';
 import {startKarmaServer} from './server.mjs';import {newMastery} from './mastery.mjs';
@@ -6,7 +7,7 @@ let server;const options={host:'127.0.0.1',port:0,healthPort:0,dataDir:temp,logg
 try{
  server=await startKarmaServer(options);const users=[];
  for(let i=0;i<3;i++){
-  const account=await server.auth.createAccount({email:`rank${i}@test.invalid`,password:crypto.randomUUID(),name:`플레이어${i}`});
+  const account=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:`rank${i}@test.invalid`,password:crypto.randomUUID(),name:`플레이어${i}`});
   const token=server.auth.issueSession(account).authToken;users.push({account,token});
   await fetch(`http://127.0.0.1:${server.healthPort}/api/me`,{headers:{Authorization:'Bearer '+token}});
  }

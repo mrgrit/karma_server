@@ -1,3 +1,4 @@
+import {validateRules,GAME_RULES} from './rules.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -13,7 +14,7 @@ const config={map:0,age:0,character:{index:0,camp:0},rank:{id:'lieutenant'},inve
 const clients=[],delay=ms=>new Promise(r=>setTimeout(r,ms));
 async function wait(label,fn){for(let i=0;i<250;i++){const value=fn();if(value)return value;await delay(20);}throw Error('Timeout: '+label);}
 async function join(code,mode='dm',host=false,capacity=8,roomName){
-  const account=await server.auth.createAccount({email:crypto.randomUUID()+'@test.invalid',password:crypto.randomUUID(),name:'Player '+clients.length});
+  const account=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:crypto.randomUUID()+'@test.invalid',password:crypto.randomUUID(),name:'Player '+clients.length});
   const socket=net.createConnection({host:'127.0.0.1',port:server.port}),c={socket,id:account.playerId,messages:[]};let buffer='';clients.push(c);
   socket.setEncoding('utf8');socket.on('error',()=>{});socket.on('data',chunk=>{buffer+=chunk;let end;
     while((end=buffer.indexOf('\n'))>=0){c.messages.push(JSON.parse(buffer.slice(0,end)));buffer=buffer.slice(end+1);}});

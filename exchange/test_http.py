@@ -15,8 +15,15 @@ class HttpTests(unittest.TestCase):
         self.profile=dict(playerId=str(uuid.uuid4()),name='Test Student',role='user')
         self.ex=Exchange(Ledger(Path(self.temp.name)/'test.sqlite'),'https://account.invalid','https://exchange.test.internal','a'*48)
         self.disabled=False
+        self.upstream_requests=[]
         def upstream(path,token=None,body=None):
+            self.upstream_requests.append((path,body))
             if self.disabled:raise Problem('사용 중지된 계정','ACCOUNT_DISABLED',403)
+            if path=='/api/game-rules':return {'version':'test-rules','title':'Test rules','sections':[]}
+            if path=='/auth/rules':
+                if body.get('rulesAccepted') is not True or body.get('rulesVersion')!='test-rules':raise Problem('규정 동의 필요','RULES_REQUIRED',400)
+                self.profile['rulesRequired']=False
+                return {'ok':True}
             if path=='/auth/register/request':return {'ok':True,'approvalRequired':True,'requiresVerification':False}
             if path=='/auth/login':
                 if body.get('password')!='test-password':raise Problem('로그인 실패','LOGIN_FAILED',401)
@@ -52,7 +59,7 @@ class HttpTests(unittest.TestCase):
     def test_auth_csrf_service_boundary_and_revocation(self):
         self.assertEqual(self.call('/api/state')[0],401)
         self.assertEqual(self.call('/api/login',{},origin=False)[0],403)
-        self.login();self.assertEqual(self.call('/api/state')[1]['wallet']['balances'][0]['available'],10000)
+        self.login();self.assertEqual(self.call('/api/state')[1]['wallet']['balances'][0]['available'],11000)
         self.assertEqual(self.call('/api/admin/audit')[0],403)
         self.assertEqual(self.call('/service/wallet',{'profile':self.profile})[0],401)
         self.assertEqual(self.call('/api/issue',{'symbol':'LAB','name':'Lab','supply':10},origin=False)[0],403)
@@ -74,12 +81,31 @@ class HttpTests(unittest.TestCase):
         self.assertEqual(self.ex.ledger.users(),[])
         self.assertEqual(self.call('/api/state')[0],401)
 
+    def test_consent_and_sanction_cannot_be_overridden_by_browser(self):
+        self.assertEqual(self.call('/api/game-rules')[1]['version'],'test-rules')
+        self.call('/api/register',dict(email='new@test.invalid',password='test-password',name='New',rulesAccepted=True,rulesVersion='test-rules'))
+        self.assertEqual(self.upstream_requests[-1][1]['rulesAccepted'],True)
+        self.assertEqual(self.upstream_requests[-1][1]['rulesVersion'],'test-rules')
+        self.login();self.profile['rulesRequired']=True
+        payload=dict(symbol='LAB',name='Lab',supply=10,rulesRequired=False,role='admin',sanctions={'active':False})
+        h={'Idempotency-Key':str(uuid.uuid4())}
+        self.assertEqual(self.call('/api/issue',payload,headers=h)[1]['error']['code'],'RULES_REQUIRED')
+        self.assertEqual(self.call('/api/rules/accept',dict(rulesAccepted=False,rulesVersion='test-rules'))[0],400)
+        self.assertEqual(self.call('/api/rules/accept',dict(rulesAccepted=True,rulesVersion='test-rules'))[0],200)
+        self.profile['sanctions']={'active':True}
+        self.assertEqual(self.call('/api/issue',payload,headers=h)[1]['error']['code'],'ACCOUNT_RESTRICTED')
+        self.assertEqual(self.call('/api/state')[0],200)
+        for endpoint in ['/service/sanction','/service/reset']:
+            self.assertEqual(self.call(endpoint,dict(actor=self.profile['playerId'],key=str(uuid.uuid4()),payload={}))[0],401)
+            self.assertEqual(self.call(endpoint,dict(actor=self.profile['playerId'],key=str(uuid.uuid4()),payload={}),headers={'Authorization':'Bearer '+self.ex.key})[0],403)
+        self.assertEqual(self.call('/api/logout',{})[0],200)
+
     def test_community_auth_roles_and_escrow(self):
         for url in ['/api/community','/api/economy']:
             self.assertEqual(self.call(url)[0],401)
         self.login()
         self.assertEqual(self.call('/api/community')[0],200)
-        self.assertEqual(self.call('/api/economy')[1]['spendable'],9700)
+        self.assertEqual(self.call('/api/economy')[1]['spendable'],8700)
         h={'Idempotency-Key':str(uuid.uuid4())}
         self.assertEqual(self.call('/api/treasury/fund',dict(amount=100,reason='Test'),headers=h)[0],403)
         self.assertEqual(self.call('/api/mission',dict(action='create'),headers={'Idempotency-Key':str(uuid.uuid4())})[0],403)

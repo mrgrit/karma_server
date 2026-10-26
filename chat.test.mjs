@@ -1,3 +1,4 @@
+import {validateRules,GAME_RULES} from './rules.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import crypto from 'node:crypto';import net from 'node:net';
 import {startKarmaServer} from './server.mjs';
@@ -9,7 +10,7 @@ const config={map:0,age:0,character:{index:0,camp:0},inventory:catalog.defaultIn
 const clients=[],delay=ms=>new Promise(r=>setTimeout(r,ms));
 async function wait(fn){for(let i=0;i<200;i++){const v=fn();if(v)return v;await delay(20);}throw Error('chat test timeout');}
 async function join(code,mode,host){
- const account=await server.auth.createAccount({email:crypto.randomUUID()+'@chat.invalid',password:crypto.randomUUID(),name:'학생 '+clients.length});
+ const account=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:crypto.randomUUID()+'@chat.invalid',password:crypto.randomUUID(),name:'학생 '+clients.length});
  const c={socket:net.createConnection({host:'127.0.0.1',port:server.port}),id:account.playerId,name:account.name,token:server.auth.issueSession(account).authToken,messages:[]};clients.push(c);let buffer='';
  c.socket.setEncoding('utf8');c.socket.on('error',()=>{});c.socket.on('data',chunk=>{buffer+=chunk;let end;while((end=buffer.indexOf('\n'))>=0){c.messages.push(JSON.parse(buffer.slice(0,end)));buffer=buffer.slice(end+1);}});
  c.send=m=>c.socket.write(JSON.stringify(m)+'\n');c.last=t=>c.messages.filter(m=>m.type===t).at(-1);
@@ -45,7 +46,7 @@ try{
  await wait(()=>team[3].messages.some(m=>m.id===masked.id));assert(!team[0].messages.some(m=>m.id===masked.id));assert(!('originalText' in masked));
  team[1].send({type:'chat-send',requestId:'masked-team',channel:'team',text:'씨.발 같이 하자'});await delay(50);
  assert.equal(team[3].messages.filter(m=>m.id===masked.id).length,1,'masked replay does not rebroadcast');
- const admin=await server.auth.createAccount({email:'admin@chat.invalid',password:crypto.randomUUID(),name:'관리자',role:'admin'});
+ const admin=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:'admin@chat.invalid',password:crypto.randomUUID(),name:'관리자',role:'admin'});
  const endpoint='http://127.0.0.1:'+server.healthPort+'/api/admin/chat-logs';
  assert.equal((await fetch(endpoint)).status,401);assert.equal((await fetch(endpoint,{headers:{Authorization:'Bearer '+team[1].token}})).status,403);
  const headers={Authorization:'Bearer '+server.auth.issueSession(admin).authToken};

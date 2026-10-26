@@ -1,3 +1,4 @@
+import {validateRules,GAME_RULES} from './rules.mjs';
 import assert from 'node:assert/strict';
 import net from 'node:net';
 import fs from 'node:fs';
@@ -19,7 +20,7 @@ async function connect(hello){
   let authToken=hello.authToken;
   if(authToken===undefined&&!hello.noAuth){
     let account=server.auth.list().find(item=>item.playerId===hello.playerId);
-    if(!account)account=await server.auth.createAccount({email:hello.playerId+'@example.test',
+    if(!account)account=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:hello.playerId+'@example.test',
       password:'temporary-test-password-42',name:'LAN Test',playerId:hello.playerId});
     authToken=testCredentials.get(hello.playerId)||server.auth.issueSession(account).authToken;
     testCredentials.set(hello.playerId,authToken);

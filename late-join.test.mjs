@@ -1,3 +1,4 @@
+import {validateRules,GAME_RULES} from './rules.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -26,7 +27,7 @@ fs.writeFileSync(mapFile,JSON.stringify({maps:[
 const server=await startKarmaServer({host:'127.0.0.1',port:0,healthPort:0,dataDir:temp,mapFile,exchange,matchSeconds:120,logger:()=>{}});
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function wait(label,predicate){for(let i=0;i<300;i++){const value=predicate();if(value)return value;await sleep(10);}throw Error('Timeout: '+label);}
-async function account(role='user'){const value=await server.auth.createAccount({email:crypto.randomUUID()+'@test.invalid',password:crypto.randomUUID(),name:'Player '+clients.length,role});return {...value,token:server.auth.issueSession(value).authToken};}
+async function account(role='user'){const value=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:crypto.randomUUID()+'@test.invalid',password:crypto.randomUUID(),name:'Player '+clients.length,role});return {...value,token:server.auth.issueSession(value).authToken};}
 async function peer({code='941001',host=false,capacity=3,mode='dm',build='karma290-central5',map=0,roomId,identity}={}){
   identity??=await account();
   const socket=net.createConnection({host:'127.0.0.1',port:server.port}),c={socket,identity,id:identity.playerId,messages:[],seq:0};clients.push(c);

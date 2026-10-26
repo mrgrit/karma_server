@@ -1,3 +1,4 @@
+import {validateRules,GAME_RULES} from './rules.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -30,7 +31,7 @@ async function fixture(name,factoryReleased){
   servers.push(server);return server;
 }
 async function peer(server,{op='create',code='920001',map=0,role='user',version=build,age=0,spoofAdmin=false}={}){
-  const account=await server.auth.createAccount({email:crypto.randomUUID()+'@map-policy.invalid',
+  const account=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:crypto.randomUUID()+'@map-policy.invalid',
     password:crypto.randomUUID(),name:'Map player '+clients.length,role});
   const socket=net.createConnection({host:'127.0.0.1',port:server.port});
   const c={socket,messages:[],closed:false};clients.push(c);let buffer='';

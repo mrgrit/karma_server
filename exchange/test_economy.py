@@ -5,6 +5,8 @@ import unittest
 import uuid
 from pathlib import Path
 from ledger import Ledger, Problem
+from test_support import fixed_balance
+Ledger = fixed_balance(Ledger)
 
 
 class EconomyTests(unittest.TestCase):

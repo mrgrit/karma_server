@@ -62,10 +62,10 @@ class CommunityEconomy:
                         db.execute("SELECT players,fee FROM games WHERE state='committed'"))
         return max(0, self.balance(db, '@treasury') - liability)
 
-    def treasury_spend(self, db, tx, target, amount, reason, actor):
+    def treasury_spend(self, db, tx, target, amount, reason, actor, credit='bonus'):
         require(self.treasury_available(db) >= amount,
                 '공동 금고의 지급 가능 잔액이 부족합니다. 관리자가 운영 예산을 넣어 주세요.', 'TREASURY_INSUFFICIENT', 409)
-        self.move(db, tx, COIN, '@treasury', target, amount, reason, actor)
+        self.move(db, tx, COIN, '@treasury', target, amount, reason, actor, credit=credit)
 
     def treasury_fund(self, actor, key, payload):
         def apply(db, tx):
@@ -81,7 +81,7 @@ class CommunityEconomy:
         row = db.execute('SELECT state FROM welcome_grants WHERE uid=?', (uid,)).fetchone()
         if row and row['state'] == 'pending' and self.treasury_available(db) >= WELCOME_GRANT:
             tx = str(uuid.uuid4())
-            self.treasury_spend(db, tx, uid, WELCOME_GRANT, '체험 코인 최초 지급', '@department')
+            self.treasury_spend(db, tx, uid, WELCOME_GRANT, '기본 코인 최초 지급', '@department', credit='base')
             db.execute("UPDATE welcome_grants SET state='paid' WHERE uid=?", (uid,))
             self.event(db, 'welcome', WELCOME_GRANT, '@department', uid, uid, tx)
 
@@ -267,16 +267,17 @@ class CommunityEconomy:
                 lo, hi = start+day*DAY, start+(day+1)*DAY
                 metrics = dict(gameIncome=0, gameRefunds=0, reissued=0, servicePaid=0, transfers=0, funding=0)
                 for event in db.execute('SELECT * FROM economy_events WHERE at>=? AND at<?', (lo, hi)):
-                    key = 'reissued' if event['kind'] in ('reward','missionReward','welcome') else event['kind']
+                    key = 'reissued' if event['kind'] in ('reward','missionReward','welcome','dailyGrant') else event['kind']
                     if key in metrics: metrics[key] += event['amount']
                     if key in ('servicePaid', 'reissued'): participants.add(event['beneficiary'])
                     if key == 'servicePaid': participants.add(event['actor'])
                 for j in db.execute('SELECT j.*,s.role sourceRole,d.role destRole FROM journal j LEFT JOIN users s ON s.id=j.source LEFT JOIN users d ON d.id=j.destination WHERE j.asset=? AND j.at>=? AND j.at<?', (COIN, lo, hi)):
-                    if j['source'].startswith('@game:') and j['destination']=='@treasury': metrics['gameIncome'] += j['amount']
-                    if j['source']=='@treasury' and j['reason']=='시작 실패 이용료 반환': metrics['gameRefunds'] += j['amount']
+                    if j['source'].startswith('@game:') and j['destination']=='@treasury' and j['reason']=='대전 이용료 확정': metrics['gameIncome'] += j['amount']
+                    if j['source']=='@treasury' and j['reason'].startswith('시작 실패 이용료 반환'): metrics['gameRefunds'] += j['amount']
                     if j['sourceRole']=='user' and j['destRole']=='user': metrics['transfers'] += j['amount']; participants.update((j['source'], j['destination']))
                 days.append({'date': datetime.fromtimestamp((lo+9*3600000)/1000, timezone.utc).strftime('%m/%d'), **metrics})
-            return {'totalSupply': total, 'treasury': treasury, 'spendable': available, 'refundHeld': treasury-available,
+            coin_classes=dict(db.execute('SELECT COALESCE(SUM(c.base),0) base,COALESCE(SUM(c.daily),0) daily,COALESCE(SUM(COALESCE(c.bonus,b.amount)),0) bonus FROM users u LEFT JOIN balances b ON b.owner=u.id AND b.asset=? LEFT JOIN coin_accounts c ON c.uid=u.id', (COIN,)).fetchone())
+            return {'coinClasses':coin_classes,'totalSupply': total, 'treasury': treasury, 'spendable': available, 'refundHeld': treasury-available,
                     'reserve': self.balance(db, '@reserve'), **parts, 'days': days,
                     'totals': {k: sum(d[k] for d in days) for k in days[0] if k != 'date'},
                     'participants': len(participants), 'pendingWelcome': db.execute("SELECT COUNT(*) FROM welcome_grants WHERE state='pending'").fetchone()[0],

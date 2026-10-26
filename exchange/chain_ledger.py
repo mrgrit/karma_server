@@ -144,9 +144,10 @@ class ChainLedger(Ledger):
             return {'migrated':True,'snapshotHash':snapshot,'accounts':len(rows),'transactionHash':signed['hash']}
 
     def wallet(self, uid):
+        self.refresh_wallet(uid)
         with self.serialized():
             self.recover()
-            value=super().wallet(uid)
+            value=super()._wallet(uid)
             block=self.backend.head()['number']
             with self.connect() as db:
                 entries=[(uid,b['symbol']) for b in value['balances']]

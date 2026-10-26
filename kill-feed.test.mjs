@@ -1,3 +1,4 @@
+import {validateRules,GAME_RULES} from './rules.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import crypto from 'node:crypto';import net from 'node:net';
 import {startKarmaServer} from './server.mjs';
@@ -10,7 +11,7 @@ const config={map:feedMap,age:0,character:{index:0,camp:0},inventory:catalog.def
 const clients=[],delay=ms=>new Promise(r=>setTimeout(r,ms));
 async function wait(fn){for(let i=0;i<200;i++){const v=fn();if(v)return v;await delay(15);}throw Error('feed test timeout');}
 async function join(code,host){
- const account=await server.auth.createAccount({email:crypto.randomUUID()+'@feed.invalid',password:crypto.randomUUID(),name:'학생 '+clients.length});
+ const account=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:crypto.randomUUID()+'@feed.invalid',password:crypto.randomUUID(),name:'학생 '+clients.length});
  const c={socket:net.createConnection({host:'127.0.0.1',port:server.port}),id:account.playerId,name:account.name,messages:[]};clients.push(c);let buffer='';
  c.socket.setEncoding('utf8');c.socket.on('error',()=>{});c.socket.on('data',chunk=>{buffer+=chunk;let end;while((end=buffer.indexOf('\n'))>=0){c.messages.push(JSON.parse(buffer.slice(0,end)));buffer=buffer.slice(end+1);}});
  c.send=m=>c.socket.write(JSON.stringify(m)+'\n');c.last=t=>c.messages.filter(m=>m.type===t).at(-1);

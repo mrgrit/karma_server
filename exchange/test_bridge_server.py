@@ -3,6 +3,8 @@ import sys,ssl,threading,json,uuid
 from pathlib import Path
 from app import Exchange,serve
 from ledger import Ledger
+from test_support import fixed_balance
+Ledger = fixed_balance(Ledger)
 from test_support import existing_student
 root=Path(__file__).parent
 app=Exchange(Ledger(Path(sys.argv[1])/'ledger.sqlite'),'https://unused.invalid','https://localhost','test-only-service-key-'+'a'*48)

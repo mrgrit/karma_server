@@ -11,7 +11,11 @@ from chain_backend import EvmBackend, owner_address
 from chain_ledger import ChainLedger, durable_json
 from deploy_chain import deploy
 from ledger import Ledger, Problem
+from test_support import fixed_balance
+Ledger = fixed_balance(Ledger)
 
+
+ChainLedger = fixed_balance(ChainLedger)
 
 @unittest.skipUnless(os.environ.get('CHAIN_TEST_RPC'),'Set CHAIN_TEST_RPC to an isolated private-chain RPC')
 class ChainTests(unittest.TestCase):

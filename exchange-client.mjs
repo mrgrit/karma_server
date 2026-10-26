@@ -38,10 +38,10 @@ export function createExchangeClient({url,caFile,keyFile,dataDir,address,logger=
   return {
     publicUrl:base.origin,request,
     async init(){await recover();},
-    async wallet(profile){return request('wallet',{profile:{playerId:profile.playerId,name:profile.name,role:profile.role}});},
+    async wallet(profile){return request('wallet',{profile:{playerId:profile.playerId,name:profile.name,role:profile.role,rankIndex:profile.rankIndex??0,sanctions:profile.sanctions??{active:false}}});},
     async charge(id,players){
       active.add(id);pending[id]={expiresAt:Date.now()+90000};save();
-      try{await request('reserve',{matchId:id,expiresAt:pending[id].expiresAt,players:players.map(p=>({playerId:p.playerId,name:p.name,role:p.role}))});await request('commit',{matchId:id});return {matchId:id,fee:100};}
+      try{await request('reserve',{matchId:id,expiresAt:pending[id].expiresAt,players:players.map(p=>({playerId:p.playerId,name:p.name,role:p.role,rankIndex:p.rankIndex??0,sanctions:p.sanctions??{active:false}}))});await request('commit',{matchId:id});return {matchId:id,fee:100};}
       catch(error){await refund(id);active.delete(id);throw error;}
     },
     async refund(id){active.delete(id);return refund(id);},

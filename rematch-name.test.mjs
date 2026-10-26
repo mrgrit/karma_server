@@ -1,3 +1,4 @@
+import {validateRules,GAME_RULES} from './rules.mjs';
 import assert from 'node:assert/strict';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import crypto from 'node:crypto';import net from 'node:net';
 import {startKarmaServer} from './server.mjs';import {FairPlay} from './fairplay.mjs';
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'karma-rematch-'));let server;const sockets=[];
@@ -17,8 +18,8 @@ async function request(token,route,body,method='POST'){
 }
 try{
  server=await startKarmaServer(options);
- const a=await server.auth.createAccount({email:'a@test.invalid',password:crypto.randomUUID(),name:'원래이름',role:'admin'});
- const b=await server.auth.createAccount({email:'b@test.invalid',password:crypto.randomUUID(),name:'상대'});
+ const a=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:'a@test.invalid',password:crypto.randomUUID(),name:'원래이름',role:'admin'});
+ const b=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:'b@test.invalid',password:crypto.randomUUID(),name:'상대'});
  const ta=server.auth.issueSession(a).authToken,tb=server.auth.issueSession(b).authToken;
  let response=await request(ta,'/api/name',{name:'새이름',playerId:b.playerId});assert.equal(response.status,200);assert.equal(response.value.profile.name,'새이름');assert.equal(server.auth.authenticate(tb).name,'상대');
  assert.equal((await request(ta,'/api/name',{name:'x'.repeat(33)})).status,400);

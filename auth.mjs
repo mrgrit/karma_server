@@ -1,3 +1,4 @@
+import {validateRules,rulesAccepted} from './rules.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -74,19 +75,20 @@ export class AuthService{
     recent.push(now);this.limits.set(key,recent);
     if(this.limits.size>10000)for(const [entry,list] of this.limits)if(list.at(-1)<now-3600000)this.limits.delete(entry);
   }
-  async registerRequest({email,password,name},ip){
+  async registerRequest({email,password,name,rulesAccepted:accepted,rulesVersion},ip){
     if(this.verificationRequired&&!this.mailer.configured)authError(503,'SMTP_UNAVAILABLE','이메일 인증 서버 설정을 기다리고 있습니다.');
+    const acceptance=validateRules({rulesAccepted:accepted,rulesVersion},this.now());
     email=emailValue(email);name=nameValue(name);passwordValue(password);
     this.rate('register-ip:'+ip,10,600000);this.rate('register-email:'+email,5,600000);
     if(this.read().accounts[email])authError(409,'EMAIL_EXISTS','이미 가입한 이메일입니다. 로그인해 주세요.');
     if(!this.verificationRequired){
-      await this.createAccount({email,password,name,emailVerified:false,approvalStatus:'pending'});
+      await this.createAccount({email,password,name,emailVerified:false,approvalStatus:'pending',rulesAcceptance:acceptance});
       return approvalPending();
     }
     const previous=this.pending.get(email),now=this.now();
     if(previous&&now-previous.requestedAt<60000)authError(429,'RESEND_WAIT','인증번호 재전송은 60초 후 가능합니다.');
     const nonce=crypto.randomBytes(16).toString('hex'),code=String(crypto.randomInt(0,1000000)).padStart(6,'0');
-    const entry={name,requestedAt:now,expiresAt:now+600000,attempts:0,nonce,codeHash:hash(nonce+':'+code),sending:true};
+    const entry={name,rulesAcceptance:acceptance,requestedAt:now,expiresAt:now+600000,attempts:0,nonce,codeHash:hash(nonce+':'+code),sending:true};
     this.pending.set(email,entry);
     try{
       entry.password=await passwordHash(password);
@@ -110,7 +112,7 @@ export class AuthService{
     const data=this.read();
     if(data.accounts[email])authError(409,'EMAIL_EXISTS','이미 가입한 이메일입니다.');
     const account={email,playerId:crypto.randomUUID(),name:entry.name,password:entry.password,
-      role:'user',disabled:false,approvalStatus:'pending',emailVerified:true,verifiedAt:this.now(),createdAt:this.now()};
+      role:'user',disabled:false,rulesAcceptance:entry.rulesAcceptance,approvalStatus:'pending',emailVerified:true,verifiedAt:this.now(),createdAt:this.now()};
     data.accounts[email]=account;this.write(data);this.pending.delete(email);
     return approvalPending();
   }
@@ -144,6 +146,12 @@ export class AuthService{
     requireApproved(account);
     return structuredClone(account);
   }
+  acceptRules(authToken,input){
+    const data=this.read(),account=this.authenticate(authToken,data),current=data.accounts[account.email];
+    const acceptance=validateRules(input,this.now());
+    if(!rulesAccepted(current)){if(current.rulesAcceptance){current.rulesAcceptanceHistory??=[];current.rulesAcceptanceHistory.push(current.rulesAcceptance);}current.rulesAcceptance=acceptance;this.write(data);}
+    return {...current,password:undefined};
+  }
   rename(authToken,name){
     const data=this.read(),account=this.authenticate(authToken,data);
     const current=data.accounts[account.email];current.name=nameValue(name);this.write(data);
@@ -154,13 +162,13 @@ export class AuthService{
     delete data.sessions[hash(authToken)];this.write(data);
     return account;
   }
-  async createAccount({email,password,name,role='user',playerId=crypto.randomUUID(),emailVerified=true,approvalStatus='approved'}){
+  async createAccount({email,password,name,role='user',playerId=crypto.randomUUID(),emailVerified=true,approvalStatus='approved',rulesAcceptance=null}){
     email=emailValue(email);name=nameValue(name);
     if(!['admin','user'].includes(role))throw Error('Invalid account role');
     if(!['approved','pending'].includes(approvalStatus))throw Error('Invalid approval status');
     const derived=await passwordHash(password),data=this.read();
     if(data.accounts[email])throw Error('Account already exists');
-    const account={email,playerId,name,password:derived,role,disabled:false,emailVerified,approvalStatus,
+    const account={email,playerId,name,password:derived,role,disabled:false,emailVerified,approvalStatus,rulesAcceptance,
       verifiedAt:emailVerified?this.now():null,createdAt:this.now()};
     data.accounts[email]=account;this.write(data);return structuredClone(account);
   }

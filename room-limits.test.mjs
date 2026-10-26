@@ -1,3 +1,4 @@
+import {validateRules,GAME_RULES} from './rules.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -14,7 +15,7 @@ const clients=[],delay=ms=>new Promise(r=>setTimeout(r,ms));
 async function wait(fn){for(let i=0;i<200;i++){const v=fn();if(v)return v;await delay(20);}throw Error('Limit test timeout');}
 let serial=0;
 async function connect(code,create,limits={},account){
- account??=await server.auth.createAccount({email:crypto.randomUUID()+'@limits.invalid',password:crypto.randomUUID(),name:'Limit '+(++serial)});
+ account??=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:crypto.randomUUID()+'@limits.invalid',password:crypto.randomUUID(),name:'Limit '+(++serial)});
  const c={socket:net.createConnection({host:'127.0.0.1',port:server.port}),id:account.playerId,messages:[]};clients.push(c);let buffer='';
  c.socket.setEncoding('utf8');c.socket.on('error',()=>{});c.socket.on('data',chunk=>{buffer+=chunk;let end;while((end=buffer.indexOf('\n'))>=0){c.messages.push(JSON.parse(buffer.slice(0,end)));buffer=buffer.slice(end+1);}});
  c.send=value=>c.socket.write(JSON.stringify(value)+'\n');c.last=type=>c.messages.filter(m=>m.type===type).at(-1);
@@ -28,7 +29,7 @@ async function start(a,b){
  await wait(()=>b.last('peer-ready'));
 }
 try{
- const invalid=await server.auth.createAccount({email:'invalid@limits.invalid',password:crypto.randomUUID(),name:'Invalid'});
+ const invalid=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:'invalid@limits.invalid',password:crypto.randomUUID(),name:'Invalid'});
  for(const [field,values] of Object.entries({killLimit:[0,31,1.5,'30'],roundWinLimit:[0,11,2.5,'10'],timeLimitSeconds:[0,59,1801,60.5,'60']}))for(const value of values){
   const c=await connect('975001',true,{[field]:value},invalid);assert.equal(c.last('error')?.code,'BAD_MESSAGE',field+' '+value);c.socket.destroy();
  }

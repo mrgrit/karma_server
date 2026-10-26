@@ -1,3 +1,4 @@
+import {validateRules,GAME_RULES} from './rules.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -64,7 +65,7 @@ try{
  server=await startKarmaServer({host:'127.0.0.1',port:0,healthPort:0,dataDir:temp,logger:()=>{}});
  await server.close();assert.equal(fs.readdirSync(temp).filter(n=>n.includes('pre-mastery')).length,1,'migration is one-time');
  const auth=new AuthService({filename:path.join(temp,'auth.json')});
- const earned=await auth.createAccount({email:'earned@example.test',password:'test-fixture-password',name:'실습 완료',playerId:'earned'});
+ const earned=await auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:'earned@example.test',password:'test-fixture-password',name:'실습 완료',playerId:'earned'});
  const qualified={...newProgressProfile(earned.playerId),name:earned.name,xp:6000};
  for(const [id,n] of [[9,25],[14,5],[16,7],[17,5],[1,5],[5,5],[6,5]])qualified.mastery.successes[id]=qualified.mastery.qualified[id]=n;
  const db=JSON.parse(fs.readFileSync(path.join(temp,'profiles.json')));db.profiles.earned=qualified;

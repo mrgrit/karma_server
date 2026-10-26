@@ -74,7 +74,7 @@ class Exchange:
 
     def login(self, body, register=False):
         path = '/auth/register/request' if register else '/auth/login'
-        result = self.account_api(path, body={k: body.get(k) for k in (['email', 'password', 'name'] if register else ['email', 'password'])})
+        result = self.account_api(path, body={k: body.get(k) for k in (['email', 'password', 'name', 'rulesAccepted', 'rulesVersion'] if register else ['email', 'password'])})
         require(not result.get('requiresVerification'), '현재 가입은 카르마 클라이언트에서 인증을 완료해 주세요.')
         if result.get('approvalRequired'):
             return None
@@ -89,6 +89,8 @@ class Exchange:
     def handle(self, handler):
         route = handler.path.split('?', 1)[0]
         method = handler.command
+        if method == 'GET' and route == '/api/game-rules':
+            return 200, self.account_api('/api/game-rules'), {}
         if method == 'GET' and route == '/health':
             chain = self.ledger.backend.head() if hasattr(self.ledger, 'backend') else None
             return 200, {'ok': True, 'service': 'karma-exchange', 'version': 3, 'blockchain': chain is not None, 'blockNumber': chain['number'] if chain else None}, {}
@@ -99,6 +101,9 @@ class Exchange:
         if route.startswith('/service/'):
             require(method == 'POST' and hmac.compare_digest(handler.headers.get('Authorization', ''), 'Bearer '+self.key), '서비스 인증이 필요합니다.', 'SERVICE_AUTH', 401)
             body = handler.body()
+            if route in ['/service/sanction', '/service/reset']:
+                action = self.ledger.sanction_coins if route.endswith('sanction') else self.ledger.reset_coins
+                return 200, action(body['actor'], body['key'], body['payload']), {}
             if route == '/service/wallet':
                 return 200, self.ledger.ensure(body['profile']), {}
             if route in ['/service/reserve', '/service/commit', '/service/refund', '/service/finalize']:
@@ -117,6 +122,11 @@ class Exchange:
             return 200, {'ok': True}, {'Set-Cookie': '__Host-karma-exchange='+sid+'; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=43200'}
         hashed, session, profile = self.session(handler.headers.get('Cookie'))
         uid = profile['playerId']
+        if method == 'POST' and route == '/api/rules/accept':
+            return 200, self.account_api('/auth/rules', token=session['token'], body=handler.body()), {}
+        if method == 'POST' and route != '/api/logout':
+            require(not profile.get('rulesRequired'), '게임·코인 운영 규정에 먼저 동의해 주세요.', 'RULES_REQUIRED', 403)
+            require(not profile.get('sanctions', {}).get('active'), '이용 정지 중에는 거래할 수 없습니다. 게임 대시보드에서 사유·소명을 확인하세요.', 'ACCOUNT_RESTRICTED', 403)
         if method == 'GET' and route == '/api/community':
             return 200, self.ledger.community(uid), {}
         if method == 'GET' and route == '/api/economy':
@@ -139,7 +149,7 @@ class Exchange:
             # Show ownership only for the current user's orders.
             for order in market['orders']:
                 order['mine'] = order.pop('owner') == uid
-            return 200, {'profile': {k: profile.get(k) for k in ['playerId', 'name', 'role', 'rank', 'xp']}, 'wallet': self.ledger.wallet(uid), 'market': market, 'users': self.ledger.users()}, {}
+            return 200, {'profile': {k: profile.get(k) for k in ['playerId', 'name', 'role', 'rank', 'xp', 'rulesRequired', 'rulesVersion', 'sanctions']}, 'wallet': self.ledger.wallet(uid), 'market': market, 'users': self.ledger.users()}, {}
         if method == 'GET' and route == '/api/admin/audit':
             require(profile.get('role') == 'admin', '관리자 권한이 필요합니다.', 'ADMIN_REQUIRED', 403)
             return 200, self.ledger.audit(), {}

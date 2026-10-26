@@ -3,6 +3,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const titles={
+ rules:['규정 · 코인 · 제재','FAIR PLAY','운영 규정과 코인 구분, 제재·소명 이력을 확인하세요.'],
  overview:['종합 현황','COMMAND OVERVIEW','나의 전투 기록과 서버의 현재 상황을 확인하세요.'],
  loadout:['내 장비','PERSONAL LOADOUT','캐릭터에 저장된 시작 장비와 점수 한도를 확인하세요.'],
  leaderboard:['명예의 전당','LEADERBOARD','서버에서 기록한 경험치와 전투 성과를 확인하세요.'],
@@ -101,6 +102,7 @@ function view(name,writeHash=true){
  setText('page-title',title);setText('breadcrumb-title',title);setText('page-eyebrow',eyebrow);setText('page-description',description);
  if(writeHash&&location.hash!==`#${name}`)history.replaceState(null,'',`#${name}`);
  document.title=`${title} · KARMA`;
+ if(name==='rules')policy.load();
  if(name==='admin'&&isAdmin())renderUsers();
  if(name==='chatlogs'&&isAdmin()&&!state.chatLoaded)loadChatLogs(false);
 }
@@ -195,7 +197,7 @@ function loadoutNumbers(entry){
  return {cost,budget,character:c};
 }
 function renderProfile(){
- renderIdentity();renderMastery();
+ policy.render();renderIdentity();renderMastery();
  const p=state.me;
  if(!p){
   setText('profile-id','—');setText('profile-name','전투 기록을 연결하세요');setText('profile-rank','로그인이 필요합니다');
@@ -432,6 +434,7 @@ async function loadChatLogs(more){
  finally{state.chatLoading=false;$('chatlog-search').disabled=false;$('chatlog-more').disabled=false;}
 }
 function authMode(mode){
+ $('signup-rules').hidden=mode!=='register';$('signup-rules-agree').checked=false;
  state.authMode=mode;state.verification=false;state.registration=null;clearInterval(codeTimer);
  $('login-tab').setAttribute('aria-selected',String(mode==='login'));
  $('register-tab').setAttribute('aria-selected',String(mode==='register'));
@@ -477,7 +480,7 @@ $('auth-form').addEventListener('submit',async event=>{
   if(state.authMode==='login')await finishAuth(await api('/auth/login',{method:'POST',anonymous:true,body:{email,password}}));
   else{
    const name=$('auth-name').value.trim();if(!name)throw new Error('닉네임을 입력해 주세요.');
-   state.registration={email,password,name};
+   state.registration={email,password,name,...policy.signup()};
    const data=await api('/auth/register/request',{method:'POST',anonymous:true,body:state.registration});
    if(data.requiresVerification)verificationStep(data);else await finishAuth(data);
   }
@@ -549,5 +552,6 @@ $('user-search').addEventListener('input',renderUsers);
 window.addEventListener('hashchange',()=>view(location.hash.slice(1),false));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
 setInterval(()=>{if(!document.hidden&&!$('auth-dialog').open&&!$('edit-dialog').open)refresh();},30000);
+const policy=window.createKarmaPolicy({state,api,toast,refresh});
 renderProfile();renderDashboard();view(location.hash.slice(1)||'overview',false);refresh();
 })();

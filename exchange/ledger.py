@@ -10,6 +10,7 @@ from pathlib import Path
 
 from common import COIN, FEE, MAX_AMOUNT, Problem, require, integer, user_id, clean_text
 from economy import CommunityEconomy
+from coin_buckets import CoinBuckets
 
 class Connection(sqlite3.Connection):
     def __exit__(self, *args):
@@ -21,7 +22,7 @@ class Connection(sqlite3.Connection):
 
 
 
-class Ledger(CommunityEconomy):
+class Ledger(CoinBuckets, CommunityEconomy):
     def __init__(self, filename):
         self.filename = str(filename)
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
@@ -42,6 +43,7 @@ class Ledger(CommunityEconomy):
             ''')
             db.execute('INSERT OR IGNORE INTO assets VALUES(?,?,?,?,?,?)', (COIN, '학과 코인', '@department', 0, 2, self.now()))
             self.initialize_economy(db)
+            self.initialize_buckets(db)
 
     @staticmethod
     def now():
@@ -88,9 +90,10 @@ class Ledger(CommunityEconomy):
         row = db.execute('SELECT amount FROM balances WHERE owner=? AND asset=?', (owner, asset)).fetchone()
         return row['amount'] if row else 0
 
-    def move(self, db, tx, asset, source, destination, amount, reason, actor):
+    def move(self, db, tx, asset, source, destination, amount, reason, actor, debit='bonus', credit='bonus'):
         integer(amount)
         require(source != destination, '같은 지갑으로 보낼 수 없습니다.')
+        parts = self.bucket_move(db, source, destination, amount, debit, credit) if asset == COIN else {}
         if source == '@mint':
             db.execute('UPDATE assets SET supply=supply+? WHERE symbol=?', (amount, asset))
         else:
@@ -99,6 +102,9 @@ class Ledger(CommunityEconomy):
         require(self.balance(db, destination, asset)+amount <= MAX_AMOUNT, '지갑 보유 한도를 초과합니다.')
         db.execute('INSERT INTO balances VALUES(?,?,?) ON CONFLICT(owner,asset) DO UPDATE SET amount=amount+excluded.amount', (destination, asset, amount))
         db.execute('INSERT INTO journal(tx,asset,source,destination,amount,reason,actor,at) VALUES(?,?,?,?,?,?,?,?)', (tx, asset, source, destination, amount, reason, actor, self.now()))
+        if asset == COIN and db.execute('SELECT 1 FROM users WHERE id=?', (destination,)).fetchone():
+            self.collect_penalties(db, destination)
+        return parts
 
     def ensure_in(self, db, profile):
         uid = user_id(profile['playerId'])
@@ -113,7 +119,7 @@ class Ledger(CommunityEconomy):
                 db.execute("INSERT INTO welcome_grants VALUES(?,'paid')", (uid,))
             else:
                 db.execute("INSERT INTO welcome_grants VALUES(?,'pending')", (uid,))
-                self.pay_welcome(db, uid)
+        self.update_coin_profile(db, profile)
         return uid
 
     def ensure(self, profile):
@@ -121,7 +127,16 @@ class Ledger(CommunityEconomy):
             uid = self.ensure_in(db, profile)
         return self.wallet(uid)
 
+    def refresh_wallet(self, uid):
+        with self.transaction() as db:
+            require(db.execute('SELECT 1 FROM users WHERE id=?', (uid,)).fetchone(), '지갑을 찾을 수 없습니다.', 'NOT_FOUND', 404)
+            self.refresh_daily(db, uid)
+
     def wallet(self, uid):
+        self.refresh_wallet(uid)
+        return self._wallet(uid)
+
+    def _wallet(self, uid):
         with self.connect() as db:
             balances = [dict(r) for r in db.execute('SELECT a.*,COALESCE(b.amount,0) available FROM assets a LEFT JOIN balances b ON b.asset=a.symbol AND b.owner=? WHERE a.symbol=? OR b.amount>0 OR a.issuer=? ORDER BY a.created', (uid, COIN, uid))]
             locked = {}
@@ -132,7 +147,7 @@ class Ledger(CommunityEconomy):
             locked[COIN] = locked.get(COIN, 0)+service_locked
             welcome = db.execute('SELECT state FROM welcome_grants WHERE uid=?', (uid,)).fetchone()
             history = [dict(r) for r in db.execute('SELECT * FROM journal WHERE source=? OR destination=? ORDER BY id DESC LIMIT 100', (uid, uid))]
-            return {'playerId': uid, 'balances': balances, 'locked': locked, 'serviceLocked': service_locked, 'welcomePending': bool(welcome and welcome['state']=='pending'), 'history': history, 'gameFee': FEE, 'coin': COIN}
+            return {'playerId': uid, 'balances': balances, 'coins': self.coin_summary(db,uid), 'locked': locked, 'serviceLocked': service_locked, 'welcomePending': bool(welcome and welcome['state']=='pending'), 'history': history, 'gameFee': FEE, 'coin': COIN}
 
     def market(self, uid=None):
         with self.connect() as db:
@@ -249,7 +264,8 @@ class Ledger(CommunityEconomy):
                 missing = [p['name'] for p in profiles if self.balance(db, p['playerId']) < FEE]
                 require(not missing, '코인 부족: '+', '.join(missing)+' · 1인당 1 KARMA가 필요합니다.', 'INSUFFICIENT_FUNDS', 409)
                 for uid in ids:
-                    self.move(db, gid, COIN, uid, '@game:'+gid, FEE, '대전 이용료 예약', '@game-server')
+                    parts = self.move(db, gid, COIN, uid, '@game:'+gid, FEE, '대전 이용료 예약', '@game-server', debit='game')
+                    db.execute('INSERT INTO game_coin_parts VALUES(?,?,?)', (gid,uid,json.dumps(parts)))
                 db.execute('INSERT INTO games VALUES(?,?,?,?,?)', (gid, json.dumps(ids), 'reserved', FEE, self.now()))
                 return {'ok': True, 'state': 'reserved', 'fee': FEE}
             require(game, '대전 결제를 찾을 수 없습니다.', 'NOT_FOUND', 404)
@@ -271,12 +287,13 @@ class Ledger(CommunityEconomy):
             if game['state'] != 'refunded':
                 source = '@game:'+gid if game['state'] == 'reserved' else '@treasury'
                 for uid in json.loads(game['players']):
-                    self.move(db, gid, COIN, source, uid, FEE, '시작 실패 이용료 반환', '@game-server')
+                    self.refund_game_coins(db, gid, uid, source, FEE)
                 db.execute("UPDATE games SET state='refunded',updated=? WHERE id=?", (self.now(), gid))
             return {'ok': True, 'state': 'refunded'}
 
     def audit(self):
         with self.connect() as db:
+            self.audit_buckets(db)
             self.audit_community(db)
             supplies = [dict(r) for r in db.execute('SELECT a.symbol,a.supply,COALESCE(SUM(b.amount),0) accounted FROM assets a LEFT JOIN balances b ON b.asset=a.symbol GROUP BY a.symbol')]
             require(all(r['supply'] == r['accounted'] for r in supplies), '원장 보존 검사 실패', 'LEDGER_INVARIANT', 500)

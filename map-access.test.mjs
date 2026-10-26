@@ -1,3 +1,4 @@
+import {validateRules,GAME_RULES} from './rules.mjs';
 import assert from 'node:assert/strict';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import crypto from 'node:crypto';import net from 'node:net';
 import {startKarmaServer} from './server.mjs';import {MapAccess} from './map-access.mjs';
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'karma-map-access-')),sockets=[];let server;
@@ -16,7 +17,7 @@ try{
  assert(maps.every(m=>m.dmSpawns.length>=(m.maxPlayers||8)&&m.teamSpawns.length===8));
  const original=new MapAccess(path.join(temp,'policy-test.json'),maps);assert(!original.isOpen(18));original.set(18,true,'admin');assert(new MapAccess(path.join(temp,'policy-test.json'),maps).isOpen(18));
  server=await startKarmaServer({host:'127.0.0.1',port:0,healthPort:0,dataDir:temp,logger:()=>{}});
- const admin=await server.auth.createAccount({email:'admin@maps.test',password:crypto.randomUUID(),name:'관리자',role:'admin'}),user=await server.auth.createAccount({email:'user@maps.test',password:crypto.randomUUID(),name:'학생'});
+ const admin=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:'admin@maps.test',password:crypto.randomUUID(),name:'관리자',role:'admin'}),user=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:'user@maps.test',password:crypto.randomUUID(),name:'학생'});
  const ta=server.auth.issueSession(admin).authToken,tu=server.auth.issueSession(user).authToken;
  const api=async(token,body)=>{const r=await fetch(`http://127.0.0.1:${server.healthPort}/api/admin/maps`,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});return {status:r.status,data:await r.json()};};
  assert.equal((await connect(tu)).code,'BAD_CONFIG');assert.equal((await connect(ta)).type,'welcome','admin can preview closed map');

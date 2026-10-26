@@ -1,3 +1,4 @@
+import {validateRules,GAME_RULES} from './rules.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,16 +18,16 @@ try{
   const required=new AuthService({filename:path.join(temp,'required.json'),now:()=>now,
     verificationRequired:true,mailer:{configured:true,async sendCode(email,code){sent.push({email,code});}}});
   const missing=new AuthService({filename:path.join(temp,'missing.json'),verificationRequired:true,mailer:{configured:false}});
-  await assert.rejects(()=>missing.registerRequest({email:'a@example.test',password,name:'Tester'},'ip1'),error=>error.status===503);
-  const requested=await required.registerRequest({email:' Person@Example.Test ',password,name:' Tester '},'ip1');
+  await assert.rejects(()=>missing.registerRequest({rulesAccepted:true,rulesVersion:GAME_RULES.version,email:'a@example.test',password,name:'Tester'},'ip1'),error=>error.status===503);
+  const requested=await required.registerRequest({rulesAccepted:true,rulesVersion:GAME_RULES.version,email:' Person@Example.Test ',password,name:' Tester '},'ip1');
   assert.equal(requested.requiresVerification,true);assert.match(sent[0].code,/^\d{6}$/);
-  await assert.rejects(()=>required.registerRequest({email:'person@example.test',password,name:'Tester'},'ip1'),error=>error.code==='RESEND_WAIT');
+  await assert.rejects(()=>required.registerRequest({rulesAccepted:true,rulesVersion:GAME_RULES.version,email:'person@example.test',password,name:'Tester'},'ip1'),error=>error.code==='RESEND_WAIT');
   const wrong=sent[0].code==='000000'?'111111':'000000';
   for(let attempt=1;attempt<=5;attempt++)await assert.rejects(()=>required.registerVerify({email:'person@example.test',code:wrong},'ip1'),
     error=>error.code===(attempt===5?'CODE_LOCKED':'CODE_MISMATCH'));
   await assert.rejects(()=>required.registerVerify({email:'person@example.test',code:sent[0].code},'ip1'),error=>error.code==='CODE_LOCKED');
   now+=61000;
-  await required.registerRequest({email:'person@example.test',password,name:'Tester'},'ip2');
+  await required.registerRequest({rulesAccepted:true,rulesVersion:GAME_RULES.version,email:'person@example.test',password,name:'Tester'},'ip2');
   const verified=await required.registerVerify({email:'person@example.test',code:sent.at(-1).code},'ip2');
   assert.equal(verified.approvalRequired,true);assert.equal(verified.authToken,undefined);
   await assert.rejects(()=>required.login({email:'person@example.test',password},'ip3'),error=>error.code==='APPROVAL_PENDING');
@@ -41,7 +42,7 @@ try{
   assert.throws(()=>required.authenticate(logged.authToken),error=>error.code==='SESSION_EXPIRED');
   now+=13*3600000;
   assert.throws(()=>required.authenticate(registered.authToken),error=>error.code==='SESSION_EXPIRED');
-  await required.registerRequest({email:'expired@example.test',password,name:'Tester'},'ip4');
+  await required.registerRequest({rulesAccepted:true,rulesVersion:GAME_RULES.version,email:'expired@example.test',password,name:'Tester'},'ip4');
   now+=600001;
   await assert.rejects(()=>required.registerVerify({email:'expired@example.test',code:sent.at(-1).code},'ip4'),error=>error.code==='CODE_EXPIRED');
   console.log('PASS: required email code delivery adapter, missing SMTP503, resend60s, five-attempt lock, expiry10m, salted scrypt/no plaintext, login/logout/session expiry.');
@@ -57,7 +58,7 @@ try{
   }
   const config=await request('/api/auth-config');assert.equal(config.value.emailVerificationRequired,false);
   assert.equal(config.value.registrationApprovalRequired,true);
-  let signup=await request('/auth/register/request',{method:'POST',body:{email:'user@example.test',password,name:'일반 사용자'}});
+  let signup=await request('/auth/register/request',{method:'POST',body:{email:'user@example.test',password,name:'일반 사용자',rulesAccepted:true,rulesVersion:GAME_RULES.version}});
   assert.equal(signup.status,200);assert.equal(signup.value.requiresVerification,false);
   assert.equal(signup.value.approvalRequired,true);assert.equal(signup.value.authToken,undefined);
   const awaiting=auth.list().find(x=>x.email==='user@example.test');
@@ -69,7 +70,7 @@ try{
   assert.throws(()=>reopened.authenticate(cachedToken,cached),error=>error.code==='APPROVAL_PENDING');
   assert.equal((await request('/auth/login',{method:'POST',body:{email:'user@example.test',password}})).value.error.code,'APPROVAL_PENDING');
   assert.equal((await request('/api/admin/users/'+awaiting.playerId,{method:'PATCH',body:{approvalStatus:'approved'}})).status,401);
-  const adminAccount=await auth.createAccount({email:'admin@example.test',password,name:'관리자',role:'admin'});
+  const adminAccount=await auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:'admin@example.test',password,name:'관리자',role:'admin'});
   const adminLogin=await request('/auth/login',{method:'POST',body:{email:'admin@example.test',password}});
   assert.equal(adminLogin.value.profile.isAdmin,true);
   const admin=adminLogin.value,headers={token:admin.authToken};
