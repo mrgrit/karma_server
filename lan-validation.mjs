@@ -101,6 +101,10 @@ function stateFields(message) {
     if (message.eyeHeight < 0) fail('Invalid eyeHeight');
   }
   if (message.paused !== undefined) boolean(message.paused, 'paused');
+  if (message.viewFov !== undefined) {
+    finite(message.viewFov, 'viewFov', 2.8);
+    if (message.viewFov < 0.03) fail('Invalid viewFov');
+  }
   if (message.shotSequence !== undefined) integer(message.shotSequence, 'shotSequence');
   if (message.shot !== undefined && message.shot !== null) {
     const shot = message.shot;

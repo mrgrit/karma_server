@@ -1,6 +1,6 @@
 {
   "name": "karma-lan-server",
-  "version": "3.9.2",
+  "version": "3.9.3",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "test": "node lobby-ping.test.mjs && node adaptive-promotion.test.mjs && node conduct.test.mjs && node room-settings.test.mjs && node category-rankings.test.mjs && node map-access.test.mjs && node fairplay.test.mjs && node rematch-name.test.mjs && node scenarios.test.mjs && node mastery.test.mjs && node client-release.test.mjs && node progression.test.mjs && node auth.test.mjs && node server.test.mjs && node multiplayer.test.mjs && node dashboard.test.mjs && node lobby.test.mjs && node maps.test.mjs && node billing.test.mjs && node late-join.test.mjs && node exchange-client.test.mjs && node room-limits.test.mjs && node chat.test.mjs && node kill-feed.test.mjs && node chat-policy.test.mjs"
+    "test": "node death-lifecycle.test.mjs && node lobby-ping.test.mjs && node adaptive-promotion.test.mjs && node conduct.test.mjs && node room-settings.test.mjs && node category-rankings.test.mjs && node map-access.test.mjs && node fairplay.test.mjs && node rematch-name.test.mjs && node scenarios.test.mjs && node mastery.test.mjs && node client-release.test.mjs && node progression.test.mjs && node auth.test.mjs && node server.test.mjs && node multiplayer.test.mjs && node dashboard.test.mjs && node lobby.test.mjs && node maps.test.mjs && node billing.test.mjs && node late-join.test.mjs && node exchange-client.test.mjs && node room-limits.test.mjs && node chat.test.mjs && node kill-feed.test.mjs && node chat-policy.test.mjs"
   },
   "dependencies": {
     "nodemailer": "10.1.7"

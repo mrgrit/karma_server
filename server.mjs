@@ -234,6 +234,8 @@ export async function startKarmaServer({
     players:activeClients(room).map(c=>({playerId:c.playerId,kills:room.kills.get(c.playerId)||0,deaths:room.deaths.get(c.playerId)||0,points:room.points.get(c.playerId)||0}))};}
   function friendly(a,b){return a!==b&&a.room.mode==='tdm'&&a.team===b.team;}
   function error(session,code,message){
+    session.disconnectReason=code;
+    log('client-error',{code,playerId:session.playerId,roomId:session.room?.id,mode:session.room?.mode,life:session.state?.life,round:session.room?.round});
     write(session,{type:'error',version:2,code,message});
     session.socket.end();const timer=setTimeout(()=>session.socket.destroy(),250);timer.unref();
   }
@@ -540,18 +542,22 @@ export async function startKarmaServer({
     if(session.room.mode==='dm'&&message.life>old.life&&(!session.deadAt||Date.now()-session.deadAt<dmRespawnMs))return false;
     if(session.room.mode==='dm'&&session.deadAt&&message.life===old.life&&message.hp>0)return false;
     if(message.life<old.life||(message.life===old.life&&message.seq<=old.seq))return false;
-    if(message.inventory!==undefined&&JSON.stringify(message.inventory)!==JSON.stringify(session.inventory))
+    const newLife=message.life>old.life,nextInventory=newLife?[...session.config.inventory]:session.inventory;
+    if(message.inventory!==undefined&&JSON.stringify(message.inventory)!==JSON.stringify(nextInventory))
       reject('BAD_INVENTORY','Inventory changes require a server pickup grant');
     const selectedWeapon=message.selectedWeapon??message.weapon;
-    if(!session.inventory.includes(selectedWeapon))reject('BAD_INVENTORY','Selected weapon is not owned');
-    const ammunition={...old.ammo};
+    if(!nextInventory.includes(selectedWeapon))reject('BAD_INVENTORY','Selected weapon is not owned');
+    const ammunition=newLife?{}:{...old.ammo};
     if(message.ammo!==undefined){
       if(!plainObject(message.ammo))reject('BAD_INVENTORY','Invalid ammunition');
       for(const [weapon,value] of Object.entries(message.ammo)){
-        if(!session.inventory.includes(Number(weapon)))reject('BAD_INVENTORY','Ammo for an unowned weapon');
+        if(!nextInventory.includes(Number(weapon)))reject('BAD_INVENTORY','Ammo for an unowned weapon');
         ammunition[weapon]=ammoValue(value);
       }
     }
+    // Commit the spawn reset only after the life/timer and full pose validate.
+    // An early DM respawn must leave the still-dead life's inventory intact.
+    session.inventory=[...nextInventory];
     session.state={life:message.life,hp:message.hp,pos:[...message.pos],sector:message.sector,seq:message.seq,
       inventory:[...session.inventory],selectedWeapon,ammo:ammunition};
     session.latestPose={...clone(message),type:'state',inventory:[...session.inventory],selectedWeapon,ammo:clone(ammunition)};
@@ -610,7 +616,15 @@ export async function startKarmaServer({
     const dropped=message.drop;
     if(!plainObject(dropped)||!session.inventory.includes(dropped.selectedWeapon)||
        weaponById.get(dropped.selectedWeapon)?.isWeapon!==true)return;
-    const created=room.drops.createDeathDrop(result.receipt,dropped);
+    let created;
+    try{created=room.drops.createDeathDrop(result.receipt,dropped);}
+    catch(problem){
+      // Native death frames can have no valid world sector/loot position.
+      // The death is already confirmed; an unusable optional drop must not
+      // disconnect its victim or affect the rest of the room.
+      if(!(problem instanceof TypeError))throw problem;
+      log('death-drop-rejected',{roomId:room.id,playerId:session.playerId,life:message.life,reason:'invalid-loot-snapshot'});return;
+    }
     if(created.created){
       room.dropOrder.push(created.drop.id);
       // The original world has 40 ground-item slots.
@@ -705,7 +719,7 @@ export async function startKarmaServer({
       if(!session.room.started&&!session.room.ending)session.lobbyPing?.accept(message.token);
       return;
     }
-    if(message.type==='leave'){session.socket.end();return;}
+    if(message.type==='leave'){session.disconnectReason='player-leave';session.socket.end();return;}
     if(message.type==='chat-send'){chat(session,message);return;}
     if(message.type==='lobby-update'){lobbyUpdate(session,message);return;}
     if(message.type==='start-match'){
@@ -723,6 +737,10 @@ export async function startKarmaServer({
     if(message.type==='drop-claim'){manualDrop(session,message);return;}
     if(message.type!=='game')reject('BAD_MESSAGE','Unsupported message type');
     const game=validateLanMessage(message.message);
+    // A player's leave is a connection action, not a room-wide gameplay event.
+    // Relaying it made older launchers stop every remaining player's game.
+    // disconnected() sends the authoritative peer-left or match-ended result.
+    if(game.type==='leave'){session.disconnectReason='player-leave';session.socket.end();return;}
     if(session.room.mode==='tdm'&&['hit','state','respawn','death'].includes(game.type)&&
       (game.life!==session.roundLife||!session.alive&&game.type!=='death'))return;
     if(game.type==='state'||game.type==='respawn'){
@@ -730,16 +748,17 @@ export async function startKarmaServer({
       if(session.activityPos&&game.pos.some((v,i)=>Math.abs(v-session.activityPos[i])>40))session.lifeActive=true;
       if(game.shot&&game.shot.id!==session.activityShot){session.lifeActive=true;session.activityShot=game.shot.id;}
       session.activityPos??=[...game.pos];
-      if(game.type==='respawn'&&game.life>session.state.life){
-        session.inventory=[...session.config.inventory];
-        session.state.ammo={};
-      }
       if(!updateState(session,game))return;
       promotions.track(session.room,session,game);
     }
     let target=null;
     if(message.targetId!==undefined){
-      target=online.get(identifier(message.targetId,'target ID'));
+      const targetId=identifier(message.targetId,'target ID');target=online.get(targetId);
+      // Shots captured before a peer-left notification can arrive after the
+      // victim has disconnected or joined another room. Drop only that stale
+      // hit; never kick its shooter. Targets unrelated to this room stay invalid.
+      if(game.type==='hit'&&session.room.participants.has(targetId)&&
+        (!target||target.closed||target.room!==session.room))return;
       if(!target||target===session||target.room!==session.room)reject('BAD_TARGET','Target is not in this room');
     }
     const room=session.room;
@@ -774,7 +793,6 @@ export async function startKarmaServer({
     const envelope={type:'game',version:2,senderId:session.playerId,slot:session.slot,message:game};
     if(target){if(write(target,envelope))relayedMessages++;}
     else broadcast(session.room,envelope,session);
-    if(game.type==='leave')session.socket.end();
   }
   function finishRoom(room,reason,winnerIds){
     if(!room.started||room.ending)return;
@@ -829,7 +847,8 @@ export async function startKarmaServer({
     if(room.mode==='duel'||remaining.length===0||room.mode==='tdm'&&new Set(remaining.map(c=>c.team)).size<2)
       finishRoom(room,'forfeit',remaining.map(client=>client.playerId));
     else if(room.mode==='tdm'&&new Set(remaining.filter(c=>c.alive).map(c=>c.team)).size<2)endRound(room,'team-eliminated');
-    log('room-ended',{roomCount:rooms.size,players:online.size});
+    log('player-left',{roomId:room.id,mode:room.mode,playerId:session.playerId,reason:session.disconnectReason||'connection-closed',
+      round:room.round,life:session.state?.life,roomContinues:!room.ending,remaining:remaining.length,roomCount:rooms.size,players:online.size});
   }
   async function authResult(result){
     if(!result.account)return result;
