@@ -3,6 +3,7 @@ import {GAME_RULES,RULES_HASH,rulesAccepted} from './rules.mjs';
 import net from 'node:net';
 import {scenarioForWeapon,ATTACK_CURRICULUM} from './attack-scenarios.mjs';
 import {FairPlay} from './fairplay.mjs';
+import {LobbyPing} from './lobby-ping.mjs';
 import {AdaptivePromotions} from './adaptive-promotion.mjs';
 import {RANKS} from './rank-policy.mjs';
 import {MapAccess} from './map-access.mjs';
@@ -303,7 +304,12 @@ export async function startKarmaServer({
     canStart:startReason(room)==='',startReason:startReason(room),
     roomRevision:room.settingsRevision||0,roomSettingsEditable:!room.started&&!room.starting&&!room.ending&&room.pending.size===0,
     availableMaps:multiplayerMaps.filter(m=>room.clients.every(c=>mapAccess.isOpen(m.mapIndex)||c.account.role==='admin')&&(!m.minClientBuild||m.minClientBuild===room.build)).map(m=>({map:m.mapIndex,name:m.name,maxPlayers:m.maxPlayers||8})),
-    members:room.clients.map(c=>({playerId:c.playerId,name:c.account.name,slot:c.slot,team:c.team,ready:c.ready===true}))};}
+    members:room.clients.map(c=>({playerId:c.playerId,name:c.account.name,slot:c.slot,team:c.team,ready:c.ready===true,
+      ...(c.lobbyPing?.snapshot()||{pingMs:null,pingStatus:'unsupported'})}))};}
+  function probeLobby(session){
+    if(session.closed||!session.room||session.room.started||session.room.ending)return;
+    const probe=session.lobbyPing?.probe();if(probe)write(session,probe);
+  }
   function changeRoomSettings(session,message){
     const room=session.room,value=message.roomSettings;
     if(room.clients[0]!==session)reject('HOST_ONLY','방장만 방 설정을 변경할 수 있습니다.');
@@ -469,6 +475,7 @@ export async function startKarmaServer({
       db.save(currentProfile);
       if(room.started){room.combat.addParticipant(playerId);room.drops.addParticipant(playerId);}
       session.playerId=playerId;session.character=offered.character;
+      if(message.lobbyPing===1)session.lobbyPing=new LobbyPing();
       session.config=offered.config;session.capability=capability;session.room=room;session.slot=slot;session.team=slot%2;
       session.inventory=[...offered.config.inventory];
       session.state={life:initialLife,hp:100,pos:[0,0,0],inventory:[...session.inventory],
@@ -493,6 +500,7 @@ export async function startKarmaServer({
       }else{
         room.lobbyRevision++;
         broadcast(room,lobbyInfo(room));
+        probeLobby(session);
         if(!room.manualStart&&room.clients.length===room.maxPlayers)startRoom(room);
       }
     }catch(problem){
@@ -693,6 +701,10 @@ export async function startKarmaServer({
       admissions.add(admission);return;
     }
     if(message.type==='ping'){write(session,{type:'pong',version:2});return;}
+    if(message.type==='latency-reply'){
+      if(!session.room.started&&!session.room.ending)session.lobbyPing?.accept(message.token);
+      return;
+    }
     if(message.type==='leave'){session.socket.end();return;}
     if(message.type==='chat-send'){chat(session,message);return;}
     if(message.type==='lobby-update'){lobbyUpdate(session,message);return;}
@@ -1090,11 +1102,21 @@ export async function startKarmaServer({
   },5000);authTimer.unref();
   const conductTimer=setInterval(()=>{if(exchange)for(const c of conduct.data.cases.filter(c=>['pending','revoking'].includes(c.state)))conduct.settle(c.id,exchange.request).catch(()=>log('conduct-settlement-pending',{caseId:c.id}));},10000);conductTimer.unref();
   const promotionTimer=setInterval(()=>{try{if(promotions.review())db.flush();}catch(e){log('promotion-review-error',{message:e.message});}},60000);promotionTimer.unref();
+  const lobbyPingTimer=setInterval(()=>{
+    for(const room of rooms.values()){
+      if(room.started||room.ending)continue;
+      for(const client of room.clients)probeLobby(client);
+      const summary=JSON.stringify(room.clients.map(c=>[c.playerId,c.lobbyPing?.snapshot()||null]));
+      if(room.clients.some(c=>c.lobbyPing)&&summary!==room.lastPingSummary){
+        room.lastPingSummary=summary;broadcast(room,{...lobbyInfo(room),latencyOnly:true});
+      }
+    }
+  },1000);lobbyPingTimer.unref();
   return {
     port:server.address().port,healthPort:health.address().port,auth,
     stats:()=>({rooms:rooms.size,players:online.size,acceptedMessages,relayedMessages}),
     async close(){
-      if(closing)return;closing=true;clearInterval(authTimer);clearInterval(conductTimer);clearInterval(promotionTimer);
+      if(closing)return;closing=true;clearInterval(authTimer);clearInterval(conductTimer);clearInterval(promotionTimer);clearInterval(lobbyPingTimer);
       for(const room of rooms.values()){clearTimeout(room.matchTimer);clearTimeout(room.roundTimer);}
       for(const socket of sockets)socket.destroy();
       await Promise.allSettled([...admissions]);
