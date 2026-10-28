@@ -13,7 +13,7 @@ const catalog=JSON.parse(fs.readFileSync(new URL('loadouts.json',import.meta.url
 const config={map:0,age:0,character:{index:0,camp:0},rank:{id:'lieutenant'},inventory:catalog.defaultInventory,selectedWeapon:9,settings:{build:'karma290-central3'}};
 const clients=[],delay=ms=>new Promise(r=>setTimeout(r,ms));
 async function wait(label,fn){for(let i=0;i<250;i++){const value=fn();if(value)return value;await delay(20);}throw Error('Timeout: '+label);}
-async function join(code,mode='dm',host=false,capacity=8,roomName){
+async function join(code,mode='dm',host=false,capacity=8,roomName,equipment=config){
   const account=await server.auth.createAccount({rulesAcceptance:validateRules({rulesAccepted:true,rulesVersion:GAME_RULES.version}),email:crypto.randomUUID()+'@test.invalid',password:crypto.randomUUID(),name:'Player '+clients.length});
   const socket=net.createConnection({host:'127.0.0.1',port:server.port}),c={socket,id:account.playerId,messages:[]};let buffer='';clients.push(c);
   socket.setEncoding('utf8');socket.on('error',()=>{});socket.on('data',chunk=>{buffer+=chunk;let end;
@@ -21,7 +21,7 @@ async function join(code,mode='dm',host=false,capacity=8,roomName){
   c.send=m=>socket.write(JSON.stringify(m)+'\n');
   c.latest=type=>c.messages.filter(m=>m.type===type).at(-1);
   await new Promise((resolve,reject)=>{socket.once('connect',resolve);socket.once('error',reject);});
-  c.send({type:'hello',version:2,op:host?'create':'join',code,roomName,mode,maxPlayers:capacity,clientMaxPlayers:8,manualStart:true,config,authToken:server.auth.issueSession(account).authToken});
+  c.send({type:'hello',version:2,op:host?'create':'join',code,roomName,mode,maxPlayers:capacity,clientMaxPlayers:8,manualStart:true,config:equipment,authToken:server.auth.issueSession(account).authToken});
   const welcome=await wait('welcome',()=>c.latest('welcome'));c.roomId=welcome.room.roomId;
   c.start=()=>c.send({type:'start-match',roomId:c.roomId});
   await wait('lobby roster',()=>c.latest('waiting'));return c;
@@ -33,7 +33,8 @@ async function update(c,value){
 }
 async function prepare(group){for(const c of group)assert.equal((await update(c,{ready:true})).ready,true);}
 try {
-  const host=await join('910001','dm',true,8,'  학과\n  대전\u0000  ');
+  const hostArmor=[50,9,1,6,48,49,18],guestArmor=[50,9,1,6,49,48,18];
+  const host=await join('910001','dm',true,8,'  학과\n  대전\u0000  ',{...config,inventory:hostArmor});
   assert.equal(host.latest('welcome').room.roomName,'학과 대전');
   assert.equal(host.latest('waiting').canStart,false);host.start();
   assert.match((await wait('one-player rejection',()=>host.latest('start-denied'))).message,/두 명/);
@@ -52,6 +53,10 @@ try {
   assert.equal(changed.ready,false,'Changing equipment resets ready even if true is supplied alongside');assert.equal(changed.config.selectedWeapon,1);
   const invalid=await update(guest,{config:{...config,inventory:[50,10,1,6,49,24,18],selectedWeapon:10}});
   assert.equal(invalid.type,'lobby-update-denied');assert(!guest.socket.destroyed);assert.equal(guest.latest('waiting').members.find(m=>m.playerId===guest.id).ready,false);
+  const armorChange=await update(guest,{config:{...config,inventory:guestArmor,selectedWeapon:1}});
+  assert.equal(armorChange.type,'lobby-updated');assert.deepEqual(armorChange.config.inventory,guestArmor);
+  const duplicateArmor=await update(guest,{config:{...config,inventory:[50,9,1,6,48,48,18]}});
+  assert.equal(duplicateArmor.type,'lobby-update-denied');assert(!guest.socket.destroyed,'Invalid armor remains a recoverable lobby error');
   await prepare([host,guest]);
   assert.equal((await update(guest,{ready:false})).ready,false,'Editing begins only after unready acknowledgement');
   host.messages=[];host.start();assert.match((await wait('editing race blocks start',()=>host.latest('start-denied'))).message,/준비/);
@@ -62,6 +67,8 @@ try {
   assert.equal(ready.config.rank.id,'recruit','server replaces client-supplied rank');
   assert.equal(ready.peers[0].config.rank.id,'recruit','remote rank is provided by server');
   assert.equal(ready.peers[0].config.selectedWeapon,1,'Start uses the saved lobby equipment');
+  assert.deepEqual(ready.config.inventory,hostArmor,'Both armor pieces survive create and game start');
+  assert.deepEqual(ready.peers[0].config.inventory,guestArmor,'Both armor pieces survive lobby edit and peer handoff');
   const tooLate=await update(guest,{ready:false});assert.equal(tooLate.code,'MATCH_STARTED');assert.equal(tooLate.lobby.canStart,false);assert(!guest.socket.destroyed);
   await wait('guest ready',()=>guest.latest('peer-ready'));await delay(60);
   assert.equal(host.messages.filter(m=>m.type==='peer-ready').length,1);

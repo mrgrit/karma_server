@@ -31,6 +31,19 @@ for(const [id,character] of Object.entries(catalog.characters)){
  }
  const result=validate(character,character.defaultInventory,character.unlockXp,character.defaultSelectedWeapon);
  assert(result.cost<=result.budget,id+' default exceeds budget');
+ for(const [armor,med] of [[48,49],[49,48]]){
+  const selection=[...character.defaultInventory];selection[4]=armor;selection[5]=med;
+  const equipped=validate(character,selection,character.unlockXp,character.defaultSelectedWeapon);
+  assert.equal(equipped.budget,result.budget,id+' dual armor does not increase budget');
+  const cost=item=>item===255?0:catalog.weapons.find(w=>w.id===item).inventoryCost;
+  assert.equal(equipped.cost,result.cost-cost(character.defaultInventory[4])-cost(character.defaultInventory[5])+150,id+' both armor costs count');
+  assert.equal(equipped.inventory.length,7);
+  const duplicate=[...selection];duplicate[5]=armor;
+  assert.throws(()=>validate(character,duplicate,character.unlockXp,character.defaultSelectedWeapon),/duplicate/,id);
+  assert.throws(()=>validate(character,[...selection,23],character.unlockXp,character.defaultSelectedWeapon),/seven slots/,id);
+  const rankBonus=equipped.budget-character.inventoryCapacity;
+  assert.throws(()=>validate({...character,inventoryCapacity:equipped.cost-rankBonus-1},selection,character.unlockXp,character.defaultSelectedWeapon),/exceeds budget/,id);
+ }
 }
 for(const camp of [0,1])assert.deepEqual(
  [...new Set(Object.values(catalog.characters).filter(c=>c.camp===camp&&c.unlockXp===0).map(c=>c.role))].sort(),
@@ -40,7 +53,7 @@ assert.equal(validate(heavy,[50,255,21,22,255,255,255],6000,22).cost,850);
 assert.doesNotThrow(()=>validate(heavy,[50,14,22,21,255,255,255],6000,22));
 assert.throws(()=>validate(heavy,dual,5999,21),/6000 XP/);
 for(const character of [assault,sniper])assert.throws(()=>validate(character,dual,10000,21),/unavailable|heavy/);
-for(const [slot,item] of [[4,48],[5,23],[6,18]]){
+for(const [slot,item] of [[4,48],[5,23],[5,48],[5,49],[6,18]]){
  const loadout=[...dual];loadout[slot]=item;
  assert.throws(()=>validate(heavy,loadout,10000,21),/sacrificing/);
 }
@@ -85,4 +98,4 @@ assert.equal(manual.dropWeapon('picker',manualRequest,{state:{...manualState,lif
 assert.equal(manual.dropWeapon('picker',{...manualRequest,requestId:'drop-2',weapon:0},{state:{...manualState,inventory:[0],selectedWeapon:0},weapons:catalog.weapons}).reason,'cannot-drop-item');
 const restoredManual=new DropLedger({matchId:'manual-drop',playerIds:['picker','victim'],snapshot:manual.snapshot()});
 assert.equal(restoredManual.dropWeapon('picker',manualRequest,{state:manualState,weapons:catalog.weapons}).duplicate,true,'Snapshot preserves manual-drop request idempotency');
-console.log('PASS progression: all character defaults/unlock boundaries, all three starter classes per camp, rank/class dual cannon, 1405-point preset, optional light weapon, equipment sacrifice and exact-ammo pickup enforcement.');
+console.log('PASS progression: all character defaults/unlock boundaries, dual armor in either order with unchanged seven slots/budgets, duplicate and overbudget rejection, all three starter classes per camp, rank/class dual cannon, equipment sacrifice and exact-ammo pickup enforcement.');
